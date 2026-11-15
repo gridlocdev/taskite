@@ -18,6 +18,7 @@ import {
   ListPopup,
   filterEntries,
   isComposingKey,
+  isSubmitKey,
   isMac,
   type CommandCatalog,
 } from '@taskite/ui';
@@ -185,8 +186,8 @@ function AddFieldMenu(props: { readonly extras: readonly Extra[]; readonly onPic
 }
 
 /**
- * The task editor (PRD §9.1). Changes apply as they're made, each one undo step: pickers at once, text
- * when its field loses focus or the editor closes. Done, Enter in a one-line field, or Esc closes it.
+ * The task editor (PRD §4.4). Changes apply as they're made, each one undo step: pickers at once, text
+ * when its field loses focus or the editor closes. Done, ⌘Enter, Enter in a one-line field, or Esc closes it.
  * Due date, repeat, priority, labels and subtasks show only when the task has them, or once added.
  */
 function TaskEditor({ app, id }: { readonly app: AppController; readonly id: string }) {
@@ -435,7 +436,7 @@ function TaskEditor({ app, id }: { readonly app: AppController; readonly id: str
               value={subtask}
               onInput={(e) => setSubtask((e.target as HTMLInputElement).value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !isComposingKey(e)) {
+                if (e.key === 'Enter' && !isComposingKey(e) && !isSubmitKey(e)) {
                   e.preventDefault();
                   app.addSubtask(task.id, subtask);
                   setSubtask('');

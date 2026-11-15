@@ -30,6 +30,7 @@ Single-letter keys only work when you aren't typing in a box.
 | ----------------------------------- | -------------------------- | ------------------------------ |
 | Complete, or reopen if already done | **␣**                      | **Space**                      |
 | Edit (one task)                     | **↩**                      | **Enter**                      |
+| Save and close the task editor      | **⌘↩**                     | **Ctrl+Enter**                 |
 | Set due date                        | **D**                      | **D**                          |
 | Priority 1 to 4                     | **1**, **2**, **3**, **4** | **1**, **2**, **3**, **4**     |
 | Move to a project                   | **M**                      | **M**                          |

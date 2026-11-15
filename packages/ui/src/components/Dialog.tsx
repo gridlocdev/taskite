@@ -1,11 +1,11 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useId, useRef, useState } from 'preact/hooks';
-import { isComposingKey } from '../commands/shortcut.ts';
+import { isComposingKey, isSubmitKey } from '../commands/shortcut.ts';
 import { trapTab } from './focusTrap.ts';
 
 /**
- * The one modal dialog: labelled by its title, Escape and a click on the backdrop close it, Tab stays
- * inside it, focus moves in when it opens and goes back where it was when it closes.
+ * The one modal dialog: labelled by its title, Escape and a click on the backdrop close it, ⌘Enter (Ctrl+Enter)
+ * submits it from any field, Tab stays inside it, focus moves in when it opens and goes back where it was when it closes.
  */
 export function Dialog(props: {
   readonly title: string;
@@ -49,6 +49,10 @@ export function Dialog(props: {
             e.preventDefault();
             e.stopPropagation();
             props.onClose();
+          } else if (props.onSubmit && isSubmitKey(e)) {
+            e.preventDefault();
+            e.stopPropagation();
+            ref.current?.requestSubmit();
           } else if (ref.current) {
             trapTab(ref.current, e);
           }

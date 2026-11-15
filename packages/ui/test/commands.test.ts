@@ -4,6 +4,7 @@ import {
   SEQUENCE_MS,
   filterEntries,
   formatSequence,
+  isSubmitKey,
   parseSequence,
   sequenceAccelerator,
   type CommandSpec,
@@ -65,6 +66,14 @@ describe('shortcuts', () => {
     expect(id(c.forEvent(key({ key: 'k', metaKey: true }), 'list', 0, true))).toBe('menu');
     expect(id(c.forEvent(key({ key: 'k', ctrlKey: true }), 'list', 0, true))).toBeNull();
     expect(id(c.forEvent(key({ key: 'k', ctrlKey: true }), 'list', 0, false))).toBe('menu');
+  });
+
+  it('⌘Enter submits a dialog on a Mac, Ctrl+Enter elsewhere; plain or Shift+Enter does not', () => {
+    expect(isSubmitKey(key({ key: 'Enter', metaKey: true }), true)).toBe(true);
+    expect(isSubmitKey(key({ key: 'Enter', ctrlKey: true }), false)).toBe(true);
+    expect(isSubmitKey(key({ key: 'Enter', ctrlKey: true }), true)).toBe(false);
+    expect(isSubmitKey(key({ key: 'Enter' }), true)).toBe(false);
+    expect(isSubmitKey(key({ key: 'Enter', metaKey: true, shiftKey: true }), true)).toBe(false);
   });
 
   it('extra modifiers stop a match; Shift is ignored for symbols such as ?', () => {

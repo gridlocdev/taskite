@@ -22,14 +22,17 @@ const GROUP_TITLES: Record<CommandGroup, string> = {
   Help: 'Help',
 };
 
-/** Keys handled outside the catalog: in the add-task row, by the mouse, and Escape everywhere. */
+/** Keys handled outside the catalog: in the add-task row, in dialogs, by the mouse, and Escape everywhere. */
 function extras(mod: string): Partial<Record<CommandGroup, ShortcutLine[]>> {
   return {
     File: [
       { title: 'Add the task and start the next', keys: [['Enter']] },
       { title: 'Stop adding (on an empty row)', keys: [['Enter'], ['Esc']] },
     ],
-    Task: [{ title: 'Task actions menu', keys: [['Shift', 'F10']] }],
+    Task: [
+      { title: 'Task actions menu', keys: [['Shift', 'F10']] },
+      { title: 'Save and close the task editor', keys: [[mod === '⌘' ? '⌘Enter' : 'Ctrl+Enter']] },
+    ],
     Select: [
       { title: 'Choose another task too', keys: [[`${mod}-click`]] },
       { title: 'Choose a range of tasks', keys: [['Shift-click']] },

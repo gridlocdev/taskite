@@ -16,6 +16,7 @@ export {
   formatSequence,
   formatShortcut,
   isComposingKey,
+  isSubmitKey,
   isMac,
   matchRank,
   parseSequence,

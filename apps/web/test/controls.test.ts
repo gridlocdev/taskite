@@ -22,8 +22,8 @@ function rows(): { label: string; mac: string[]; other: string[] }[] {
     .map(([label = '', mac = '', other = '']) => ({ label, mac: bold(mac), other: bold(other) }));
 }
 
-/** Keys in the doc that aren't catalog shortcuts on purpose (mouse clicks, keys inside the composer). */
-const NOT_COMMANDS = new Set(['⌘-click', 'Ctrl-click', 'Shift-click']);
+/** Keys in the doc that aren't catalog shortcuts on purpose (mouse clicks, keys inside the composer or a dialog). */
+const NOT_COMMANDS = new Set(['⌘-click', 'Ctrl-click', 'Shift-click', '⌘↩', 'Ctrl+Enter']);
 
 describe('docs/controls.md', () => {
   for (const mac of [true, false]) {

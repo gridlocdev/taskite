@@ -88,6 +88,11 @@ export function isComposingKey(e: { readonly isComposing?: boolean; readonly key
   return !!e.isComposing || e.keyCode === 229;
 }
 
+/** ⌘Enter on a Mac, Ctrl+Enter elsewhere: submits a dialog from any field, a multi-line one included. */
+export function isSubmitKey(e: ShortcutEvent, mac = isMac): boolean {
+  return e.key === 'Enter' && (mac ? e.metaKey : e.ctrlKey) && !e.altKey && !e.shiftKey;
+}
+
 /**
  * True when the event typed a character through AltGr rather than pressing a shortcut. Windows reports
  * AltGr as Ctrl+Alt, so Polish AltGr+S (ś) would otherwise run Ctrl+Alt+S. macOS has no AltGr (⌥ is Alt).
