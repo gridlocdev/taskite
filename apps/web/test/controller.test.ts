@@ -276,4 +276,12 @@ describe('AppController', () => {
     expect(app.list.getTask(b!)?.deletedAt).toBeNull();
     expect(app.list.liveTasks().map((t) => t.title)).toEqual(['A', 'B']);
   });
+
+  it('reads Quick Add words in the subtask field', async () => {
+    const { app } = await makeApp();
+    const parent = app.list.addTask({ title: 'Trip' });
+    app.addSubtask(parent.id, 'Call mom tomorrow p1 @phone');
+    const [sub] = app.list.getSubtasks(parent.id);
+    expect(sub).toMatchObject({ title: 'Call mom', due: '2026-03-11', priority: 1, labels: ['phone'] });
+  });
 });

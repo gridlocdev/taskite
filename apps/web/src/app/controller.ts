@@ -9,6 +9,7 @@ import {
   addDraft,
   fallbackAfter,
   formatDue,
+  parseQuickAdd,
   plural,
   rangeIds,
   resolveDraft,
@@ -482,8 +483,18 @@ export class AppController {
     if (Object.keys(changed).length) this.list.updateTasks(id, changed);
   }
 
-  addSubtask(parentId: string, title: string): void {
-    if (title.trim()) this.list.addTask({ title, parentId });
+  /** The editor's subtask field: Quick Add text (PRD §4.4). A #project is ignored: subtasks live with their parent. */
+  addSubtask(parentId: string, text: string): void {
+    if (!text.trim()) return;
+    const parsed = parseQuickAdd(text, this.today.peek());
+    this.list.addTask({
+      title: parsed.title || text,
+      parentId,
+      due: parsed.due ?? (parsed.recurrence ? this.today.peek() : null),
+      recurrence: parsed.recurrence,
+      priority: parsed.priority ?? 4,
+      labels: parsed.labels,
+    });
   }
 
   setDue(ids: readonly string[], due: string | null): void {

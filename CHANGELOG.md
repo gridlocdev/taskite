@@ -35,6 +35,7 @@
 - A monthly or yearly task checked off weeks late keeps its day of the month: a task due on the 31st no longer moves to the 28th after catching up over February.
 - A refresh that read the file just before one of this window's saves no longer puts the older file back over the change you just made. Requests to the NAS server give up after 20 seconds, so a server that stops answering shows "Couldn't save your tasks." instead of saving forever.
 - Enter and Space on **Add task**, **Add section** or a section's ⋯ button press that button instead of opening or completing the task under the cursor.
+- The task editor's subtask field reads Quick Add words as the PRD says: "Call mom tomorrow p1" adds a subtask named "Call mom", due tomorrow, priority 1.
 
 ## 2.0.0
 
