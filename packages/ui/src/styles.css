@@ -888,6 +888,10 @@ kbd {
   align-items: flex-start;
   padding-top: 12vh;
 }
+.tk-dialog:focus {
+  outline: none;
+}
+
 .tk-dialog {
   width: 440px;
   max-width: 100%;

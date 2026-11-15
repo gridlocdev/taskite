@@ -34,6 +34,7 @@ export {
   filterEntries,
   formatSequence,
   formatShortcut,
+  isComposingKey,
   isMac,
   matchRank,
   parseSequence,

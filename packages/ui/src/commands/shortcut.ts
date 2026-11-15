@@ -108,7 +108,8 @@ function isAltGraph(e: ShortcutEvent, mac: boolean): boolean {
  *    shortcut without shift.
  * 3. Shifted punctuation matches the shortcut written with shift and the unshifted character (⇧⌘} is ⇧⌘]).
  * 4. A key that typed no ASCII character (an ⌥ layer, a Cyrillic layout) goes by its physical key, so ⌥⌘L
- *    (¬) and ⌘Я are ⌥⌘L and ⌘Z.
+ *    (¬) and ⌘Я are ⌥⌘L and ⌘Z. So does a plain digit shortcut on a layout whose digit keys type
+ *    punctuation without Shift: AZERTY's & is 1.
  */
 export function matchRank(s: Shortcut, e: ShortcutEvent, mac = isMac): number {
   const mod = mac ? e.metaKey : e.ctrlKey;
@@ -120,6 +121,8 @@ export function matchRank(s: Shortcut, e: ShortcutEvent, mac = isMac): number {
     if (ch === s.key && e.shiftKey === s.shift) return 1;
     if (ch === s.key && e.shiftKey && !s.shift && !/^[a-z]$/.test(ch)) return 2;
     if (UNSHIFTED[ch] === s.key && e.shiftKey && s.shift) return 3;
+    // A digit key that types punctuation without Shift (AZERTY & é " '): the digit on its key cap.
+    if (/^\d$/.test(s.key) && e.code === `Digit${s.key}` && e.shiftKey === s.shift && !s.mod) return 4;
     return 0;
   }
   if ([...e.key].length === 1 && e.key !== ' ') {

@@ -128,7 +128,8 @@ export class CommandCatalog {
     if (isComposingKey(e)) return null;
     const pending = this.#pending;
     this.#pending = null;
-    if (pending && now - pending.at <= SEQUENCE_MS) {
+    // A sequence never finishes in a text field: g in the list, then i typed into search, types i.
+    if (pending && focus !== 'text' && now - pending.at <= SEQUENCE_MS) {
       for (const c of this.all)
         for (const seq of c.sequences) {
           const [a, b] = seq;

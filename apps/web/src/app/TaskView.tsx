@@ -9,7 +9,7 @@ import {
   type Row,
   type Section,
 } from '@taskite/core';
-import { Icon, type CommandCatalog } from '@taskite/ui';
+import { Icon, isComposingKey, type CommandCatalog } from '@taskite/ui';
 import type { AppController } from './controller.ts';
 import { openMenu } from './ContextMenu.tsx';
 import { dropOrder } from './forms.ts';
@@ -478,7 +478,9 @@ function Composer({ app, slot }: { readonly app: AppController; readonly slot: s
         spellcheck={true}
         onInput={(e) => setText((e.target as HTMLInputElement).value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.isComposing) {
+          // Enter and Esc while an input method is composing pick or cancel its candidate.
+          if (isComposingKey(e)) return;
+          if (e.key === 'Enter') {
             e.preventDefault();
             if (!text.trim()) app.closeComposer();
             else if (app.addTask(text, slot)) setText('');

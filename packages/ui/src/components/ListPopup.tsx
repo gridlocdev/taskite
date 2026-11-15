@@ -1,5 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
+import { isComposingKey } from '../commands/shortcut.ts';
 
 /**
  * A search field over a list (the command menu, Move to…): ↑ ↓ move, Enter picks, Escape closes. The field
@@ -30,6 +31,8 @@ export function ListPopup(props: {
     list.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
   }, [props.index]);
   const onKeyDown = (e: KeyboardEvent) => {
+    // Keys that pick or cancel an input method's candidate belong to it.
+    if (isComposingKey(e)) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       props.onIndex(Math.min(props.count - 1, props.index + 1));

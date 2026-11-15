@@ -47,6 +47,15 @@ function catalog(extra: CommandSpec[] = []) {
   return { c, ran };
 }
 
+const spec1 = (id: string, shortcuts: string[]): CommandSpec => ({
+  id,
+  title: id,
+  description: id,
+  group: 'Task',
+  shortcuts,
+  run: () => undefined,
+});
+
 const id = (r: ReturnType<CommandCatalog['forEvent']>) =>
   r?.kind === 'run' ? r.command.id : (r?.kind ?? null);
 
@@ -85,6 +94,21 @@ describe('shortcuts', () => {
     expect(id(c.forEvent(key({ key: 'g' }), 'list', 1000, true))).toBe('wait');
     expect(id(c.forEvent(key({ key: 'i' }), 'list', 1000 + SEQUENCE_MS + 1, true))).toBeNull();
     expect(id(c.forEvent(key({ key: 'g' }), 'text', 0, true))).toBeNull();
+  });
+
+  it('a pending first key is dropped when focus moves into a text field', () => {
+    const { c } = catalog();
+    expect(id(c.forEvent(key({ key: 'g' }), 'list', 0, true))).toBe('wait');
+    expect(id(c.forEvent(key({ key: 'i' }), 'text', 100, true))).toBeNull();
+  });
+
+  it('digit keys work on layouts that need Shift to type a digit (AZERTY)', () => {
+    const { c } = catalog([spec1('p1', ['1']), spec1('p3', ['3'])]);
+    expect(id(c.forEvent(key({ key: '&', code: 'Digit1' }), 'list', 0, true))).toBe('p1');
+    expect(id(c.forEvent(key({ key: '"', code: 'Digit3' }), 'list', 0, false))).toBe('p3');
+    expect(id(c.forEvent(key({ key: '1', code: 'Digit1', shiftKey: true }), 'list', 0, true))).toBe('p1');
+    // US Shift+1 types ! and is not 1.
+    expect(id(c.forEvent(key({ key: '!', code: 'Digit1', shiftKey: true }), 'list', 0, true))).toBeNull();
   });
 
   it('are shown with the right key caps, and only single chords go in menus', () => {

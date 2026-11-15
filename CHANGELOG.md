@@ -46,6 +46,9 @@
 - The NAS server starts from a folder whose path has spaces in it.
 - Saving through a symlinked `tasks.json` keeps the link instead of replacing it with a plain file, and on Windows a save waits briefly when another program has the file open.
 - Two browser tabs, or the desktop app and the CLI, saving at the same moment can no longer both pass the version check and lose one of the changes.
+- Enter and Esc while typing with an input method (Japanese, Chinese, Korean) pick or cancel the candidate instead of adding the task, closing the dialog or clearing the search.
+- After a click on empty space inside a dialog, Esc still closes it and Tab stays inside, and closing a dialog puts focus back where it was before it opened.
+- Priority keys 1–4 work on AZERTY keyboards, and pressing G in the list then typing I in the search box types the I instead of jumping to the Inbox.
 
 ## 2.0.0
 

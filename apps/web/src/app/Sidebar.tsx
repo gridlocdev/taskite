@@ -7,7 +7,7 @@ import {
   type ProjectColor,
   type SavedView,
 } from '@taskite/core';
-import { Icon, type CommandCatalog } from '@taskite/ui';
+import { Icon, isComposingKey, type CommandCatalog } from '@taskite/ui';
 import { openMenu } from './ContextMenu.tsx';
 import type { AppController, ContextMenuState } from './controller.ts';
 import { DRAG_TYPE } from './TaskView.tsx';
@@ -85,6 +85,7 @@ export function Sidebar({ app, catalog }: { readonly app: AppController; readonl
           value={app.search.value}
           onInput={(e) => app.setSearch((e.target as HTMLInputElement).value)}
           onKeyDown={(e) => {
+            if (isComposingKey(e)) return;
             if (e.key === 'Escape') {
               e.preventDefault();
               e.stopPropagation();

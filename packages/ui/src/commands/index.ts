@@ -15,6 +15,7 @@ export {
   SEQUENCE_MS,
   formatSequence,
   formatShortcut,
+  isComposingKey,
   isMac,
   matchRank,
   parseSequence,

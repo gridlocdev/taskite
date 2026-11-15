@@ -189,7 +189,9 @@ Typing in the search box (`/`, ⌘F) shows Search results; clearing it, or Esc, 
 Every action is a command in one catalog, which feeds the keyboard, the command menu, the right-click menu, the menu bar (desktop), the Keyboard Shortcuts window, and `docs/controls.md` (checked by a test).
 
 - Single-key and Shift+key shortcuts only work outside text fields. Space and Enter only go to commands when a task row (or nothing) has focus.
-- Two-key shortcuts (`G` then `I`) wait 1.5 s for the second key, and aren't shown in the menu bar.
+- Two-key shortcuts (`G` then `I`) wait 1.5 s for the second key, and aren't shown in the menu bar. A second key typed in a text field is just typed.
+- Digit shortcuts (Priority 1–4) go by the key cap on layouts whose digit keys type punctuation without Shift (AZERTY: `&` is 1).
+- While an input method is composing (Japanese, Chinese, Korean), Enter and Esc belong to it: they don't add a task, close a dialog or clear the search.
 - While a dialog is open, only commands marked global with a ⌘ chord run (and only those that make sense: the command menu and shortcuts window toggle closed).
 - Groups and menu order: File, Edit, Task, Select, Go, View, Help.
 - The command menu (⌘K, ⌘P) lists enabled commands, plus "Go to <project>", "Go to @<label>" and, with tasks chosen, "Move to <project>". Spaces don't count ("newtask" finds New Task). Best first: the title starts with what was typed, then contains it, then the group, keywords or description contain it (or every typed word appears somewhere), then the title holds the typed letters in order ("nwtk"). Within each rank, recently run commands lead. Each command has keywords: other words people type for it ("preferences" for Settings, "reorder" for Move Up). The 5 most recently run commands come first when nothing is typed.
@@ -208,7 +210,7 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
 
 - Plain CSS with `--tk-*` tokens, system font, Lucide-style icons; light and dark from the theme setting (System follows the OS). The accent is Taskite red (`#db4c3f`).
 - Notices appear in a status bar at the bottom of the window, one at a time, for 5 s, with an optional action (Undo, Try again). A screen-reader live region reads them.
-- Dialogs are modal, trap focus, close on Esc, and return focus to where it was. One dialog at a time.
+- Dialogs are modal, trap focus, close on Esc, and return focus to where it was. A click on empty space inside a dialog keeps focus in it. One dialog at a time.
 - With `prefers-reduced-motion: reduce`, nothing animates.
 - No welcome screen: first start opens Today with its empty state.
 

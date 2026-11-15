@@ -12,7 +12,15 @@ import {
   type TaskPatch,
   type Theme,
 } from '@taskite/core';
-import { Dialog, Icon, ListPopup, filterEntries, isMac, type CommandCatalog } from '@taskite/ui';
+import {
+  Dialog,
+  Icon,
+  ListPopup,
+  filterEntries,
+  isComposingKey,
+  isMac,
+  type CommandCatalog,
+} from '@taskite/ui';
 import { Calendar } from './Calendar.tsx';
 import { CommandMenu } from './CommandMenu.tsx';
 import type { AppController } from './controller.ts';
@@ -427,7 +435,7 @@ function TaskEditor({ app, id }: { readonly app: AppController; readonly id: str
               value={subtask}
               onInput={(e) => setSubtask((e.target as HTMLInputElement).value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.isComposing) {
+                if (e.key === 'Enter' && !isComposingKey(e)) {
                   e.preventDefault();
                   app.addSubtask(task.id, subtask);
                   setSubtask('');
