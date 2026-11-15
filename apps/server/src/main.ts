@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createServer, parseHosts, refuseWithoutToken } from './server.ts';
 
 /**
@@ -13,7 +14,7 @@ import { createServer, parseHosts, refuseWithoutToken } from './server.ts';
  *   TASKITE_HOSTS    extra Host names (comma-separated) served when there is no token
  */
 const env = process.env;
-const here = path.dirname(new URL(import.meta.url).pathname);
+const here = path.dirname(fileURLToPath(import.meta.url));
 if (!env.TASKITE_DATA) {
   console.error('Set TASKITE_DATA to the folder that holds tasks.json, e.g. TASKITE_DATA=/data');
   process.exit(1);

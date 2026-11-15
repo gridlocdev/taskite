@@ -43,6 +43,7 @@
 - A change that leaves everything as it was (the same priority again, a move to the project a task is already in, Move Up at the top of a section) no longer adds an undo step, so the next ⌘Z always undoes something you can see.
 - Subtasks can't be dragged, as the PRD says; dragging one used to shuffle it among its siblings or pull it away from its parent. Dragging a parent with its subtasks chosen moves the parent, and the subtasks follow it.
 - The right-click menu stays inside a short window and scrolls when it doesn't fit, so its last items are always within reach.
+- The NAS server starts from a folder whose path has spaces in it.
 
 ## 2.0.0
 
