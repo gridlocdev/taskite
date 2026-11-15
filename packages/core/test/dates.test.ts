@@ -35,6 +35,12 @@ describe('dates', () => {
     expect(nextWeekday(1, '2026-10-09')).toBe('2026-10-12');
   });
 
+  it('nextOccurrence keeps the day of the month when it catches up over a short month', () => {
+    expect(nextOccurrence('2026-01-31', 'monthly', '2026-03-01')).toBe('2026-03-31');
+    expect(nextOccurrence('2026-01-31', 'monthly', '2026-01-31')).toBe('2026-02-28');
+    expect(nextOccurrence('2024-02-29', 'yearly', '2027-06-01')).toBe('2028-02-29');
+  });
+
   it('nextOccurrence skips past today for overdue repeating tasks', () => {
     expect(nextOccurrence('2026-10-01', 'daily', '2026-10-09')).toBe('2026-10-10');
     expect(nextOccurrence('2026-10-09', 'weekly', '2026-10-09')).toBe('2026-10-16');

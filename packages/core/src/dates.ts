@@ -121,6 +121,13 @@ export function stepRecurrence(iso: string, recurrence: Recurrence): string {
 
 /** The next due date of a repeating task once it's checked off: step from its due date until after today (PRD §4.3). */
 export function nextOccurrence(dueISO: string, recurrence: Recurrence, today: string = todayISO()): string {
+  // Months count from the due date itself, so catching up over February doesn't move the 31st to the 28th.
+  if (recurrence === 'monthly' || recurrence === 'yearly') {
+    const step = recurrence === 'monthly' ? 1 : 12;
+    let k = 1;
+    while (addMonths(dueISO, k * step) <= today) k++;
+    return addMonths(dueISO, k * step);
+  }
   let next = stepRecurrence(dueISO, recurrence);
   while (next <= today) next = stepRecurrence(next, recurrence);
   return next;

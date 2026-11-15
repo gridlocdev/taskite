@@ -32,6 +32,7 @@
 - A tasks file saved with a byte-order mark opens instead of being treated as unreadable, and a file holding JSON that isn't an object (`[]`, `null`) is kept as a copy instead of being replaced by an empty list.
 - A notice's **Undo** goes away once anything else changes your tasks, so it can no longer take back a different change than the one the notice names.
 - ⌘Z pressed while a completed or trashed task is still fading out cancels that change; before, it undid the change before it and the task was completed anyway.
+- A monthly or yearly task checked off weeks late keeps its day of the month: a task due on the 31st no longer moves to the 28th after catching up over February.
 
 ## 2.0.0
 

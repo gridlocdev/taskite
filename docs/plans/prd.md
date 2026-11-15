@@ -99,7 +99,7 @@ Everything else, with spaces collapsed, is the title.
 ### §4.3 Completing
 
 - Clicking the circle, or **Complete** (Space) on the chosen tasks, completes them. If every chosen task is already done, it reopens them.
-- A repeating task with a due date isn't completed: its due date moves to the next occurrence after today (stepping from the current due date), with the notice `Nice! "<title>" is next due <when>.`
+- A repeating task with a due date isn't completed: its due date moves to the next occurrence after today (stepping from the current due date; monthly and yearly steps count whole months from it, so a task due on the 31st that is caught up over February lands on the next 31st, or the month's last day), with the notice `Nice! "<title>" is next due <when>.`
 - Completing a task completes its open subtasks. Reopening a subtask reopens its parent.
 - Completed rows show done for 350 ms, then leave the list (except in Completed and Search). Notice: "Task completed." / "N tasks completed.", with Undo.
 
