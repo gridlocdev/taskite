@@ -27,6 +27,8 @@ export interface Task {
   order: number;
   /** Epoch ms when moved to the Trash. */
   deletedAt: number | null;
+  /** The project section it sits in. Left out for tasks above the first section. */
+  sectionId?: string;
 }
 
 export const PROJECT_COLORS = {
@@ -46,10 +48,20 @@ export type ProjectColor = keyof typeof PROJECT_COLORS;
 
 export const PROJECT_COLOR_NAMES = Object.keys(PROJECT_COLORS) as ProjectColor[];
 
+/** A named group of tasks inside a project (PRD §6). */
+export interface ProjectSection {
+  id: string;
+  name: string;
+}
+
 export interface Project {
   id: string;
   name: string;
   color: ProjectColor;
+  /** In display order. Left out of the file until the project gets one. */
+  sections?: ProjectSection[];
+  /** How the project shows. Left out for the list. */
+  view?: 'board';
 }
 
 /** A screen the app can show, saved so it reopens there. */
@@ -126,38 +138,55 @@ export function normalize(raw: unknown, now: number = Date.now()): AppData {
   const rawProjects = Array.isArray(raw['projects']) ? (raw['projects'] as unknown[]) : [];
   const projects: Project[] = rawProjects
     .filter((p): p is Loose => isObject(p) && Boolean(p['id']) && Boolean(p['name']))
-    .map((p) => ({
-      ...p,
-      id: String(p['id']),
-      name: String(p['name']),
-      color: isColor(p['color']) ? p['color'] : 'gray',
-    }));
+    .map((p) => {
+      const { sections: rawSections, view, ...rest } = p;
+      const sections = Array.isArray(rawSections)
+        ? (rawSections as unknown[])
+            .filter((s): s is Loose => isObject(s) && Boolean(s['id']) && typeof s['name'] === 'string')
+            .map((s) => ({ ...s, id: String(s['id']), name: s['name'] as string }))
+        : [];
+      return {
+        ...rest,
+        id: String(p['id']),
+        name: String(p['name']),
+        color: isColor(p['color']) ? p['color'] : 'gray',
+        ...(sections.length ? { sections } : {}),
+        ...(view === 'board' ? { view } : {}),
+      };
+    });
   if (!projects.some((p) => p.id === INBOX_ID)) projects.unshift(...base.projects);
   const projectIds = new Set(projects.map((p) => p.id));
+  const sectionIds = new Set(projects.flatMap((p) => (p.sections ?? []).map((s) => `${p.id}/${s.id}`)));
   const rawTasks = Array.isArray(raw['tasks']) ? (raw['tasks'] as unknown[]) : [];
   const tasks: Task[] = rawTasks
     .filter((t): t is Loose => isObject(t) && Boolean(t['id']) && typeof t['title'] === 'string')
-    .map((t, i) => ({
-      ...t,
-      id: String(t['id']),
-      title: t['title'] as string,
-      description: typeof t['description'] === 'string' ? t['description'] : '',
-      projectId: projectIds.has(t['projectId'] as string) ? (t['projectId'] as string) : INBOX_ID,
-      parentId: typeof t['parentId'] === 'string' ? t['parentId'] : null,
-      labels: Array.isArray(t['labels'])
-        ? (t['labels'] as unknown[]).filter((l) => typeof l === 'string')
-        : [],
-      priority: [1, 2, 3, 4].includes(t['priority'] as number) ? (t['priority'] as Priority) : 4,
-      due: isISODate(t['due']) ? t['due'] : null,
-      recurrence: RECURRENCES.includes(t['recurrence'] as Recurrence)
-        ? (t['recurrence'] as Recurrence)
-        : null,
-      completed: Boolean(t['completed']),
-      completedAt: typeof t['completedAt'] === 'number' ? t['completedAt'] : null,
-      createdAt: typeof t['createdAt'] === 'number' ? t['createdAt'] : now,
-      order: typeof t['order'] === 'number' ? t['order'] : i,
-      deletedAt: typeof t['deletedAt'] === 'number' ? t['deletedAt'] : null,
-    }));
+    .map(({ sectionId, ...t }, i) => {
+      const projectId = projectIds.has(t['projectId'] as string) ? (t['projectId'] as string) : INBOX_ID;
+      return {
+        ...t,
+        ...(typeof sectionId === 'string' && sectionIds.has(`${projectId}/${sectionId}`)
+          ? { sectionId }
+          : {}),
+        id: String(t['id']),
+        title: t['title'] as string,
+        description: typeof t['description'] === 'string' ? t['description'] : '',
+        projectId,
+        parentId: typeof t['parentId'] === 'string' ? t['parentId'] : null,
+        labels: Array.isArray(t['labels'])
+          ? (t['labels'] as unknown[]).filter((l) => typeof l === 'string')
+          : [],
+        priority: [1, 2, 3, 4].includes(t['priority'] as number) ? (t['priority'] as Priority) : 4,
+        due: isISODate(t['due']) ? t['due'] : null,
+        recurrence: RECURRENCES.includes(t['recurrence'] as Recurrence)
+          ? (t['recurrence'] as Recurrence)
+          : null,
+        completed: Boolean(t['completed']),
+        completedAt: typeof t['completedAt'] === 'number' ? t['completedAt'] : null,
+        createdAt: typeof t['createdAt'] === 'number' ? t['createdAt'] : now,
+        order: typeof t['order'] === 'number' ? t['order'] : i,
+        deletedAt: typeof t['deletedAt'] === 'number' ? t['deletedAt'] : null,
+      };
+    });
   const settings = isObject(raw['settings']) ? raw['settings'] : {};
   const theme = settings['theme'];
   const labelColors: Record<string, ProjectColor> = {};

@@ -34,6 +34,7 @@ Single-letter keys only work when you aren't typing in a box.
 | Priority 1 to 4                     | **1**, **2**, **3**, **4** | **1**, **2**, **3**, **4**     |
 | Move to a project                   | **M**                      | **M**                          |
 | Move up / down in the project       | **⌥↑** / **⌥↓**            | **Alt+Up** / **Alt+Down**      |
+| Move to the previous / next section | **⌥←** / **⌥→**            | **Alt+Left** / **Alt+Right**   |
 | Move to the Trash                   | **⌫** or **⌦**             | **Backspace** or **Delete**    |
 | Restore (in the Trash)              | **R**                      | **R**                          |
 | Delete forever (in the Trash)       | **⌫** or **⌦**             | **Backspace** or **Delete**    |

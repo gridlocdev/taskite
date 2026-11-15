@@ -463,6 +463,76 @@ kbd {
   font-size: 14px;
   font-weight: 650;
 }
+.tk-section-heading:has(.tk-section-more) {
+  align-items: center;
+  padding: 2px 0;
+}
+.tk-section-more {
+  width: 26px;
+  height: 26px;
+  margin-left: auto;
+  opacity: 0;
+}
+.tk-section-heading:hover .tk-section-more,
+.tk-section-more:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .tk-section-more {
+    opacity: 1;
+  }
+}
+.tk-section.tk-drop-into {
+  border-radius: 8px;
+  outline: 2px solid var(--tk-accent);
+  outline-offset: 2px;
+}
+.tk-add-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--tk-text-3);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.tk-add-section:hover,
+.tk-add-section:focus-visible {
+  color: var(--tk-accent);
+}
+
+/* A project as a board: one column per section (PRD §6). */
+.tk-main-inner:has(.tk-board) {
+  max-width: none;
+}
+.tk-board {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+}
+.tk-board > .tk-section {
+  flex: 0 0 280px;
+  margin: 0;
+  padding: 2px 8px 6px;
+  border-radius: 10px;
+  background: var(--tk-hover);
+}
+.tk-board > .tk-section.tk-drop-into {
+  outline-offset: -2px;
+}
+.tk-board .tk-section-heading {
+  border-bottom: 0;
+}
+.tk-board > .tk-add-section {
+  flex: 0 0 auto;
+  margin-top: 4px;
+}
 .tk-section-heading.tk-overdue {
   color: var(--tk-due-overdue);
 }

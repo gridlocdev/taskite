@@ -117,6 +117,32 @@ describe('taskite', () => {
     expect(await cli('due', 'water')).toMatchObject({ code: 2 });
   });
 
+  it('adds into a section and lists sections as headings', async () => {
+    writeFileSync(
+      file,
+      JSON.stringify({
+        version: 1,
+        projects: [
+          { id: 'inbox', name: 'Inbox', color: 'gray' },
+          { id: 'w', name: 'Work', color: 'red', sections: [{ id: 's1', name: 'Doing' }] },
+        ],
+        tasks: [],
+      }),
+    );
+    await cli('add', 'Loose #Work');
+    expect((await cli('add', 'Report #Work', '--section', 'doing')).code).toBe(0);
+    expect((await cli('add', 'Nope #Work', '--section', 'later')).err).toBe(
+      'taskite: "Work" has no section "later"; its sections are "Doing"\n',
+    );
+    expect((await cli('add', 'Nope', '--section', 'later')).err).toBe('taskite: "Inbox" has no sections\n');
+    const out = (await cli('list', '--project', 'work')).out;
+    expect(out).toMatch(/Loose {2}\(Work\)\n\n## Doing\n.*Report {2}\(Work\)\n$/);
+    expect(JSON.parse((await cli('list', '--project', 'work', '--json')).out).tasks[1]).toMatchObject({
+      title: 'Report',
+      section: 'Doing',
+    });
+  });
+
   it('lists by project and label, and counts projects', async () => {
     await cli('add', 'Report #Work @deep');
     await cli('add', 'Email #Work');

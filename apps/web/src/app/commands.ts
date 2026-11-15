@@ -20,6 +20,8 @@ export const TASK_MENU: readonly string[] = [
   'task.move',
   'task.moveUp',
   'task.moveDown',
+  'task.prevSection',
+  'task.nextSection',
   '|',
   'task.restore',
   'task.delete',
@@ -37,6 +39,10 @@ export const MENUS: Readonly<Record<MenuKind, readonly string[]>> = {
     'task.new',
     'select.all',
     '|',
+    'section.add',
+    'project.board',
+    'project.list',
+    '|',
     'project.edit',
     'task.clearCompleted',
     'trash.empty',
@@ -47,6 +53,16 @@ export const MENUS: Readonly<Record<MenuKind, readonly string[]>> = {
   ],
   project: ['task.newIn', '|', 'project.edit', '|', 'project.delete'],
   label: ['label.edit', '|', 'label.remove'],
+  section: [
+    'section.addTask',
+    'section.add',
+    '|',
+    'section.rename',
+    'section.moveEarlier',
+    'section.moveLater',
+    '|',
+    'section.delete',
+  ],
   completed: ['task.clearCompleted'],
   trash: ['trash.empty'],
   projects: ['project.new'],
@@ -238,6 +254,28 @@ export function buildCommands(app: AppController): CommandCatalog {
       run: () => app.moveChosen(1),
     },
     {
+      id: 'task.prevSection',
+      title: 'Move to Previous Section',
+      keywords: 'column board left back',
+      description: 'Moves the chosen tasks to the end of the section before theirs.',
+      group: 'Task',
+      shortcuts: ['alt+left'],
+      enabled: () => app.canMoveSection(),
+      context: true,
+      run: () => app.moveChosenSection(-1),
+    },
+    {
+      id: 'task.nextSection',
+      title: 'Move to Next Section',
+      keywords: 'column board right forward',
+      description: 'Moves the chosen tasks to the end of the section after theirs.',
+      group: 'Task',
+      shortcuts: ['alt+right'],
+      enabled: () => app.canMoveSection(),
+      context: true,
+      run: () => app.moveChosenSection(1),
+    },
+    {
       id: 'task.delete',
       title: 'Move to Trash',
       keywords: 'delete remove erase bin discard',
@@ -322,6 +360,99 @@ export function buildCommands(app: AppController): CommandCatalog {
         const p = app.projectTarget();
         if (p) app.deleteProject(p.id);
       },
+    },
+    {
+      id: 'section.add',
+      title: 'Add Section…',
+      keywords: 'new group heading column divider',
+      description: 'Adds a named section to the project on screen (after the one right-clicked).',
+      group: 'Task',
+      enabled: () => !!app.shownProject(),
+      run: () => {
+        const p = app.shownProject();
+        if (p)
+          app.open({ kind: 'section', projectId: p.id, id: null, after: app.sectionTarget()?.section.id });
+      },
+    },
+    {
+      id: 'section.addTask',
+      title: 'Add Task Here',
+      keywords: 'new create section',
+      description: 'Opens the add-task row at the end of the section right-clicked.',
+      group: 'Task',
+      enabled: () => !!app.sectionTarget(),
+      run: () => {
+        const t = app.sectionTarget();
+        if (t) app.composer.value = `section:${t.section.id}`;
+      },
+    },
+    {
+      id: 'section.rename',
+      title: 'Rename Section…',
+      keywords: 'edit name change',
+      description: 'Renames the section right-clicked.',
+      group: 'Task',
+      enabled: () => !!app.sectionTarget(),
+      run: () => {
+        const t = app.sectionTarget();
+        if (t) app.open({ kind: 'section', projectId: t.projectId, id: t.section.id });
+      },
+    },
+    ...([-1, 1] as const).map((by): CommandSpec => ({
+      id: by < 0 ? 'section.moveEarlier' : 'section.moveLater',
+      title: by < 0 ? 'Move Section Earlier' : 'Move Section Later',
+      keywords: 'arrange reposition column left right up down',
+      description: `Moves the section right-clicked one place ${by < 0 ? 'earlier' : 'later'}.`,
+      group: 'Task',
+      enabled: () => {
+        const t = app.sectionTarget();
+        if (!t) return false;
+        const all = app.list.getProject(t.projectId)?.sections ?? [];
+        const at = all.findIndex((x) => x.id === t.section.id) + by;
+        return at >= 0 && at < all.length;
+      },
+      run: () => {
+        const t = app.sectionTarget();
+        if (t) app.list.moveSection(t.projectId, t.section.id, by);
+      },
+    })),
+    {
+      id: 'section.delete',
+      title: 'Delete Section…',
+      keywords: 'remove erase trash',
+      description: 'Deletes the section right-clicked and moves its tasks to the Trash.',
+      group: 'Task',
+      danger: true,
+      enabled: () => !!app.sectionTarget(),
+      run: () => {
+        const t = app.sectionTarget();
+        if (t) app.deleteSection(t.projectId, t.section.id);
+      },
+    },
+    {
+      id: 'project.board',
+      title: 'View as Board',
+      keywords: 'kanban columns sections layout',
+      description: 'Shows the project on screen as a board, one column per section.',
+      group: 'View',
+      enabled: () => {
+        void app.rev.value;
+        const p = app.shownProject();
+        return !!p && p.view !== 'board';
+      },
+      run: () => app.setBoard(true),
+    },
+    {
+      id: 'project.list',
+      title: 'View as List',
+      keywords: 'rows layout sections',
+      description: 'Shows the project on screen as a list again.',
+      group: 'View',
+      enabled: () => {
+        void app.rev.value;
+        return app.shownProject()?.view === 'board';
+      },
+      run: () => app.setBoard(false),
     },
     {
       id: 'label.edit',

@@ -37,6 +37,7 @@ export {
   type ParseResult,
   type Project,
   type ProjectColor,
+  type ProjectSection,
   type SavedView,
   type Settings,
   type Task,

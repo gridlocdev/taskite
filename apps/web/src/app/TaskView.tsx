@@ -50,7 +50,11 @@ export function TaskView({
 
   const title = app.title();
   const project = app.currentProject();
+  const shownProject = app.shownProject();
   const viewMenu = [
+    'section.add',
+    'project.board',
+    'project.list',
     'task.clearCompleted',
     'trash.empty',
     'project.edit',
@@ -79,7 +83,7 @@ export function TaskView({
         {content.note && <p class="tk-note">{content.note}</p>}
         <div
           ref={listRef}
-          class="tk-list"
+          class={content.board ? 'tk-list tk-board' : 'tk-list'}
           role="listbox"
           aria-labelledby="tk-view-title"
           aria-multiselectable="true"
@@ -95,8 +99,24 @@ export function TaskView({
           }}
         >
           {content.sections.map((s) => (
-            <SectionView key={s.key} app={app} section={s} showContext={content.showContext} />
+            <SectionView
+              key={s.key}
+              app={app}
+              catalog={catalog}
+              section={s}
+              showContext={content.showContext}
+            />
           ))}
+          {shownProject && (
+            <button
+              type="button"
+              class="tk-add-section"
+              onClick={() => app.open({ kind: 'section', projectId: shownProject.id, id: null })}
+            >
+              <Icon name="plus" />
+              Add section
+            </button>
+          )}
           {content.sections.length === 0 && app.composer.value === 'end' && <Composer app={app} slot="end" />}
           {content.empty && app.composer.value === null && (
             <div class="tk-empty">
@@ -186,23 +206,88 @@ export function menuArrows(e: KeyboardEvent): void {
   items[next]?.focus();
 }
 
+/** Where a project section's rows can be dropped: the section's key, or none outside project views. */
+function sectionDrop(app: AppController, section: Section): { sectionId: string | undefined } | null {
+  if (app.shown.value.type !== 'project') return null;
+  if (section.key === 'tasks') return { sectionId: undefined };
+  return section.sectionId ? { sectionId: section.sectionId } : null;
+}
+
 function SectionView({
   app,
+  catalog,
   section,
   showContext,
 }: {
   readonly app: AppController;
+  readonly catalog: CommandCatalog;
   readonly section: Section;
   readonly showContext: boolean;
 }) {
   const slot = section.addSlot;
   const composerHere = slot !== null && app.composer.value === slot;
+  const [into, setInto] = useState(false);
+  const drop = sectionDrop(app, section);
+  const view = app.shown.value;
+  const target =
+    section.sectionId && view.type === 'project'
+      ? ({ kind: 'section', projectId: view.id, id: section.sectionId } as const)
+      : undefined;
+  const sectionMenu = (e: MouseEvent, at?: { x: number; y: number }) =>
+    target && openMenu(app, catalog, e, 'section', target, at);
   return (
-    <section class="tk-section" aria-label={section.heading ?? undefined}>
+    <section
+      class={`tk-section${into ? ' tk-drop-into' : ''}`}
+      aria-label={section.heading ?? undefined}
+      onDragOver={(e) => {
+        if (!drop || !e.dataTransfer?.types.includes(DRAG_TYPE)) return;
+        e.preventDefault();
+        setInto(!(e.target as HTMLElement).closest('.tk-row'));
+      }}
+      onDragLeave={(e) => {
+        if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) setInto(false);
+      }}
+      onDrop={(e) => {
+        setInto(false);
+        const data = e.dataTransfer?.getData(DRAG_TYPE);
+        if (!drop || !data) return;
+        e.preventDefault();
+        // Dropped on the heading or empty space: to the end of this section.
+        const dragged = JSON.parse(data) as string[];
+        const ids = app.ids.value;
+        const order = [
+          ...ids.filter((id) => !dragged.includes(id)),
+          ...ids.filter((id) => dragged.includes(id)),
+        ];
+        app.dropInto(dragged, drop.sectionId, order);
+      }}
+    >
       {section.heading && (
-        <h2 class={`tk-section-heading${section.tone === 'overdue' ? ' tk-overdue' : ''}`}>
-          {section.heading}
+        <h2
+          class={`tk-section-heading${section.tone === 'overdue' ? ' tk-overdue' : ''}`}
+          onContextMenu={(e) => {
+            if (!target) return;
+            e.stopPropagation();
+            sectionMenu(e);
+          }}
+        >
+          <span class="tk-section-name">{section.heading}</span>
           {section.count !== null && <span class="tk-count">{section.count}</span>}
+          {target && (
+            <button
+              type="button"
+              class="tk-icon-button tk-section-more"
+              aria-label={`${section.heading} section actions`}
+              title="Section actions"
+              aria-haspopup="menu"
+              onClick={(e) => {
+                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                sectionMenu(e, { x: r.left, y: r.bottom + 4 });
+              }}
+            >
+              <Icon name="dots" />
+            </button>
+          )}
         </h2>
       )}
       {section.rows.map((row) => (
@@ -297,8 +382,15 @@ function TaskRow({
         const data = e.dataTransfer?.getData(DRAG_TYPE);
         if (!canReorder || !data) return;
         e.preventDefault();
-        const order = dropOrder(app.ids.value, JSON.parse(data) as string[], task.id, after);
-        if (order) app.reorder(order);
+        e.stopPropagation();
+        const dragged = JSON.parse(data) as string[];
+        const order = dropOrder(app.ids.value, dragged, task.id, after);
+        const moved = dragged.some((id) => {
+          const t = list.getTask(id);
+          return t && !t.parentId && t.sectionId !== task.sectionId;
+        });
+        if (moved) app.dropInto(dragged, task.sectionId, order);
+        else if (order) app.reorder(order);
       }}
     >
       {inTrash ? (

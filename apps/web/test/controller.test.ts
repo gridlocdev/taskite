@@ -192,4 +192,29 @@ describe('AppController', () => {
     app.setSearch('');
     expect(app.ids.value).toHaveLength(2);
   });
+
+  it('moves tasks between sections with ⌥← ⌥→ and by dropping, each as one undo step', async () => {
+    const { app } = await makeApp();
+    app.go({ type: 'project', id: INBOX_ID });
+    const a = app.list.addTask({ title: 'A' });
+    const sub = app.list.addTask({ title: 'A1', parentId: a.id });
+    const b = app.list.addTask({ title: 'B' });
+    app.saveSection(INBOX_ID, null, 'Doing');
+    app.saveSection(INBOX_ID, null, 'Done');
+    const [doing, done] = app.list.getProject(INBOX_ID)?.sections ?? [];
+    app.click(sub.id); // a subtask moves with its parent
+    app.moveChosenSection(1);
+    expect(app.list.getTask(a.id)?.sectionId).toBe(doing?.id);
+    expect(app.list.getTask(sub.id)?.sectionId).toBe(doing?.id);
+    app.moveChosenSection(1);
+    app.moveChosenSection(1); // already in the last section
+    expect(app.list.getTask(a.id)?.sectionId).toBe(done?.id);
+    app.dropInto([b.id, sub.id], doing?.id, null);
+    expect(app.list.getTask(b.id)?.sectionId).toBe(doing?.id);
+    expect(app.list.getTask(sub.id)?.sectionId).toBe(done?.id);
+    app.undo();
+    expect(app.list.getTask(b.id)?.sectionId).toBeUndefined();
+    app.setBoard(true);
+    expect(app.content.value.board).toBe(true);
+  });
 });

@@ -14,6 +14,7 @@ import {
   sidebarCounts,
   todayISO,
   viewContent,
+  type Draft,
   type Task,
   type View,
 } from '@taskite/core';
@@ -137,6 +138,7 @@ function taskJson(list: TaskList, t: Task) {
     shortId: shortId(t.id),
     title: t.title,
     project: list.getProject(t.projectId)?.name ?? null,
+    section: t.sectionId ? (list.getSection(t.projectId, t.sectionId)?.name ?? null) : null,
     parentId: t.parentId,
     labels: t.labels,
     priority: t.priority,
@@ -154,6 +156,22 @@ function taskLine(list: TaskList, t: Task, today: string): string {
   return `${shortId(t.id)}  ${due.padEnd(10)}  p${t.priority}  ${t.title}${labels}  (${project})`;
 }
 
+/** The id of the section `name` (ignoring case) in the project a draft goes to. */
+function sectionNamed(list: TaskList, draft: Draft, name: string): string {
+  const project = draft.projectName
+    ? list.findProjectByName(draft.projectName)
+    : list.getProject(draft.projectId);
+  const sections = project?.sections ?? [];
+  const found = sections.find((s) => s.name.toLowerCase() === name.trim().toLowerCase());
+  if (found) return found.id;
+  const where = project ? `"${project.name}"` : `"${draft.projectName ?? ''}"`;
+  throw new ProblemError(
+    sections.length
+      ? `${where} has no section "${name}"; its sections are ${sections.map((s) => `"${s.name}"`).join(', ')}`
+      : `${where} has no sections`,
+  );
+}
+
 type Out = (value: unknown, text: string) => void;
 
 async function run(args: Args, io: CliIo, out: Out): Promise<void> {
@@ -168,10 +186,15 @@ async function run(args: Args, io: CliIo, out: Out): Promise<void> {
       const view = listView(args, list);
       const content = viewContent(list, view, today);
       const tasks = content.sections.flatMap((s) => s.rows.map((r) => r.task));
-      return out(
-        { ok: true, tasks: tasks.map((t) => taskJson(list, t)) },
-        tasks.length ? tasks.map((t) => taskLine(list, t, today)).join('\n') : 'No tasks.',
-      );
+      // A project's sections print as headings, each with its tasks under it.
+      const text = content.sections
+        .flatMap((s) => [
+          ...(s.sectionId && s.heading ? [`\n## ${s.heading}`] : []),
+          ...s.rows.map((r) => taskLine(list, r.task, today)),
+        ])
+        .join('\n')
+        .trim();
+      return out({ ok: true, tasks: tasks.map((t) => taskJson(list, t)) }, tasks.length ? text : 'No tasks.');
     }
     case 'projects': {
       const counts = sidebarCounts(list, today).projects;
@@ -190,6 +213,7 @@ async function run(args: Args, io: CliIo, out: Out): Promise<void> {
       const text = args.words.join(' ').trim();
       if (!text) throw new UsageError('give the task, e.g. taskite add "Call mum tomorrow p1"');
       const draft = resolveDraft(text, { type: 'project', id: INBOX_ID }, 'end', today);
+      if (args.section) draft.sectionId = sectionNamed(list, draft, args.section);
       const { task, createdProject } = addDraft(list, draft);
       if (!task) throw new UsageError('the task needs a name, not only a date, priority, #project or @label');
       await save(l);

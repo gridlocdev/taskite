@@ -26,8 +26,13 @@ export interface Section {
   /** `overdue` headings are red. */
   tone: 'overdue' | null;
   rows: Row[];
-  /** Where an Add task row goes after this section: `end`, or `day:YYYY-MM-DD` in Upcoming. */
+  /**
+   * Where an Add task row goes after this section: `end`, `day:YYYY-MM-DD` in Upcoming, or
+   * `section:<id>` under a project section.
+   */
   addSlot: string | null;
+  /** The project section these rows sit in, for its menu. */
+  sectionId?: string;
 }
 
 export interface Empty {
@@ -43,6 +48,8 @@ export interface ViewContent {
   note: string | null;
   /** Rows show their project and parent outside project views. */
   showContext: boolean;
+  /** A project shown as a board: one column per section. */
+  board?: boolean;
 }
 
 /** Sorts by due date (no date last), then priority, then manual order. */
@@ -150,20 +157,55 @@ export function viewContent(
   const active = list.activeTasks();
   switch (view.type) {
     case 'project': {
+      const project = list.getProject(view.id);
+      const projectSections = project?.sections ?? [];
+      const board = project?.view === 'board';
       const tasks = active
         .filter((t) => t.projectId === view.id && !t.parentId)
         .sort((a, b) => a.order - b.order);
-      const rows: Row[] = [];
-      for (const task of tasks) {
-        rows.push({ task, isSubtask: false });
-        for (const sub of list.getSubtasks(task.id))
-          if (!sub.completed) rows.push({ task: sub, isSubtask: true });
+      const rowsIn = (sectionId: string | undefined): Row[] => {
+        const rows: Row[] = [];
+        for (const task of tasks) {
+          if (task.sectionId !== sectionId) continue;
+          rows.push({ task, isSubtask: false });
+          for (const sub of list.getSubtasks(task.id))
+            if (!sub.completed) rows.push({ task: sub, isSubtask: true });
+        }
+        return rows;
+      };
+      const loose = rowsIn(undefined);
+      const sections: Section[] = [];
+      // A board shows the unsectioned column only while it holds tasks or is the only one.
+      if (!board || loose.length || !projectSections.length)
+        sections.push({
+          key: 'tasks',
+          heading: board ? 'No section' : null,
+          count: board ? loose.filter((r) => !r.isSubtask).length : null,
+          tone: null,
+          rows: loose,
+          addSlot: 'end',
+        });
+      for (const ps of projectSections) {
+        const rows = rowsIn(ps.id);
+        sections.push({
+          key: `section:${ps.id}`,
+          heading: ps.name,
+          count: rows.filter((r) => !r.isSubtask).length,
+          tone: null,
+          rows,
+          addSlot: `section:${ps.id}`,
+          sectionId: ps.id,
+        });
       }
       return {
-        sections: [{ key: 'tasks', heading: null, count: null, tone: null, rows, addSlot: 'end' }],
-        empty: tasks.length ? null : { title: 'All clear!', hint: 'Nothing left to do here.' },
+        sections,
+        empty:
+          tasks.length || projectSections.length
+            ? null
+            : { title: 'All clear!', hint: 'Nothing left to do here.' },
         note: null,
         showContext: false,
+        board,
       };
     }
     case 'today': {
@@ -323,6 +365,8 @@ export interface Draft {
   recurrence: Recurrence | null;
   priority: Priority;
   labels: string[];
+  /** The project section an Add task row under it adds to. */
+  sectionId?: string;
 }
 
 export function resolveDraft(text: string, view: View, slot: string, today: string): Draft {
@@ -340,6 +384,7 @@ export function resolveDraft(text: string, view: View, slot: string, today: stri
     recurrence: parsed.recurrence,
     priority: parsed.priority ?? 4,
     labels,
+    ...(view.type === 'project' && slot.startsWith('section:') ? { sectionId: slot.slice(8) } : {}),
   };
 }
 
@@ -371,8 +416,16 @@ export function addDraft(list: TaskList, draft: Draft): AddedDraft {
         projectId = createdProject.id;
       }
     }
-    const { title, due, recurrence, priority, labels } = draft;
-    const task = list.addTask({ title, projectId, due, recurrence, priority, labels });
+    const { title, due, recurrence, priority, labels, sectionId } = draft;
+    const task = list.addTask({
+      title,
+      projectId,
+      due,
+      recurrence,
+      priority,
+      labels,
+      ...(sectionId ? { sectionId } : {}),
+    });
     return { task, createdProject };
   });
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import {
+  MAX_PROJECT_NAME,
   PROJECT_COLORS,
   PROJECT_COLOR_NAMES,
   RECURRENCES,
@@ -34,6 +35,8 @@ export function Dialogs({ app, catalog }: { readonly app: AppController; readonl
       return <ProjectDialog app={app} id={d.id} />;
     case 'label':
       return <LabelDialog app={app} name={d.name} />;
+    case 'section':
+      return <SectionDialog app={app} projectId={d.projectId} id={d.id} after={d.after} />;
     case 'confirm':
       return (
         <Dialog
@@ -544,6 +547,43 @@ function LabelDialog({ app, name: label }: { readonly app: AppController; readon
           </label>
         ))}
       </fieldset>
+    </Dialog>
+  );
+}
+
+/** Add Section or Rename Section (PRD §6). */
+function SectionDialog({
+  app,
+  projectId,
+  id,
+  after,
+}: {
+  readonly app: AppController;
+  readonly projectId: string;
+  readonly id: string | null;
+  readonly after: string | undefined;
+}) {
+  const [name, setName] = useState(id ? (app.list.getSection(projectId, id)?.name ?? '') : '');
+  return (
+    <Dialog
+      title={id ? 'Rename section' : 'Add section'}
+      onClose={() => app.close()}
+      onSubmit={() => {
+        if (!name.trim()) return;
+        app.close();
+        app.saveSection(projectId, id, name, after);
+      }}
+      actions={<Actions app={app} save={id ? 'Save' : 'Add Section'} />}
+    >
+      <label class="tk-field">
+        <span>Name</span>
+        <input
+          required
+          maxLength={MAX_PROJECT_NAME}
+          value={name}
+          onInput={(e) => setName((e.target as HTMLInputElement).value)}
+        />
+      </label>
     </Dialog>
   );
 }

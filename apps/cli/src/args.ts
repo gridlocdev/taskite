@@ -26,6 +26,8 @@ export interface Args {
   readonly version: boolean;
   readonly project: string | null;
   readonly label: string | null;
+  /** The section `add` puts the task in. */
+  readonly section: string | null;
 }
 
 /** A command line the user can fix: printed as one line, exit code 2. */
@@ -34,7 +36,7 @@ export class UsageError extends Error {}
 /** Something went wrong that isn't the command line (unknown id, a conflict): exit code 1. */
 export class ProblemError extends Error {}
 
-const VALUE_OPTIONS = new Set(['--file', '--project', '--label']);
+const VALUE_OPTIONS = new Set(['--file', '--project', '--label', '--section']);
 
 export function parseArgs(argv: readonly string[]): Args {
   const words: string[] = [];
@@ -78,6 +80,7 @@ export function parseArgs(argv: readonly string[]): Args {
     version,
     project: values.get('--project') ?? null,
     label: values.get('--label') ?? null,
+    section: values.get('--section') ?? null,
   };
 }
 
@@ -90,6 +93,7 @@ Commands:
   list --project <name>                          Print a project's open tasks
   list --label <name>                            Print open tasks with a label
   add <text...>                                  Add a task with Quick Add ("Call mum tomorrow p1 #Home @phone")
+  add <text...> --section <name>                 Add it into a section of its project
   done <task>                                    Complete a task (a repeating one moves to its next date)
   reopen <task>                                  Mark a completed task not done
   trash <task>                                   Move a task to the Trash

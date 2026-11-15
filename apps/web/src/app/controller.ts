@@ -20,6 +20,7 @@ import {
   visibleIds,
   type Priority,
   type Project,
+  type ProjectSection,
   type ProjectColor,
   type Recurrence,
   type SavedView,
@@ -57,6 +58,13 @@ export type DialogState =
   | { readonly kind: 'due'; readonly ids: readonly string[] }
   | { readonly kind: 'project'; readonly id: string | null }
   | { readonly kind: 'label'; readonly name: string }
+  /** Add Section (no id, after `after`) or Rename Section. */
+  | {
+      readonly kind: 'section';
+      readonly projectId: string;
+      readonly id: string | null;
+      readonly after?: string;
+    }
   | {
       readonly kind: 'confirm';
       readonly title: string;
@@ -71,11 +79,13 @@ export type DialogState =
   | { readonly kind: 'shortcuts' };
 
 /** Which right-click menu is open (PRD §8). Its items are listed in `MENUS` in commands.ts. */
-export type MenuKind = 'task' | 'list' | 'project' | 'label' | 'completed' | 'trash' | 'projects';
+export type MenuKind = 'task' | 'list' | 'project' | 'label' | 'section' | 'completed' | 'trash' | 'projects';
 
 /** What a sidebar menu acts on, when it isn't the view on screen. */
 export type MenuTarget =
-  { readonly kind: 'project'; readonly id: string } | { readonly kind: 'label'; readonly name: string };
+  | { readonly kind: 'project'; readonly id: string }
+  | { readonly kind: 'label'; readonly name: string }
+  | { readonly kind: 'section'; readonly projectId: string; readonly id: string };
 
 export interface ContextMenuState {
   readonly x: number;
@@ -671,6 +681,95 @@ export class AppController {
         this.sayUndoable(`Removed @${name}.`);
       },
     });
+  }
+
+  // ---------- Sections (PRD §6) ----------
+
+  /** The project on screen, the Inbox included. */
+  shownProject(): Project | undefined {
+    const view = this.shown.value;
+    return view.type === 'project' ? this.list.getProject(view.id) : undefined;
+  }
+
+  /** The section a section command acts on: the one whose heading was right-clicked. */
+  sectionTarget(): { readonly projectId: string; readonly section: ProjectSection } | undefined {
+    const target = this.menu.value?.target;
+    if (target?.kind !== 'section') return undefined;
+    const section = this.list.getSection(target.projectId, target.id);
+    return section ? { projectId: target.projectId, section } : undefined;
+  }
+
+  /** Adds a section (after `after`, else at the end) or renames one. */
+  saveSection(projectId: string, id: string | null, name: string, after?: string): void {
+    if (!name.trim()) return;
+    if (id) {
+      this.list.renameSection(projectId, id, name);
+      return;
+    }
+    const section = this.list.addSection(projectId, name, after);
+    if (section) this.announcement.value = `Added section "${section.name}".`;
+  }
+
+  deleteSection(projectId: string, id: string): void {
+    const section = this.list.getSection(projectId, id);
+    if (!section) return;
+    const n = this.list.liveTasks().filter((t) => t.projectId === projectId && t.sectionId === id).length;
+    this.confirm({
+      title: `Delete "${section.name}"?`,
+      message: n ? `Its ${plural(n, 'task')} will move to the Trash.` : 'It has no tasks.',
+      confirm: 'Delete Section',
+      run: () => {
+        this.list.deleteSection(projectId, id, this.#now());
+        this.sayUndoable(`Deleted section "${section.name}".`);
+      },
+    });
+  }
+
+  /** Shows the project on screen as a board, or back as a list. */
+  setBoard(on: boolean): void {
+    const project = this.shownProject();
+    if (project) this.list.setProjectView(project.id, on ? 'board' : 'list');
+  }
+
+  /**
+   * Drops dragged tasks into a section (undefined: above the first one) in the given order, as one undo
+   * step. Subtasks dragged without their parent stay with it.
+   */
+  dropInto(dragged: readonly string[], sectionId: string | undefined, order: readonly string[] | null): void {
+    const tops = dragged.filter((id) => !this.list.getTask(id)?.parentId);
+    this.list.batch(() => {
+      if (tops.length) this.list.updateTasks(tops, { sectionId });
+      if (order) this.list.reorderTasks(order);
+    });
+  }
+
+  /** Whether the chosen tasks can move to the next or previous section (⌥← ⌥→). */
+  canMoveSection(): boolean {
+    return !!this.shownProject()?.sections?.length && this.hasTargets();
+  }
+
+  /** ⌥← / ⌥→: the chosen tasks go to the end of the previous or next section (PRD §4.5). */
+  moveChosenSection(delta: 1 | -1): void {
+    const project = this.shownProject();
+    if (!project || !this.canMoveSection()) return;
+    const tops = [
+      ...new Set(
+        this.targetIds().map((id) => {
+          const task = this.list.getTask(id);
+          return task?.parentId ?? id;
+        }),
+      ),
+    ];
+    const first = this.list.getTask(tops[0] ?? '');
+    if (!first) return;
+    const keys = [undefined, ...(project.sections ?? []).map((s) => s.id)];
+    const to = keys.indexOf(first.sectionId) + delta;
+    if (to < 0 || to >= keys.length) return;
+    const sectionId = keys[to];
+    const order = [...this.ids.peek().filter((id) => !tops.includes(id)), ...tops];
+    this.dropInto(tops, sectionId, order);
+    const name = sectionId ? this.list.getSection(project.id, sectionId)?.name : null;
+    this.announcement.value = name ? `Moved to ${name}.` : 'Moved out of sections.';
   }
 
   // ---------- Settings ----------

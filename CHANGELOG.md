@@ -4,6 +4,7 @@
 
 ### What's new
 
+- **Sections and boards.** Split a project into named sections (**Add Section…** in its ⋯ menu), and show it as a board with a column per section (**View as Board**). Drag tasks between sections, or move them with `⌥←` and `⌥→`. `taskite add --section <name>` adds into one, and `taskite list --project` prints the sections.
 - **A calendar for due dates.** The due date dialog (`D`) has a month calendar with today ringed. Pick a day with the mouse or the arrow keys. The dialog also takes short day names such as "fri" and "next tue".
 - **Label colours and renaming.** Right-click a label and choose **Edit Label…** to rename it on every task or give it a colour, which shows on task rows and in the sidebar.
 - **`taskite` knows tasks by name.** `taskite done call mum` works without looking up an id; when several tasks match, it lists them instead of guessing. New `taskite move <task> <project>` and `taskite due <task> <date>` commands.

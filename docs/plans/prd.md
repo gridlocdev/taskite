@@ -26,8 +26,8 @@ All data is one JSON file, `tasks.json`, written pretty-printed (two-space inden
 { "version": 1, "projects": [...], "tasks": [...], "settings": {...} }
 ```
 
-- **Project**: `id`, `name`, `color` (one of `gray red orange yellow green teal blue purple magenta pink`). The Inbox has id `inbox`, is always present and is listed first.
-- **Task**: `id` (UUID), `title`, `description`, `projectId`, `parentId` (null, or the id of its parent; subtasks are one level deep), `labels` (strings), `priority` (1 urgent … 4 normal), `due` (`YYYY-MM-DD` or null), `recurrence` (`daily`, `weekdays`, `weekly`, `monthly`, `yearly` or null), `completed`, `completedAt` (epoch ms or null), `createdAt` (epoch ms), `order` (position within its project), `deletedAt` (epoch ms or null).
+- **Project**: `id`, `name`, `color` (one of `gray red orange yellow green teal blue purple magenta pink`). The Inbox has id `inbox`, is always present and is listed first. Optional, left out until used: `sections` (`[{ id, name }]` in display order) and `view` (`board`; a list when absent).
+- **Task**: `id` (UUID), `title`, `description`, `projectId`, `parentId` (null, or the id of its parent; subtasks are one level deep), `labels` (strings), `priority` (1 urgent … 4 normal), `due` (`YYYY-MM-DD` or null), `recurrence` (`daily`, `weekdays`, `weekly`, `monthly`, `yearly` or null), `completed`, `completedAt` (epoch ms or null), `createdAt` (epoch ms), `order` (position within its project), `deletedAt` (epoch ms or null), `sectionId` (optional: a section of its project; left out for tasks above the first section, and dropped on reading when it names no section of the task's project).
 - **Settings**: `theme` (`auto`, `light`, `dark`), `lastView` (§5.1, or null).
 - **labelColors** (optional): label in lower case → a project colour name. Left out until a label has a colour.
 
@@ -115,7 +115,8 @@ Everything else, with spaces collapsed, is the title.
 
 ### §4.5 Order and drag and drop
 
-- In the Inbox and projects, top-level tasks can be dragged up and down to reorder.
+- In the Inbox and projects, top-level tasks can be dragged up and down to reorder. Dropped on a row in another section, or on a section's heading or empty space (to its end), they join that section.
+- **Move to Previous / Next Section** (⌥← / ⌥→, Alt+Left / Alt+Right) move the chosen top-level tasks (a chosen subtask counts as its parent) to the end of the section before or after the first one's. Above the first section counts as a place. One undo step.
 - **Move Up** / **Move Down** (⌥↑ / ⌥↓, Alt+Up / Alt+Down elsewhere) move the chosen tasks one place, in the Inbox and projects only. A task moves with its subtasks. Chosen subtasks of one parent move among their siblings; a subtask chosen with other tasks moves its parent. Tasks already at the top or bottom stay; the rest keep their order. One undo step.
 - A task dropped on a sidebar project or the Inbox moves there; on Today becomes due today; on Trash goes to the Trash; on a label gets that label.
 
@@ -144,7 +145,7 @@ The app opens on the view it showed last (`settings.lastView`), else Today. A pr
 
 | View | Shows | Order |
 |---|---|---|
-| Inbox / project | open top-level tasks, each followed by its open subtasks | manual order |
+| Inbox / project | open top-level tasks, each followed by its open subtasks: unsectioned ones first with no heading, then a heading per section (§6) with a count and its own Add row | manual order |
 | Today | open tasks due today or before: an **Overdue** section, then a heading for today | overdue by date, then priority, then order; today by priority, then order |
 | Upcoming | Overdue; then each remaining day of this calendar week (from today; the week starts where the locale starts it) with a heading ("Today · Sun Nov 15") and its own Add row; then **Next Week · Nov 16 – 22** (always shown; its Add row dates new tasks the week's first day); then **Later** (when it has tasks) | by date, priority, order |
 | Label | open tasks with that label | date, priority, order |
@@ -160,7 +161,7 @@ The list re-renders at midnight so Today stays right.
 
 ### §5.3 View actions
 
-A ⋯ button by the title holds actions for the view: project → Edit Project…, Delete Project… (asks first; its tasks go to the Trash; Undo); Completed → Move Completed Tasks to Trash; Trash → Empty Trash…; label → Edit Label…, Remove Label from All Tasks. All are commands too.
+A ⋯ button by the title holds actions for the view: Inbox and project → Add Section…, View as Board / View as List; project → Edit Project…, Delete Project… (asks first; its tasks go to the Trash; Undo); Completed → Move Completed Tasks to Trash; Trash → Empty Trash…; label → Edit Label…, Remove Label from All Tasks. All are commands too.
 
 ### §5.4 Search
 
@@ -171,6 +172,9 @@ Typing in the search box (`/`, ⌘F) shows Search results; clearing it, or Esc, 
 - **New Project…** asks for a name (required, at most 80 characters) and a colour (swatches), then opens the project. **Edit Project…** changes both. **Delete Project…** §5.3. The Inbox can't be renamed or deleted.
 - Labels exist while a task uses them. **Remove Label from All Tasks** removes it everywhere, with Undo.
 - **Edit Label…** (a label's right-click menu, its ⋯ button, ⌘K) renames a label on every task and gives it a colour from the project swatches, or none. Renaming onto a label a task already has leaves one copy. A coloured label shows its colour on rows and its sidebar tag. One undo step; a label view stays on the renamed label.
+
+- **Sections** split a project (the Inbox too) into named groups. **Add Section…** (⋯, the list's right-click menu, ⌘K, or **Add section** under the last one) asks for a name (at most 80 characters). A section heading's ⋯ button and right-click menu hold **Add Task Here**, **Add Section…** (after it), **Rename Section…**, **Move Section Earlier / Later** and **Delete Section…**, which asks first and moves its tasks to the Trash; restored, they come back unsectioned. A task moved to another project leaves its section. Subtasks are always in their parent's section.
+- **View as Board** shows a project as columns, one per section, side by side and scrolling sideways; **View as List** goes back. The choice is saved per project in the file. A **No section** column holds unsectioned tasks, and shows only while it has some or the project has no sections. Each is one undo step.
 
 ## §7 Choosing tasks
 
@@ -226,8 +230,8 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
 
 | Command | Does |
 |---|---|
-| `list [today\|upcoming\|inbox\|completed\|trash]`, `list --project <name>`, `list --label <name>` | prints tasks: short id (first 8 characters), due, priority, title, project. Default `today` |
-| `add <quick add text...>` | adds a task like the composer in the Inbox; prints its short id |
+| `list [today\|upcoming\|inbox\|completed\|trash]`, `list --project <name>`, `list --label <name>` | prints tasks: short id (first 8 characters), due, priority, title, project; a project's sections as `## Name` headings. JSON has each task's `section` name. Default `today` |
+| `add <quick add text...>` | adds a task like the composer in the Inbox; prints its short id. `--section <name>` puts it in that section (ignoring case) of its project, or fails listing the sections |
 | `done <task>` | completes a task (repeating ones move on) |
 | `reopen <task>` | |
 | `trash <task>`, `restore <task>` | |

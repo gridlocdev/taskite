@@ -9,6 +9,7 @@ import {
   expiredTaskIds,
   type AppData,
   type Project,
+  type ProjectSection,
   type ProjectColor,
   type SavedView,
   type Settings,
@@ -237,6 +238,8 @@ export class TaskList {
       order: 0,
       deletedAt: null,
     };
+    const sectionId = parent ? parent.sectionId : fields.sectionId;
+    if (sectionId && this.getSection(projectId, sectionId)) task.sectionId = sectionId;
     this.#edit((data) => {
       const orders = data.tasks.filter((t) => t.projectId === projectId).map((t) => t.order);
       task.order = Math.max(-1, ...orders) + 1;
@@ -245,16 +248,32 @@ export class TaskList {
     return task;
   }
 
-  /** Changes fields on tasks as one undo step. Subtasks follow their parent's project. */
+  /**
+   * Changes fields on tasks as one undo step. Subtasks follow their parent's project and section. A task
+   * that moves to another project leaves its section unless the patch names one there; `sectionId:
+   * undefined` takes a task out of its section.
+   */
   updateTasks(ids: Ids, patch: TaskPatch): void {
     const tasks = toList(ids)
       .map((id) => this.getTask(id))
       .filter((t) => t !== undefined);
     if (!tasks.length) return;
+    const { sectionId, ...fields } = patch;
+    const setsSection = 'sectionId' in patch;
     this.#edit(() => {
       for (const task of tasks) {
-        Object.assign(task, patch);
-        if (patch.projectId) for (const sub of this.getSubtasks(task.id)) sub.projectId = patch.projectId;
+        const moved = fields.projectId !== undefined && fields.projectId !== task.projectId;
+        Object.assign(task, fields);
+        if (setsSection || moved) {
+          if (sectionId && this.getSection(task.projectId, sectionId)) task.sectionId = sectionId;
+          else delete task.sectionId;
+        }
+        if (!setsSection && fields.projectId === undefined) continue;
+        for (const sub of this.getSubtasks(task.id)) {
+          sub.projectId = task.projectId;
+          if (task.sectionId) sub.sectionId = task.sectionId;
+          else delete sub.sectionId;
+        }
       }
     });
   }
@@ -334,6 +353,7 @@ export class TaskList {
       for (const task of toRestore) {
         task.deletedAt = null;
         if (!this.getProject(task.projectId)) task.projectId = INBOX_ID;
+        if (task.sectionId && !this.getSection(task.projectId, task.sectionId)) delete task.sectionId;
       }
     });
   }
@@ -422,6 +442,74 @@ export class TaskList {
       for (const task of data.tasks) {
         if (task.projectId === id && task.deletedAt === null) task.deletedAt = now;
       }
+    });
+  }
+
+  // ---------- Sections ----------
+
+  getSection(projectId: string, sectionId: string): ProjectSection | undefined {
+    return this.getProject(projectId)?.sections?.find((s) => s.id === sectionId);
+  }
+
+  /** Adds a section at the end of a project, or after `afterId`. */
+  addSection(projectId: string, name: string, afterId?: string): ProjectSection | undefined {
+    const project = this.getProject(projectId);
+    const trimmed = name.trim();
+    if (!project || !trimmed) return undefined;
+    const section: ProjectSection = { id: this.#newId(), name: trimmed };
+    this.#edit(() => {
+      const sections = project.sections ?? [];
+      const at = afterId ? sections.findIndex((s) => s.id === afterId) : -1;
+      sections.splice(at < 0 ? sections.length : at + 1, 0, section);
+      project.sections = sections;
+    });
+    return section;
+  }
+
+  renameSection(projectId: string, sectionId: string, name: string): void {
+    const section = this.getSection(projectId, sectionId);
+    const trimmed = name.trim();
+    if (!section || !trimmed || section.name === trimmed) return;
+    this.#edit(() => {
+      section.name = trimmed;
+    });
+  }
+
+  /** Moves a section one place left (-1) or right (1). */
+  moveSection(projectId: string, sectionId: string, by: -1 | 1): void {
+    const sections = this.getProject(projectId)?.sections ?? [];
+    const from = sections.findIndex((s) => s.id === sectionId);
+    const to = from + by;
+    if (from < 0 || to < 0 || to >= sections.length) return;
+    this.#edit(() => {
+      const [section] = sections.splice(from, 1);
+      if (section) sections.splice(to, 0, section);
+    });
+  }
+
+  /** Deletes a section and moves its tasks to the Trash; restored, they come back unsectioned. */
+  deleteSection(projectId: string, sectionId: string, now: number = this.#now()): void {
+    const project = this.getProject(projectId);
+    if (!project || !this.getSection(projectId, sectionId)) return;
+    this.#edit((data) => {
+      const sections = (project.sections ?? []).filter((s) => s.id !== sectionId);
+      if (sections.length) project.sections = sections;
+      else delete project.sections;
+      for (const task of data.tasks) {
+        if (task.projectId !== projectId || task.sectionId !== sectionId) continue;
+        delete task.sectionId;
+        if (task.deletedAt === null) task.deletedAt = now;
+      }
+    });
+  }
+
+  /** Shows a project as a list or as a board with a column per section. */
+  setProjectView(projectId: string, view: 'list' | 'board'): void {
+    const project = this.getProject(projectId);
+    if (!project || (project.view ?? 'list') === view) return;
+    this.#edit(() => {
+      if (view === 'board') project.view = 'board';
+      else delete project.view;
     });
   }
 
