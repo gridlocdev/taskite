@@ -21,6 +21,12 @@
     },
     {
       "path": "apps/web"
+    },
+    {
+      "path": "apps/desktop"
+    },
+    {
+      "path": "apps/cli"
     }
   ]
 }

@@ -22,6 +22,15 @@ const BREAKS = new Set([
   'help.docs',
 ]);
 
+/** Cut, Copy and Paste are Electron roles, so text fields get real clipboard events. They follow Redo. */
+const CLIPBOARD_AFTER = 'edit.redo';
+const CLIPBOARD: readonly NativeMenuItem[] = [
+  { type: 'separator' },
+  { role: 'cut' },
+  { role: 'copy' },
+  { role: 'paste' },
+];
+
 /** Commands the menu bar leaves out: the browser-only ones and the ones Electron's own roles cover. */
 const LEFT_OUT = new Set(['help.docs']);
 
@@ -54,6 +63,7 @@ export function nativeMenu(catalog: CommandCatalog): NativeMenuItem[] {
       if (c.group !== group || c.hidden || LEFT_OUT.has(c.id)) continue;
       if (BREAKS.has(c.id) && items.length > 0) items.push({ type: 'separator' });
       items.push(item(catalog, c));
+      if (c.id === CLIPBOARD_AFTER) items.push(...CLIPBOARD);
     }
     return { label: group, submenu: items };
   }).filter((m) => 'submenu' in m && m.submenu && m.submenu.length > 0);

@@ -14,9 +14,9 @@ default:
 [group('run')]
 run-web:
     mkdir -p "{{ nas_data }}"
-    VITE_TASKITE_NAS=1 pnpm --parallel --filter @taskite/server --filter @taskite/web run dev
+    pnpm --parallel --filter @taskite/server --filter @taskite/web run dev
 
-# NAS file server only (http://localhost:8787), serving ./.nas-data; restarts when its source changes.
+# NAS file server only (http://localhost:8788), serving ./.nas-data; restarts when its source changes.
 [group('run')]
 run-server:
     mkdir -p "{{ nas_data }}"
@@ -27,11 +27,17 @@ run-server:
 run-desktop: build-web
     pnpm --filter @taskite/desktop start
 
-# The built web client served by the NAS server, as it runs on a NAS (http://localhost:8787).
+# The built web client served by the NAS server, as it runs on a NAS (http://localhost:8788).
 [group('run')]
-preview-web: build-web-nas
+preview-web: build-web
     mkdir -p "{{ nas_data }}"
-    TASKITE_HOST=127.0.0.1 TASKITE_ROOTS="Sample={{ nas_data }}" TASKITE_STATIC="{{ justfile_directory() }}/apps/web/dist" node apps/server/src/main.ts
+    TASKITE_DATA="{{ nas_data }}" TASKITE_STATIC="{{ justfile_directory() }}/apps/web/dist" node apps/server/src/main.ts
+
+# Desktop app with no window or Dock icon, on throwaway data, for automated checks (DevTools port 9334).
+[group('run')]
+run-desktop-headless dir=(justfile_directory() / ".headless-data"): build-desktop
+    mkdir -p "{{ dir }}"
+    cd apps/desktop && TASKITE_HEADLESS=1 TASKITE_USER_DATA="{{ dir }}" pnpm exec electron . --remote-debugging-port=9334
 
 # Run the taskite CLI from source (paths resolve from where you run it; quoting is kept).
 [group('run')]
@@ -52,15 +58,10 @@ build:
 build-web:
     pnpm --filter @taskite/web build
 
-# Build the web client for the NAS server (shows NAS open/save; `build-web` leaves it out).
-[group('build')]
-build-web-nas:
-    VITE_TASKITE_NAS=1 pnpm --filter @taskite/web build
-
 # Regenerate the app icon files in apps/desktop/build from assets/icon.svg (needs Inkscape; .icns needs macOS).
 [group('build')]
 icons:
-    ./scripts/make-icons.sh
+    apps/desktop/scripts/make-icons.sh
 
 # Build the desktop app's main process and copy the web client into apps/desktop/out.
 [group('build')]
@@ -109,11 +110,11 @@ install-desktop: package-desktop-dir
 build-docker tag="taskite:latest":
     docker build -t {{ tag }} .
 
-# Run the NAS Docker image against ./.nas-data (http://localhost:8787).
+# Run the NAS Docker image against ./.nas-data (http://localhost:8788).
 [group('build')]
 run-docker tag="taskite:latest":
     mkdir -p "{{ nas_data }}"
-    docker run --rm -p 127.0.0.1:8787:8787 -e TASKITE_NO_AUTH=1 -v "{{ nas_data }}:/data" {{ tag }}
+    docker run --rm -p 127.0.0.1:8788:8788 -e TASKITE_NO_AUTH=1 -v "{{ nas_data }}:/data" {{ tag }}
 
 # ── Quality ───────────────────────────────────────────────────────────────
 

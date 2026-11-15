@@ -3,17 +3,20 @@
   "productName": "Taskite",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "license": "MIT",
   "description": "Taskite desktop app (Electron).",
-  "main": "legacy/main.js",
+  "main": "out/main.js",
   "scripts": {
-    "start": "electron .",
-    "test:legacy": "node --test \"legacy/test/*.test.js\""
-  },
-  "dependencies": {
-    "bootstrap": "5.3.8"
+    "build": "vite build && tsc -p tsconfig.build.json && node scripts/copy-web.mjs",
+    "start": "pnpm build && node scripts/start.mjs",
+    "package": "pnpm build && electron-builder --config electron-builder.yml"
   },
   "devDependencies": {
-    "electron": "45.2.3"
+    "@taskite/node-files": "workspace:*",
+    "@taskite/web": "workspace:*",
+    "electron": "45.2.3",
+    "electron-builder": "26.18.0",
+    "vite": "8.3.5"
   }
 }

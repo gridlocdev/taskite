@@ -1,0 +1,20 @@
+# Copy to compose.yaml on the NAS, adjust the volume path and the token, then: docker compose up -d
+services:
+  taskite:
+    build: .
+    # image: taskite:latest
+    ports:
+      - '8788:8788'
+    environment:
+      # Shared secret the browser asks for once. Required: the server will not start without it.
+      TASKITE_TOKEN: change-me-to-a-long-random-secret
+      # Only if your NAS reverse proxy already requires a login, drop the token and set:
+      # TASKITE_NO_AUTH: '1'
+      # Without a token, only IP addresses and localhost are answered. Add the names you browse to:
+      # TASKITE_HOSTS: 'nas.lan,tasks.home.arpa'
+    volumes:
+      # The folder that holds tasks.json (made on the first save).
+      - /volume1/taskite:/data
+    # The container runs as the image's `node` user (uid 1000); match your NAS share's owner:
+    # user: '1026:100'
+    restart: unless-stopped

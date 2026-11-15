@@ -1,0 +1,19 @@
+{
+  "name": "@taskite/cli",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "description": "taskite: list and change your tasks from the terminal (scripts and agents).",
+  "bin": {
+    "taskite": "./bin/taskite.mjs"
+  },
+  "scripts": {
+    "start": "node src/main.ts",
+    "build": "echo 'cli runs from source (node type stripping)'"
+  },
+  "dependencies": {
+    "@taskite/core": "workspace:*",
+    "@taskite/node-files": "workspace:*"
+  }
+}

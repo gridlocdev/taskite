@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": ".types",
+    "rootDir": ".",
+    "types": ["node"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
+  },
+  "include": ["src", "test", "vite.config.ts"],
+  "references": [
+    {
+      "path": "../../packages/node-files"
+    }
+  ]
+}
