@@ -349,7 +349,8 @@ function TaskRow({
       aria-selected={chosen}
       data-id={task.id}
       tabIndex={isCursor ? 0 : -1}
-      draggable={!inTrash}
+      // Only top-level tasks are dragged; subtasks follow their parent (PRD §4.5).
+      draggable={!inTrash && !task.parentId}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest('.tk-check')) return;
         app.click(task.id, { toggle: e.metaKey || e.ctrlKey, range: e.shiftKey });
@@ -366,7 +367,8 @@ function TaskRow({
       }}
       onDragStart={(e) => {
         if (!app.selected.value.has(task.id)) app.click(task.id);
-        e.dataTransfer?.setData(DRAG_TYPE, JSON.stringify(app.targetIds()));
+        const tops = app.targetIds().filter((id) => !list.getTask(id)?.parentId);
+        e.dataTransfer?.setData(DRAG_TYPE, JSON.stringify(tops));
         if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
       }}
       onDragOver={(e) => {
