@@ -14,6 +14,7 @@
 
 ### Improvements
 
+- **Dates read the way you mean them.** `next week` and `next month` are a week or a month from today, and `next monday` is the Monday after the coming one (on a Sunday, no longer tomorrow). New: `this friday`, `this weekend`, `next weekend`, `next year`, `day after tomorrow`, `end of month`, `in a week`, `in two months` and `3 days from now`.
 - **A lighter task editor.** Changes apply as you make them, with no Save button, and each one can be undone. Only the fields a task uses are shown; add others from **+ Add**.
 - **Upcoming follows the calendar week.** It lists the rest of this week day by day, then Next Week as one group, then Later, so "this week" means the same thing as on your calendar. The week starts on the day your region uses.
 - **Safe with newer versions.** Taskite keeps parts of the tasks file it doesn't understand, and won't open a file saved by a newer Taskite, so running an older copy (an old Docker image, say) can't damage it.

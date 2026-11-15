@@ -28,12 +28,46 @@ describe('parseQuickAdd', () => {
     expect(parseQuickAdd('x today', TODAY).due).toBe(TODAY);
     expect(parseQuickAdd('x monday', TODAY).due).toBe('2026-10-12');
     expect(parseQuickAdd('x on friday', TODAY).due).toBe('2026-10-16');
-    expect(parseQuickAdd('x next week', TODAY).due).toBe('2026-10-12');
+    expect(parseQuickAdd('x next week', TODAY).due).toBe('2026-10-16');
     expect(parseQuickAdd('x in 3 days', TODAY).due).toBe('2026-10-12');
     expect(parseQuickAdd('x in 2 weeks', TODAY).due).toBe('2026-10-23');
     expect(parseQuickAdd('x Dec 25', TODAY).due).toBe('2026-12-25');
     expect(parseQuickAdd('x 3 jan', TODAY).due).toBe('2027-01-03');
     expect(parseQuickAdd('x 2026-11-01', TODAY).due).toBe('2026-11-01');
+  });
+
+  it('reads "next" and amounts of time from today', () => {
+    const due = (text: string, today = TODAY) => parseQuickAdd(`x ${text}`, today).due;
+    // TODAY is Friday 2026-10-09.
+    expect(due('next week')).toBe('2026-10-16');
+    expect(due('next month')).toBe('2026-11-09');
+    expect(due('next year')).toBe('2027-10-09');
+    expect(due('next monday')).toBe('2026-10-19');
+    expect(due('next friday')).toBe('2026-10-16');
+    expect(due('this friday')).toBe(TODAY);
+    expect(due('this weekend')).toBe('2026-10-10');
+    expect(due('next weekend')).toBe('2026-10-17');
+    expect(due('in a week')).toBe('2026-10-16');
+    expect(due('in two months')).toBe('2026-12-09');
+    expect(due('in 1 year')).toBe('2027-10-09');
+    expect(due('3 days from now')).toBe('2026-10-12');
+    expect(due('the day after tomorrow')).toBe('2026-10-11');
+    expect(due('end of month')).toBe('2026-10-31');
+    expect(due('next month', '2026-01-31')).toBe('2026-02-28');
+    // On a Sunday, "next monday" is not tomorrow; plain "monday" is.
+    const sunday = '2026-11-15';
+    expect(due('next monday', sunday)).toBe('2026-11-23');
+    expect(due('monday', sunday)).toBe('2026-11-16');
+    expect(due('next week', sunday)).toBe('2026-11-22');
+    expect(parseDueText('next mon', sunday)).toEqual({ due: '2026-11-23', ok: true });
+    expect(parseQuickAdd('Call mum next monday p2', sunday)).toMatchObject({
+      title: 'Call mum',
+      priority: 2,
+    });
+    expect(parseQuickAdd('Plan the weekend trip', sunday)).toMatchObject({
+      title: 'Plan the weekend trip',
+      due: null,
+    });
   });
 
   it('ignores invalid dates and leaves them in the title', () => {
@@ -70,7 +104,7 @@ describe('parseQuickAdd', () => {
   it('reads a due date typed on its own, short weekday names included', () => {
     // 2026-11-15 is a Sunday.
     expect(parseDueText('fri', '2026-11-15')).toEqual({ due: '2026-11-20', ok: true });
-    expect(parseDueText('next Tue', '2026-11-15')).toEqual({ due: '2026-11-17', ok: true });
+    expect(parseDueText('next Tue', '2026-11-15')).toEqual({ due: '2026-11-24', ok: true });
     expect(parseDueText('thurs', '2026-11-15')).toEqual({ due: '2026-11-19', ok: true });
     expect(parseDueText('none', '2026-11-15')).toEqual({ due: null, ok: true });
     expect(parseDueText('someday', '2026-11-15')).toEqual({ due: null, ok: false });

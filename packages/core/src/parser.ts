@@ -47,6 +47,50 @@ function weekdayIndex(word: string): number {
   return (WEEKDAYS as readonly string[]).indexOf(word.toLowerCase());
 }
 
+/** A weekday's index; "weekend" is Saturday. */
+function dayOf(word: string): number {
+  return word.toLowerCase() === 'weekend' ? 6 : weekdayIndex(word);
+}
+
+/** The first `weekday` on or after a date. */
+function onOrAfter(weekday: number, fromISO: string): string {
+  return nextWeekday(weekday, addDays(fromISO, -1));
+}
+
+const AMOUNTS: Readonly<Record<string, number>> = {
+  a: 1,
+  an: 1,
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+};
+const AMOUNT_WORDS = Object.keys(AMOUNTS).join('|');
+
+function amount(word: string): number {
+  return AMOUNTS[word.toLowerCase()] ?? Number(word);
+}
+
+/** `n` days, weeks, months or years after a date. */
+function afterAmount(fromISO: string, n: number, unit: string): string {
+  const u = unit.toLowerCase();
+  if (u.startsWith('day')) return addDays(fromISO, n);
+  if (u.startsWith('week')) return addDays(fromISO, n * 7);
+  if (u.startsWith('month')) return addMonths(fromISO, n);
+  return addMonths(fromISO, n * 12);
+}
+
+/** The last day of a date's month. */
+function endOfMonth(iso: string): string {
+  return addDays(addMonths(`${iso.slice(0, 7)}-01`, 1), -1);
+}
+
 /** A date for a month and day: this year, or next year if already past. Null for "feb 31". */
 function monthDay(monthName: string, day: number, today: string): string | null {
   const month = (MONTHS as readonly string[]).indexOf(monthName.slice(0, 3).toLowerCase());
@@ -75,20 +119,34 @@ const DATE_RULES: DateRule[] = [
     },
   },
   { re: /\btoday\b/i, toDate: (_m, today) => today },
+  { re: /\b(?:the )?day after tomorrow\b/i, toDate: (_m, today) => addDays(today, 2) },
   { re: /\btomorrow\b/i, toDate: (_m, today) => addDays(today, 1) },
-  { re: /\bnext week\b/i, toDate: (_m, today) => nextWeekday(1, today) },
+  // "next week", "next month", "next year": that long from today.
   {
-    re: /\bin (\d{1,3}) (days?|weeks?|months?)\b/i,
-    toDate: (m, today) => {
-      const n = Number(m[1]);
-      const unit = (m[2] ?? '').toLowerCase();
-      if (unit.startsWith('day')) return addDays(today, n);
-      if (unit.startsWith('week')) return addDays(today, n * 7);
-      return addMonths(today, n);
-    },
+    re: /\bnext (week|month|year)\b/i,
+    toDate: (m, today) => afterAmount(today, 1, m[1] ?? ''),
   },
   {
-    re: new RegExp(`\\b(?:on |next )?(${WEEKDAY_WORDS})\\b`, 'i'),
+    re: new RegExp(`\\bin (\\d{1,3}|${AMOUNT_WORDS}) (days?|weeks?|months?|years?)\\b`, 'i'),
+    toDate: (m, today) => afterAmount(today, amount(m[1] ?? ''), m[2] ?? ''),
+  },
+  {
+    re: new RegExp(`\\b(\\d{1,3}|${AMOUNT_WORDS}) (days?|weeks?|months?|years?) from (?:now|today)\\b`, 'i'),
+    toDate: (m, today) => afterAmount(today, amount(m[1] ?? ''), m[2] ?? ''),
+  },
+  { re: /\bend of (?:the )?month\b/i, toDate: (_m, today) => endOfMonth(today) },
+  // "next friday": the friday in the seven days that start a week from today, so never this week's.
+  {
+    re: new RegExp(`\\bnext (${WEEKDAY_WORDS}|weekend)\\b`, 'i'),
+    toDate: (m, today) => onOrAfter(dayOf(m[1] ?? ''), addDays(today, 7)),
+  },
+  // "this friday", "this weekend": the coming one, today included.
+  {
+    re: new RegExp(`\\bthis (${WEEKDAY_WORDS}|weekend)\\b`, 'i'),
+    toDate: (m, today) => onOrAfter(dayOf(m[1] ?? ''), today),
+  },
+  {
+    re: new RegExp(`\\b(?:on )?(${WEEKDAY_WORDS})\\b`, 'i'),
     toDate: (m, today) => nextWeekday(weekdayIndex(m[1] ?? ''), today),
   },
   {

@@ -8,13 +8,13 @@ Taskite is a to-do list for one person, on one file. The desktop app, the browse
 
 Press `Q` (or click **Add task**) and type a task in one line. Taskite pulls out:
 
-| You type                                                                        | It means                               |
-| ------------------------------------------------------------------------------- | -------------------------------------- |
-| `today`, `tomorrow`, `friday`, `next week`, `in 3 days`, `Dec 25`, `2026-11-01` | The due date                           |
-| `every day`, `every weekday`, `every week`, `every month`, `every monday`       | Repeats                                |
-| `p1` to `p4`                                                                    | Priority (1 is urgent)                 |
-| `#Home`                                                                         | The project (made for you if it's new) |
-| `@phone`                                                                        | A label (as many as you like)          |
+| You type                                                                                                                     | It means                               |
+| ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `today`, `tomorrow`, `friday`, `next monday`, `next week`, `next month`, `in 3 days`, `this weekend`, `Dec 25`, `2026-11-01` | The due date                           |
+| `every day`, `every weekday`, `every week`, `every month`, `every monday`                                                    | Repeats                                |
+| `p1` to `p4`                                                                                                                 | Priority (1 is urgent)                 |
+| `#Home`                                                                                                                      | The project (made for you if it's new) |
+| `@phone`                                                                                                                     | A label (as many as you like)          |
 
 The row previews the date, project and labels while you type. Press Enter to add the task and start the next one; press Enter on an empty row, or Esc, to stop. A task added in a project, on a day in Upcoming or under a label starts with that project, date or label.
 

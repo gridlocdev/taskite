@@ -88,7 +88,7 @@ All data is one JSON file, `tasks.json`, written pretty-printed (two-space inden
 
 | Text | Meaning |
 |---|---|
-| `today`, `tomorrow`, `next week` (next Monday), `in N days/weeks/months`, a weekday (`friday`, `on friday`, `next friday`: the next one after today), `Dec 25`, `25 Dec`, `Dec 25th`, `2026-11-01` | due date. Month-day dates take this year, or next year if already past; an impossible date (`feb 31`) is ignored |
+| `today`, `tomorrow`, `day after tomorrow`; `next week` / `next month` / `next year` (that long from today); `in N days/weeks/months/years` and `N days from now` (N a number, or `a`, `an`, `one` … `ten`); `end of month`; a weekday (`friday`, `on friday`: the next one after today); `this friday` (the coming one, today included); `next friday` (the one in the seven days that start a week from today, so never this week's: on a Sunday, `next monday` is eight days away); `this weekend` / `next weekend` (Saturday, the same way); `Dec 25`, `25 Dec`, `Dec 25th`, `2026-11-01` | due date. Month-day dates take this year, or next year if already past; an impossible date (`feb 31`) is ignored |
 | `every day`, `every weekday`, `every week`, `every month`, `every year`, `every monday` | repeat; due defaults to today (the next weekday for `every weekday` on a weekend; the next such day for `every <weekday>`, or today if it is that day). An explicit date wins |
 | `p1` … `p4` | priority |
 | `#Name` | project, matched ignoring case, spaces, `-` and `_`; created if missing (with `-`/`_` turned into spaces, next colour in turn, notice "Created new project …") |

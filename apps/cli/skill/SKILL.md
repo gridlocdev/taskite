@@ -33,7 +33,7 @@ hasn't changed since the command read it.
 ## Quick Add text
 
 `add` reads the text like the app's add-task row: a date (`today`, `tomorrow`, `fri`, `next week`,
-`in 3 days`, `mar 3`, `2026-04-01`), a repeat (`every day`, `every weekday`, `every week`, `every month`, `every year`, `every monday`),
+`next month`, `in 3 days`, `mar 3`, `2026-04-01`), a repeat (`every day`, `every weekday`, `every week`, `every month`, `every year`, `every monday`),
 a priority (`p1` urgent to `p4` normal), `#Project` (made if it doesn't exist; `#Big-Plans` means
 "Big Plans") and `@labels`. What is left is the task's name. Quote the text if it has shell characters.
 
