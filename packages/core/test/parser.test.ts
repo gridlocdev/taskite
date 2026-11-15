@@ -111,4 +111,23 @@ describe('parseQuickAdd', () => {
     // Quick Add leaves short names in the title.
     expect(parseQuickAdd('Buy sun cream', '2026-11-15')).toMatchObject({ title: 'Buy sun cream', due: null });
   });
+
+  it('takes "on" with a month date, as it does with a weekday', () => {
+    expect(parseQuickAdd('Call mom on may 5', '2026-03-10')).toMatchObject({
+      title: 'Call mom',
+      due: '2026-05-05',
+    });
+    expect(parseQuickAdd('Call mom on 5 may', '2026-03-10')).toMatchObject({
+      title: 'Call mom',
+      due: '2026-05-05',
+    });
+  });
+
+  it('finds the next feb 29 when this year and next have none', () => {
+    expect(parseQuickAdd('Leap party feb 29', '2027-03-01')).toMatchObject({
+      title: 'Leap party',
+      due: '2028-02-29',
+    });
+    expect(parseQuickAdd('Nope feb 31', '2027-03-01').due).toBeNull();
+  });
 });

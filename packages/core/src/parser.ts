@@ -95,9 +95,11 @@ function endOfMonth(iso: string): string {
 function monthDay(monthName: string, day: number, today: string): string | null {
   const month = (MONTHS as readonly string[]).indexOf(monthName.slice(0, 3).toLowerCase());
   const year = parseISODate(today).getFullYear();
-  for (const y of [year, year + 1]) {
+  // Feb 29 waits for the next leap year; a day no month has ("feb 31") is never found. Leap years are at
+  // most 8 years apart.
+  for (let y = year; y <= year + 8; y++) {
     const date = new Date(y, month, day);
-    if (date.getMonth() !== month) return null;
+    if (date.getMonth() !== month) continue;
     const iso = toISODate(date);
     if (iso >= today) return iso;
   }
@@ -150,11 +152,11 @@ const DATE_RULES: DateRule[] = [
     toDate: (m, today) => nextWeekday(weekdayIndex(m[1] ?? ''), today),
   },
   {
-    re: new RegExp(`\\b${MONTH_RE}\\.? (\\d{1,2})(?:st|nd|rd|th)?\\b`, 'i'),
+    re: new RegExp(`\\b(?:on )?${MONTH_RE}\\.? (\\d{1,2})(?:st|nd|rd|th)?\\b`, 'i'),
     toDate: (m, today) => monthDay(m[1] ?? '', Number(m[2]), today),
   },
   {
-    re: new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)? ${MONTH_RE}\\b`, 'i'),
+    re: new RegExp(`\\b(?:on )?(\\d{1,2})(?:st|nd|rd|th)? ${MONTH_RE}\\b`, 'i'),
     toDate: (m, today) => monthDay(m[2] ?? '', Number(m[1]), today),
   },
 ];
