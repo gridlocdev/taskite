@@ -292,4 +292,28 @@ describe('TaskList', () => {
     list.undo();
     expect(list.getTask(t.id)?.priority).toBe(2);
   });
+
+  it('finds tasks and subtasks after every kind of change', () => {
+    const list = new TaskList(emptyData());
+    const a = list.addTask({ title: 'A' });
+    const b = list.addTask({ title: 'B' });
+    expect(list.getTask(b.id)?.title).toBe('B');
+    const s1 = list.addTask({ title: 'S1', parentId: a.id });
+    const s2 = list.addTask({ title: 'S2', parentId: a.id });
+    expect(list.getSubtasks(a.id).map((t) => t.title)).toEqual(['S1', 'S2']);
+    list.reorderTasks([s2.id, s1.id]);
+    expect(list.getSubtasks(a.id).map((t) => t.title)).toEqual(['S2', 'S1']);
+    list.deleteTasks(s2.id);
+    expect(list.getSubtasks(a.id).map((t) => t.title)).toEqual(['S1']);
+    list.undo();
+    expect(list.getSubtasks(a.id)).toHaveLength(2);
+    list.batch(() => {
+      list.addTask({ title: 'S3', parentId: b.id });
+      expect(list.getSubtasks(b.id).map((t) => t.title)).toEqual(['S3']);
+    });
+    list.deleteTasks(b.id);
+    list.purgeTasks(b.id);
+    expect(list.getTask(b.id)).toBeUndefined();
+    expect(list.getSubtasks(b.id)).toEqual([]);
+  });
 });

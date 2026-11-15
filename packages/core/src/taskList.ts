@@ -71,6 +71,12 @@ export function projectKey(name: string): string {
   return name.toLowerCase().replace(/[\s_-]+/g, '');
 }
 
+interface Lookup {
+  readonly tasks: readonly Task[];
+  readonly byId: Map<string, Task>;
+  readonly children: Map<string, Task[]>;
+}
+
 /** Whether an edit changed anything: an edit that leaves the data as it was records no undo step. */
 function sameData(a: AppData, b: AppData): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
@@ -86,6 +92,8 @@ export class TaskList {
   #batching = false;
   #batchChanged = false;
   #step = 0;
+  #index: Lookup | null = null;
+  #changing = false;
   #lastEditChanged = false;
 
   constructor(data: AppData, options: TaskListOptions = {}) {
@@ -106,6 +114,7 @@ export class TaskList {
   }
 
   #emit(kind: ChangeKind): void {
+    this.#index = null;
     if (kind !== 'settings') this.#step++;
     for (const fn of this.#listeners) fn(kind);
   }
@@ -134,15 +143,28 @@ export class TaskList {
   /** Runs `change` on the data as one undo step. Nothing is recorded if it returns false. */
   #edit(change: (data: AppData) => boolean | void): void {
     if (this.#batching) {
-      if (change(this.#data) !== false) this.#batchChanged = true;
+      if (this.#run(change) !== false) this.#batchChanged = true;
       return;
     }
     const before = structuredClone(this.#data);
-    if (change(this.#data) === false || sameData(before, this.#data)) {
+    if (this.#run(change) === false || sameData(before, this.#data)) {
       this.#lastEditChanged = false;
       return;
     }
     this.#record(before);
+  }
+
+  /** Runs an edit's change with the lookup tables off, since the change moves tasks under them. */
+  #run(change: (data: AppData) => boolean | void): boolean | void {
+    const outer = this.#changing;
+    this.#changing = true;
+    this.#index = null;
+    try {
+      return change(this.#data);
+    } finally {
+      this.#changing = outer;
+      this.#index = null;
+    }
   }
 
   #record(before: AppData): void {
@@ -211,7 +233,29 @@ export class TaskList {
   // ---------- Reading tasks ----------
 
   getTask(id: string): Task | undefined {
-    return this.#data.tasks.find((t) => t.id === id);
+    if (this.#changing) return this.#data.tasks.find((t) => t.id === id);
+    return this.#lookup().byId.get(id);
+  }
+
+  /**
+   * Tasks by id and live subtasks by parent, so a view with thousands of rows doesn't scan every task for
+   * each one. Built on first use after a change; while an edit runs, lookups scan the tasks instead.
+   */
+  #lookup(): Lookup {
+    if (this.#index?.tasks === this.#data.tasks) return this.#index;
+    const byId = new Map<string, Task>();
+    const children = new Map<string, Task[]>();
+    for (const t of this.#data.tasks) {
+      byId.set(t.id, t);
+      if (t.parentId && t.deletedAt === null) {
+        const list = children.get(t.parentId);
+        if (list) list.push(t);
+        else children.set(t.parentId, [t]);
+      }
+    }
+    for (const list of children.values()) list.sort((a, b) => a.order - b.order);
+    this.#index = { tasks: this.#data.tasks, byId, children };
+    return this.#index;
   }
 
   /** Every task not in the Trash. */
@@ -238,9 +282,11 @@ export class TaskList {
 
   /** Subtasks not in the Trash, in order. */
   getSubtasks(parentId: string): Task[] {
-    return this.#data.tasks
-      .filter((t) => t.parentId === parentId && t.deletedAt === null)
-      .sort((a, b) => a.order - b.order);
+    if (this.#changing)
+      return this.#data.tasks
+        .filter((t) => t.parentId === parentId && t.deletedAt === null)
+        .sort((a, b) => a.order - b.order);
+    return [...(this.#lookup().children.get(parentId) ?? [])];
   }
 
   // ---------- Changing tasks ----------
