@@ -1,4 +1,9 @@
-export { BrowserStore, type DirHandle, type FileHandleLike } from './store/browserStore.ts';
+export {
+  BrowserStore,
+  type DirHandle,
+  type FileHandleLike,
+  type LockManagerLike,
+} from './store/browserStore.ts';
 export { MemoryStore } from './store/memoryStore.ts';
 export {
   AuthError,

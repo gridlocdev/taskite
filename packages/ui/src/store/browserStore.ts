@@ -10,22 +10,33 @@ export interface FileHandleLike {
   createWritable(): Promise<{ write(data: Uint8Array): Promise<void>; close(): Promise<void> }>;
 }
 
+/** The part of the Web Locks API the store uses (`navigator.locks`). */
+export interface LockManagerLike {
+  request<T>(name: string, task: () => Promise<T>): Promise<T>;
+}
+
+function defaultLocks(): LockManagerLike | null {
+  return typeof navigator !== 'undefined' && navigator.locks ? navigator.locks : null;
+}
+
 function isNotFound(e: unknown): boolean {
   return e instanceof DOMException && e.name === 'NotFoundError';
 }
 
 /**
- * tasks.json in the origin's private file system (PRD §3.6). Only this tab writes it, but saves still check
- * the version so a second tab can't overwrite the first one's work.
+ * tasks.json in the origin's private file system (PRD §3.6). Every tab of the app shares it, so a save holds a
+ * Web Lock while it checks the version and writes: a second tab can't pass the same check and overwrite it.
  */
 export class BrowserStore implements TaskStore {
   readonly kind = 'browser';
   readonly #root: () => Promise<DirHandle>;
+  readonly #locks: LockManagerLike | null;
   #queue: Promise<unknown> = Promise.resolve();
 
-  /** `root` defaults to `navigator.storage.getDirectory()`. */
-  constructor(root?: () => Promise<DirHandle>) {
+  /** `root` defaults to `navigator.storage.getDirectory()`, `locks` to `navigator.locks`. */
+  constructor(root?: () => Promise<DirHandle>, locks: LockManagerLike | null = defaultLocks()) {
     this.#root = root ?? (() => navigator.storage.getDirectory() as Promise<unknown> as Promise<DirHandle>);
+    this.#locks = locks;
   }
 
   /** Is there a private file system here? (Not in old browsers or some private windows.) */
@@ -50,8 +61,11 @@ export class BrowserStore implements TaskStore {
     await w.close();
   }
 
+  /** One operation at a time in this tab, and across tabs while one holds the lock. */
   #serial<T>(task: () => Promise<T>): Promise<T> {
-    const run = this.#queue.catch(() => undefined).then(task);
+    const locks = this.#locks;
+    const locked = locks ? () => locks.request('taskite-tasks-file', task) : task;
+    const run = this.#queue.catch(() => undefined).then(locked);
     this.#queue = run;
     return run;
   }

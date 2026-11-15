@@ -44,6 +44,8 @@
 - Subtasks can't be dragged, as the PRD says; dragging one used to shuffle it among its siblings or pull it away from its parent. Dragging a parent with its subtasks chosen moves the parent, and the subtasks follow it.
 - The right-click menu stays inside a short window and scrolls when it doesn't fit, so its last items are always within reach.
 - The NAS server starts from a folder whose path has spaces in it.
+- Saving through a symlinked `tasks.json` keeps the link instead of replacing it with a plain file, and on Windows a save waits briefly when another program has the file open.
+- Two browser tabs, or the desktop app and the CLI, saving at the same moment can no longer both pass the version check and lose one of the changes.
 
 ## 2.0.0
 

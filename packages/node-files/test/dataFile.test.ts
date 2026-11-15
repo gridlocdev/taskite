@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, readFile, readdir, rm, symlink, utimes, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -60,5 +60,43 @@ describe('the data file on disk', () => {
     const b = await writeCopy(file, 'B', 'copy', now);
     expect(path.basename(b)).toBe('tasks.copy-2026-11-15-090507-2.json');
     expect([await readFile(a, 'utf8'), await readFile(b, 'utf8')]).toEqual(['A', 'B']);
+  });
+});
+
+describe('saving alongside other programs', () => {
+  it('keeps a symlinked file a symlink and writes through it', async () => {
+    const real = path.join(dir, 'real', 'tasks.json');
+    await mkdir(path.dirname(real), { recursive: true });
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(real, 'one');
+    await symlink(real, file);
+    expect(await writeDataFile(file, 'two', versionOf('one'))).toMatchObject({ ok: true });
+    expect((await lstat(file)).isSymbolicLink()).toBe(true);
+    expect(await readFile(real, 'utf8')).toBe('two');
+  });
+
+  it('waits while another process holds the lock, then checks the version it left', async () => {
+    await writeDataFile(file, 'one', null);
+    const lock = path.join(path.dirname(file), '.tasks.json.lock');
+    await writeFile(lock, '');
+    const saving = writeDataFile(file, 'mine', versionOf('one'));
+    await new Promise((r) => setTimeout(r, 60));
+    expect(await readFile(file, 'utf8')).toBe('one');
+    // The other process saves, then lets go.
+    await writeFile(file, 'theirs');
+    await rm(lock);
+    expect(await saving).toEqual({ ok: false, reason: 'conflict', version: versionOf('theirs') });
+    expect(await readFile(file, 'utf8')).toBe('theirs');
+    expect(await readdir(path.dirname(file))).toEqual(['tasks.json']);
+  });
+
+  it('takes over a lock left by a process that died', async () => {
+    await writeDataFile(file, 'one', null);
+    const lock = path.join(path.dirname(file), '.tasks.json.lock');
+    await writeFile(lock, '');
+    const old = new Date(Date.now() - 60_000);
+    await utimes(lock, old, old);
+    expect(await writeDataFile(file, 'two', versionOf('one'))).toMatchObject({ ok: true });
+    expect(await readdir(path.dirname(file))).toEqual(['tasks.json']);
   });
 });

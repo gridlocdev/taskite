@@ -43,7 +43,8 @@ All data is one JSON file, `tasks.json`, written pretty-printed (two-space inden
 ### §3.3 Saving
 
 - Every change is saved immediately. Saves never overlap: a change during a save is saved right after it.
-- Saves are atomic: write a temp file, flush it, rename it over `tasks.json`.
+- Saves are atomic: write a temp file, flush it, rename it over `tasks.json`. A `tasks.json` that is a symlink stays one: the save replaces the file it points at. On Windows a rename refused because another program has the file open is retried a few times.
+- The desktop app, the NAS server and the CLI hold a lock file (`.tasks.json.lock`, created exclusively next to the file) while they check the version and write, so two of them can't both pass the check. A lock older than 10 s is left from a crash and is taken over. Tabs in the browser hold a Web Lock instead.
 - A failed save is retried twice (after 300 ms and 600 ms). If it still fails, the status bar shows "Couldn't save your tasks." with **Try again** until a save works, then "Saved." Until then the unsaved data is also kept in the browser's storage (§3.5).
 - Settings changes are saved but are not undo steps.
 
@@ -56,7 +57,7 @@ All data is one JSON file, `tasks.json`, written pretty-printed (two-space inden
   - **Use Theirs**: load the file on disk; this window's unsaved changes are lost.
 - Nothing merges, and nothing overwrites without the user choosing it.
 - **Changes made elsewhere** (the CLI, another window or device): the app reads the file again when its window comes to the front and every 15 s while it is in front. If the file changed and this window has nothing unsaved, it takes the file's tasks as one undo step, with the notice "Updated with N changes made elsewhere." and Undo. Undo puts back what the window showed (and saves it); earlier undo steps are dropped, so Undo can't take back the other change along with one of this window's. With unsaved changes, it leaves the file alone and the save's conflict check asks, as above.
-- The browser store has no other writers, so it never conflicts, but runs the same code.
+- In the browser, every tab of the app shares one file, so a second tab conflicts like a second window.
 
 ### §3.5 Recovery
 

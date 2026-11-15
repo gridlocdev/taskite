@@ -14,6 +14,7 @@ import {
   NativeStore,
   sha256Hex,
   type DirHandle,
+  type LockManagerLike,
   type TaskStore,
 } from '../src/index.ts';
 import { fakeFolder } from './fakeFileSystem.ts';
@@ -84,6 +85,30 @@ describe.each(Object.entries(stores))('the %s store', (_name, make) => {
     expect(a).toMatch(/^tasks\.copy-\d{4}-\d\d-\d\d-\d{6}\.json$/);
     expect(b).not.toBe(a);
     expect((await store.load()).text).toBe('{"a":1}');
+  });
+});
+
+/** Web Locks in one page: each name runs its holders one after another. */
+function fakeLocks(): LockManagerLike {
+  const held = new Map<string, Promise<unknown>>();
+  return {
+    request<T>(name: string, task: () => Promise<T>): Promise<T> {
+      const run = (held.get(name) ?? Promise.resolve()).catch(() => undefined).then(task);
+      held.set(name, run);
+      return run;
+    },
+  };
+}
+
+describe('the browser store in two tabs', () => {
+  it('lets only one of two tabs that saw the same version save', async () => {
+    const { root } = fakeFolder('opfs');
+    const locks = fakeLocks();
+    const tab = () => new BrowserStore(() => Promise.resolve(root as unknown as DirHandle), locks);
+    const v1 = await tab().save('{"a":1}', null);
+    const results = await Promise.allSettled([tab().save('{"tab":1}', v1), tab().save('{"tab":2}', v1)]);
+    expect(results.map((r) => r.status)).toEqual(['fulfilled', 'rejected']);
+    expect((await tab().load()).text).toBe('{"tab":1}');
   });
 });
 
