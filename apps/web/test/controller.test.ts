@@ -258,12 +258,15 @@ describe('AppController', () => {
 
   it('Undo while a task is still animating out cancels that change, not the one before it', async () => {
     let finish = () => {};
-    const { app } = await makeApp(null, () => new Promise<void>((r) => (finish = r)));
+    const { app, catalog } = await makeApp(null, () => new Promise<void>((r) => (finish = r)));
     for (const t of ['A', 'B']) app.addTask(t, 'end');
+    // With nothing else to undo (as just after opening), ⌘Z still reaches the completion that is animating.
+    app.list.replace(structuredClone(app.list.data));
     const [a, b] = app.ids.value;
     app.click(a!);
     const completing = app.toggleComplete();
-    app.undo();
+    expect(catalog.get('edit.undo')?.enabled?.()).toBe(true);
+    catalog.run('edit.undo');
     finish();
     await completing;
     expect(app.list.getTask(a!)?.completed).toBe(false);

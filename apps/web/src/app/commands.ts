@@ -160,7 +160,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       shortcuts: ['mod+z'],
       enabled: () => {
         void app.rev.value;
-        return app.list.canUndo;
+        return app.canUndo();
       },
       run: () => app.undo(),
     },

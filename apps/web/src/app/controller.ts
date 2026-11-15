@@ -660,6 +660,11 @@ export class AppController {
     this.sayUndoable('Scheduled for today.');
   }
 
+  /** Whether Undo has something to take back, a completion or trash still animating included. */
+  canUndo(): boolean {
+    return this.list.canUndo || this.completing.value.size > 0 || this.leaving.value.size > 0;
+  }
+
   undo(): void {
     // A completion or trash still animating hasn't been made yet: Undo cancels it.
     if (this.completing.peek().size || this.leaving.peek().size) {
