@@ -1,0 +1,79 @@
+name: release
+
+# Push a vX.Y.Z tag (matching the version in the package.json files) to publish a release: the desktop app
+# for macOS (Apple silicon and Intel), Windows and Linux on a GitHub release.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            args: --arm64 --x64
+          - os: windows-latest
+            args: --x64
+          - os: ubuntu-latest
+            args: --x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          # v5 caches pnpm's store by default, but pnpm only exists after `corepack enable`.
+          package-manager-cache: false
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - name: The tag matches the app's version
+        shell: bash
+        run: |
+          version=$(node -p "require('./apps/desktop/package.json').version")
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match apps/desktop/package.json ($version)" >&2
+            exit 1
+          fi
+      - run: pnpm --filter @taskite/web build
+      - run: pnpm --filter @taskite/desktop package --publish never ${{ matrix.args }}
+        env:
+          # The macOS build gets an ad-hoc signature (electron-builder.yml); never look for a certificate.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.os }}
+          if-no-files-found: error
+          path: |
+            apps/desktop/release/*.dmg
+            apps/desktop/release/*.zip
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.AppImage
+
+  release:
+    needs: desktop
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          # This version's section of CHANGELOG.md, without its heading.
+          awk -v v="$version" '
+            /^## / { if (found) exit; if (index($0, "## " v) == 1 || index($0, "## [" v "]") == 1) { found = 1; next } }
+            found { print }
+          ' CHANGELOG.md > notes.md
+          [ -s notes.md ] || echo "Taskite $version." > notes.md
+          gh release create "$GITHUB_REF_NAME" dist/* --title "Taskite $version" --notes-file notes.md --verify-tag
