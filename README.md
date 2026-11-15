@@ -36,15 +36,15 @@ The window has two parts:
 
 The sidebar has these places:
 
-| Place | What it shows |
-|---|---|
-| **Inbox** | The default spot for new tasks. Put things here when you're not sure where they belong. |
-| **Today** | Everything due today, plus anything overdue (shown at the top in red). |
-| **Upcoming** | Your next 7 days, one day at a time, then anything due later. |
-| **Completed** | Tasks you've checked off, newest first. |
-| **Trash** | Deleted tasks. They stay for 30 days, then go for good. |
-| **Projects** | Your own groups, such as "Work", "Home" or "Holiday plans". |
-| **Labels** | Tags that can go across projects, such as `@phone` or `@errands`. |
+| Place         | What it shows                                                                           |
+| ------------- | --------------------------------------------------------------------------------------- |
+| **Inbox**     | The default spot for new tasks. Put things here when you're not sure where they belong. |
+| **Today**     | Everything due today, plus anything overdue (shown at the top in red).                  |
+| **Upcoming**  | Your next 7 days, one day at a time, then anything due later.                           |
+| **Completed** | Tasks you've checked off, newest first.                                                 |
+| **Trash**     | Deleted tasks. They stay for 30 days, then go for good.                                 |
+| **Projects**  | Your own groups, such as "Work", "Home" or "Holiday plans".                             |
+| **Labels**    | Tags that can go across projects, such as `@phone` or `@errands`.                       |
 
 ---
 
@@ -69,13 +69,13 @@ This creates a task called **"Call the dentist"**, due **Friday**, marked **urge
 
 ### Shortcuts you can type
 
-| Type this | What it does | Examples |
-|---|---|---|
-| A day or date | Sets the due date | `today`, `tomorrow`, `friday`, `next week`, `in 3 days`, `in 2 weeks`, `Dec 25`, `3 Jan`, `2026-11-01` |
-| `every …` | Makes the task repeat | `every day`, `every weekday`, `every week`, `every monday`, `every month`, `every year` |
-| `p1` to `p4` | Sets the priority | `p1` = urgent (red), `p2` = high (orange), `p3` = medium (blue), `p4` = normal |
-| `#Name` | Puts it in a project | `#Work`, `#Home`. If the project doesn't exist yet, it is created for you. |
-| `@name` | Adds a label | `@phone`, `@errands`. You can add more than one. |
+| Type this     | What it does          | Examples                                                                                               |
+| ------------- | --------------------- | ------------------------------------------------------------------------------------------------------ |
+| A day or date | Sets the due date     | `today`, `tomorrow`, `friday`, `next week`, `in 3 days`, `in 2 weeks`, `Dec 25`, `3 Jan`, `2026-11-01` |
+| `every …`     | Makes the task repeat | `every day`, `every weekday`, `every week`, `every monday`, `every month`, `every year`                |
+| `p1` to `p4`  | Sets the priority     | `p1` = urgent (red), `p2` = high (orange), `p3` = medium (blue), `p4` = normal                         |
+| `#Name`       | Puts it in a project  | `#Work`, `#Home`. If the project doesn't exist yet, it is created for you.                             |
+| `@name`       | Adds a label          | `@phone`, `@errands`. You can add more than one.                                                       |
 
 **Good to know:**
 
@@ -159,11 +159,11 @@ The app opens on the list you were last looking at.
 
 Your tasks are kept in a single file called `tasks.json` on your computer:
 
-| System | Location |
-|---|---|
-| macOS | `~/Library/Application Support/Taskite/tasks.json` |
-| Windows | `%APPDATA%\Taskite\tasks.json` |
-| Linux | `~/.config/Taskite/tasks.json` |
+| System  | Location                                           |
+| ------- | -------------------------------------------------- |
+| macOS   | `~/Library/Application Support/Taskite/tasks.json` |
+| Windows | `%APPDATA%\Taskite\tasks.json`                     |
+| Linux   | `~/.config/Taskite/tasks.json`                     |
 
 **To back up your tasks**, copy that file somewhere safe. **To restore them**, close the app and put the copy back.
 

@@ -1,0 +1,19 @@
+{
+  "name": "@taskite/desktop",
+  "productName": "Taskite",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Taskite desktop app (Electron).",
+  "main": "legacy/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test:legacy": "node --test \"legacy/test/*.test.js\""
+  },
+  "dependencies": {
+    "bootstrap": "5.3.8"
+  },
+  "devDependencies": {
+    "electron": "45.2.3"
+  }
+}
