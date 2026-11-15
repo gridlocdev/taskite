@@ -1,0 +1,22 @@
+# Changelog
+
+## 2.0.0
+
+### Before you update
+
+- **Tasks is now Taskite.** The app keeps its tasks in a new folder (`Taskite` instead of `Tasks` in the app data folder). The first time Taskite starts, it reads your old tasks and shows them; the first change you make saves them to the new file. The old file is left as it was, so you can delete it once you're happy.
+- **The NAS server moved to port 8788,** and its settings are now `TASKITE_DATA`, `TASKITE_TOKEN`, `TASKITE_HOST`, `TASKITE_PORT`, `TASKITE_NO_AUTH` and `TASKITE_HOSTS`. Update your `compose.yaml` from [compose.example.yaml](compose.example.yaml).
+
+### What's new
+
+- **Runs everywhere on one file.** Besides the desktop app, Taskite now runs in a browser and on your NAS from a small Docker image, behind a token. See [Getting started](docs/getting-started.md).
+- **The `taskite` command line.** `list`, `add`, `done`, `reopen`, `trash`, `restore`, `projects` and `path` on the same tasks file, with `--json` for scripts and agents.
+- **Changes made somewhere else are caught.** If the file changed in another window, on another computer or from the CLI while you had changes, Taskite asks whether to save yours as a copy, keep yours, or use theirs. Nothing is overwritten without asking.
+- **Unsaved changes come back.** Changes that couldn't be saved are kept and offered back the next time Taskite starts.
+- **New app icon.**
+
+### Improvements
+
+- **New look** across the sidebar, lists, dialogs and menus. The theme button moved into **Settings** (`⌘,`).
+- **Safer saving.** Saves are atomic, a failed save is retried, and **Try again** stays in the status bar until it works. A file that can't be read is copied aside, never deleted.
+- **The window remembers its size and place.**
