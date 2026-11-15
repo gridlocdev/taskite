@@ -11,6 +11,8 @@ import { menuSender, nativeMenu, watchMenuInputs } from './app/nativeMenu.ts';
 import { chooseStore } from './app/openStore.ts';
 import pkg from '../package.json';
 
+/** How often an open window looks for changes made elsewhere. */
+const REFRESH_MS = 15_000;
 const root = document.getElementById('app')!;
 const native = nativeBridge();
 const tokens = localTokenStorage();
@@ -50,6 +52,21 @@ async function start(): Promise<void> {
     if (session.status.peek() !== 'saved') e.preventDefault();
   });
   if (import.meta.env.DEV) Object.assign(globalThis, { taskite: { app, catalog } });
+
+  // Changes made elsewhere (the CLI, another window or device) show up when the window comes back, and
+  // every so often while it's in front (PRD §3.4).
+  const refresh = () => {
+    if (document.hidden) return;
+    void session.refresh().then((changed) => {
+      if (changed)
+        app.say(`Updated with ${changed === 1 ? 'a change' : `${changed} changes`} made elsewhere.`, {
+          action: { label: 'Undo', run: () => app.undo() },
+        });
+    });
+  };
+  addEventListener('focus', refresh);
+  document.addEventListener('visibilitychange', refresh);
+  setInterval(refresh, REFRESH_MS);
 
   if (native) {
     const html = document.documentElement.classList;

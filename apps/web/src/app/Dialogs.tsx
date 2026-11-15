@@ -493,6 +493,9 @@ function ConflictDialog({ app, changed }: { readonly app: AppController; readonl
   const notice = (text: string | null) => {
     if (text) app.say(text);
   };
+  // A file from a newer Taskite is left alone; the conflict stays until it's settled another way.
+  const failed = (e: unknown) =>
+    app.say(e instanceof Error ? e.message : String(e), { sticky: true, tone: 'error' });
   return (
     <Dialog
       title="Your tasks changed somewhere else"
@@ -503,7 +506,10 @@ function ConflictDialog({ app, changed }: { readonly app: AppController; readonl
             type="button"
             class="tk-button"
             onClick={() =>
-              void s.reload().then((n) => notice(n ?? 'Loaded the tasks from the other change.'))
+              void s
+                .reload()
+                .then((n) => notice(n ?? 'Loaded the tasks from the other change.'))
+                .catch(failed)
             }
           >
             Use Theirs
@@ -523,6 +529,7 @@ function ConflictDialog({ app, changed }: { readonly app: AppController; readonl
               void s
                 .saveCopyAndReload()
                 .then((name) => app.say(`Saved your version as ${name}, then loaded theirs.`))
+                .catch(failed)
             }
           >
             Save Mine as a Copy
