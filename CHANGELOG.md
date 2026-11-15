@@ -25,6 +25,7 @@
 ### Bugs fixed
 
 - **Emptying the Trash could delete a subtask that wasn't in it.** A subtask restored on its own, whose parent was later trashed and deleted, went with it. Subtasks in the Trash now also move with their parent, so a restored one comes back beside it.
+- **Unsaved changes from last time could be lost at start-up.** When Taskite started with old tasks to empty from the Trash, that save replaced the copy of your unsaved changes before it was offered back.
 
 ## 2.0.0
 

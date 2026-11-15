@@ -162,6 +162,38 @@ describe('a task session', () => {
     expect(recovery.text).toBeNull();
   });
 
+  it("keeps last time's unsaved data when opening starts a save of its own", async () => {
+    // The file has a task trashed 40 days ago, so opening it empties that from the Trash and saves.
+    const onDisk = withTask('on disk');
+    onDisk.tasks[0]!.deletedAt = 1;
+    const store = new MemoryStore(serialize(onDisk));
+    const recovery = memoryRecovery();
+    const unsaved = serialize(withTask('unsaved'));
+    recovery.set(unsaved);
+    const { session } = await TaskSession.open(store, opts({ recovery, now: () => 40 * 86_400_000 }));
+    await session.flush();
+    expect(session.recoverable.value).toBe(unsaved);
+    // Closing now, before choosing, still leaves the unsaved data for next time.
+    expect(recovery.text).toBe(unsaved);
+    session.discardRecovered();
+    expect(recovery.text).toBeNull();
+  });
+
+  it("doesn't offer unsaved data that matches the file before the Trash is emptied", async () => {
+    const onDisk = withTask('on disk');
+    onDisk.tasks[0]!.deletedAt = 1;
+    const text = serialize(onDisk);
+    const recovery = memoryRecovery();
+    recovery.set(text);
+    const { session } = await TaskSession.open(
+      new MemoryStore(text),
+      opts({ recovery, now: () => 40 * 86_400_000 }),
+    );
+    await session.flush();
+    expect(session.recoverable.value).toBeNull();
+    expect(recovery.text).toBeNull();
+  });
+
   it('forgets recovery data that matches the file', async () => {
     const text = serialize(withTask('same'));
     const recovery = memoryRecovery();

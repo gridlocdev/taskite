@@ -126,16 +126,19 @@ export class TaskSession {
         corrupt = true;
       }
     }
-    const session = new TaskSession(store, data, file.version, opts);
+    // Read last time's unsaved data before anything here can save, and compare it with the file as it was
+    // read: opening can save on its own (emptying old Trash, replacing an unreadable file), and that save
+    // must not replace it.
+    const recovery = opts.recovery ?? memoryRecovery();
+    const saved = recovery.get();
+    const session = new TaskSession(store, data, file.version, { ...opts, recovery });
+    if (saved !== null) {
+      if (saved !== serialize(data) && parseDataFile(saved, now()).ok) session.recoverable.value = saved;
+      else recovery.clear();
+    }
     // Replace the unreadable file now, so the next start doesn't keep another copy.
     if (corrupt) session.#kick();
     session.list.purgeExpired(now());
-    const saved = session.#recovery.get();
-    if (saved !== null) {
-      if (saved !== serialize(session.list.data) && parseDataFile(saved, now()).ok)
-        session.recoverable.value = saved;
-      else session.#recovery.clear();
-    }
     return { session, notice };
   }
 
@@ -166,11 +169,13 @@ export class TaskSession {
     while (this.#dirty && !this.conflict.value) {
       this.#dirty = false;
       const text = serialize(this.list.data);
-      this.#recovery.set(text);
+      // While last time's unsaved data waits for Restore or Discard, it keeps the recovery slot.
+      const keepsSlot = this.recoverable.value === null;
+      if (keepsSlot) this.#recovery.set(text);
       this.status.value = 'saving';
       try {
         this.#version = await this.#saveWithRetry(text);
-        if (!this.#dirty) this.#recovery.clear();
+        if (!this.#dirty && keepsSlot && this.recoverable.value === null) this.#recovery.clear();
         this.status.value = 'saved';
       } catch (e) {
         if (e instanceof ConflictError) {
