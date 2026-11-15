@@ -55,15 +55,37 @@ describe('views', () => {
     expect(viewContent(list, { type: 'today' }, TODAY).empty?.title).toBe('Nothing due today');
   });
 
-  it('Upcoming has seven days, each with an add slot, then Later', () => {
+  it('Upcoming has the rest of this week a day at a time, then Next Week, then Later', () => {
+    // TODAY is Friday 2026-10-09.
+    list.addTask({ title: 'sat', due: '2026-10-10' });
     list.addTask({ title: 'mon', due: '2026-10-12' });
+    list.addTask({ title: 'sun after', due: '2026-10-18' });
     list.addTask({ title: 'far', due: '2026-12-01' });
-    const content = viewContent(list, { type: 'upcoming' }, TODAY);
-    const days = content.sections.filter((s) => s.key.startsWith('day:'));
-    expect(days).toHaveLength(7);
-    expect(days.every((s) => s.addSlot === s.key)).toBe(true);
-    expect(days.find((s) => s.key === 'day:2026-10-12')?.rows[0]?.task.title).toBe('mon');
-    expect(content.sections.at(-1)?.heading).toBe('Later');
+    const monday = viewContent(list, { type: 'upcoming' }, TODAY, 1);
+    expect(monday.sections.map((s) => s.key)).toEqual([
+      'day:2026-10-09',
+      'day:2026-10-10',
+      'day:2026-10-11',
+      'next-week',
+      'later',
+    ]);
+    expect(monday.sections.filter((s) => s.key.startsWith('day:')).every((s) => s.addSlot === s.key)).toBe(
+      true,
+    );
+    const next = monday.sections.find((s) => s.key === 'next-week')!;
+    expect(next.rows.map((r) => r.task.title)).toEqual(['mon', 'sun after']);
+    expect(next.addSlot).toBe('day:2026-10-12');
+    expect(next.heading).toMatch(/^Next Week · Oct 12 – 18$/);
+    expect(monday.sections.at(-1)?.rows[0]?.task.title).toBe('far');
+    // A week that starts on Sunday ends on Saturday, so Sunday the 11th belongs to next week.
+    const sunday = viewContent(list, { type: 'upcoming' }, TODAY, 0);
+    expect(sunday.sections.map((s) => s.key)).toEqual([
+      'day:2026-10-09',
+      'day:2026-10-10',
+      'next-week',
+      'later',
+    ]);
+    expect(sunday.sections[2]?.heading).toMatch(/Oct 11 – 17$/);
   });
 
   it('Completed groups by the day tasks were done, newest first', () => {

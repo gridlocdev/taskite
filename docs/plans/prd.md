@@ -80,7 +80,7 @@ All data is one JSON file, `tasks.json`, written pretty-printed (two-space inden
 - **Enter** adds the task and leaves an empty composer below it. Enter on an empty composer, **Esc**, or clicking away from an empty composer closes it. Text left in a closed composer is kept for next time.
 - Text that parses to no title (only shortcuts) isn't added; the text stays.
 - While typing, the row previews the parsed date, labels and project, and the circle takes the priority colour. A project that doesn't exist yet shows as "Name (new)".
-- New tasks take defaults from where they're added: the viewed project (else the Inbox); due today in Today; that day in an Upcoming day; the viewed label in a label view.
+- New tasks take defaults from where they're added: the viewed project (else the Inbox); due today in Today; that day in an Upcoming day (the first day of next week under Next Week); the viewed label in a label view.
 - From Search, New Task returns to the view before the search; from Completed or Trash, it goes to the Inbox.
 - A new task goes to the end of its project's order. The new row slides in (no motion with reduced motion).
 
@@ -145,7 +145,7 @@ The app opens on the view it showed last (`settings.lastView`), else Today. A pr
 |---|---|---|
 | Inbox / project | open top-level tasks, each followed by its open subtasks | manual order |
 | Today | open tasks due today or before: an **Overdue** section, then a heading for today | overdue by date, then priority, then order; today by priority, then order |
-| Upcoming | Overdue; then each of the next 7 days with a heading ("Today · Sun Nov 15") and its own Add row; then **Later** | by date, priority, order |
+| Upcoming | Overdue; then each remaining day of this calendar week (from today; the week starts where the locale starts it) with a heading ("Today · Sun Nov 15") and its own Add row; then **Next Week · Nov 16 – 22** (always shown; its Add row dates new tasks the week's first day); then **Later** (when it has tasks) | by date, priority, order |
 | Label | open tasks with that label | date, priority, order |
 | Completed | completed tasks (not trashed), grouped under the day they were completed | newest first |
 | Trash | §4.6 | newest deleted first |

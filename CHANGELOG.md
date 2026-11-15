@@ -13,6 +13,7 @@
 
 ### Improvements
 
+- **Upcoming follows the calendar week.** It lists the rest of this week day by day, then Next Week as one group, then Later, so "this week" means the same thing as on your calendar. The week starts on the day your region uses.
 - **Safe with newer versions.** Taskite keeps parts of the tasks file it doesn't understand, and won't open a file saved by a newer Taskite, so running an older copy (an old Docker image, say) can't damage it.
 - **On macOS the title bar is gone.** The window buttons sit in the sidebar, and the top of the window still drags it.
 - **The command menu (`⌘K`) finds more.** Spaces don't matter (`newtask` finds **New Task**), the closest matches come first, and commands answer to other words for them, such as `preferences`, `deadline` or `reorder`.

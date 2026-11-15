@@ -22,7 +22,7 @@ The row previews the date, project and labels while you type. Press Enter to add
 
 - **Inbox** and each **project** list their open tasks in the order you choose. Drag a task to reorder it.
 - **Today** lists what's due today, with anything overdue above it.
-- **Upcoming** shows the next seven days, one heading per day, then everything later.
+- **Upcoming** shows the rest of this week one day at a time, then next week, then everything later. Weeks start on the day your system's region starts them.
 - **Labels** list every open task with that label. Right-click a label to rename it or give it a colour.
 - **Completed** lists finished tasks under the day you finished them.
 - **Search** (`/`) finds tasks by their name, description or labels, finished ones included.

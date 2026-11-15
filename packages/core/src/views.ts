@@ -2,7 +2,7 @@
  * What each view lists (PRD §5): pure functions from the task list to sections of rows, so the UI only
  * draws them.
  */
-import { addDays, formatDayHeading, toISODate } from './dates.ts';
+import { addDays, firstDayOfWeek, formatDayHeading, parseISODate, startOfWeek, toISODate } from './dates.ts';
 import { DAY_MS, INBOX_ID, TRASH_DAYS, type Project, type SavedView, type Task } from './model.ts';
 import { parseQuickAdd, type Priority } from './parser.ts';
 import { hasLabel, type TaskList } from './taskList.ts';
@@ -125,8 +125,28 @@ export function searchTasks(list: TaskList, query: string): Task[] {
     .sort((a, b) => Number(a.completed) - Number(b.completed) || byDueThenPriority(a, b));
 }
 
-/** The sections a view lists, in order (PRD §5.2). `view` should already be resolved. */
-export function viewContent(list: TaskList, view: View, today: string): ViewContent {
+/** "Nov 16 – 22", or "Nov 30 – Dec 6" across a month. */
+function formatRange(from: string, to: string): string {
+  const a = parseISODate(from);
+  const b = parseISODate(to);
+  const start = a.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const end =
+    a.getMonth() === b.getMonth()
+      ? String(b.getDate())
+      : b.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return `${start} – ${end}`;
+}
+
+/**
+ * The sections a view lists, in order (PRD §5.2). `view` should already be resolved. `weekStart` (0 =
+ * Sunday) is where Upcoming's weeks begin; it defaults to the locale's.
+ */
+export function viewContent(
+  list: TaskList,
+  view: View,
+  today: string,
+  weekStart: number = firstDayOfWeek(),
+): ViewContent {
   const active = list.activeTasks();
   switch (view.type) {
     case 'project': {
@@ -167,8 +187,9 @@ export function viewContent(list: TaskList, view: View, today: string): ViewCont
       const sections: Section[] = [];
       const overdue = dated.filter((t) => (t.due ?? '') < today).sort(byDueThenPriority);
       if (overdue.length) sections.push(section('overdue', 'Overdue', overdue, { tone: 'overdue' }));
-      for (let i = 0; i < 7; i++) {
-        const day = addDays(today, i);
+      // The rest of this calendar week a day at a time, then next week together, then Later.
+      const nextWeek = addDays(startOfWeek(today, weekStart), 7);
+      for (let day = today; day < nextWeek; day = addDays(day, 1)) {
         const tasks = dated.filter((t) => t.due === day).sort(byPriority);
         sections.push(
           section(`day:${day}`, formatDayHeading(day, today), tasks, {
@@ -177,8 +198,17 @@ export function viewContent(list: TaskList, view: View, today: string): ViewCont
           }),
         );
       }
-      const lastDay = addDays(today, 6);
-      const later = dated.filter((t) => (t.due ?? '') > lastDay).sort(byDueThenPriority);
+      const weekAfter = addDays(nextWeek, 7);
+      const next = dated
+        .filter((t) => (t.due ?? '') >= nextWeek && (t.due ?? '') < weekAfter)
+        .sort(byDueThenPriority);
+      sections.push(
+        section('next-week', `Next Week · ${formatRange(nextWeek, addDays(weekAfter, -1))}`, next, {
+          count: next.length || null,
+          addSlot: `day:${nextWeek}`,
+        }),
+      );
+      const later = dated.filter((t) => (t.due ?? '') >= weekAfter).sort(byDueThenPriority);
       if (later.length) sections.push(section('later', 'Later', later));
       return { sections, empty: null, note: null, showContext: true };
     }
