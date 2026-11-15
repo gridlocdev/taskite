@@ -37,6 +37,7 @@
 - Enter and Space on **Add task**, **Add section** or a section's ⋯ button press that button instead of opening or completing the task under the cursor.
 - The task editor's subtask field reads Quick Add words as the PRD says: "Call mom tomorrow p1" adds a subtask named "Call mom", due tomorrow, priority 1.
 - Quick Add: "Call mom on may 5" no longer leaves "on" in the name, and "feb 29" typed in a year before a non-leap year finds the next Feb 29 instead of being ignored.
+- CLI: `taskite done bed` completes "Make bed" instead of whichever task's id happens to start with "bed". Ids now need at least 4 characters and are tried after titles, among the tasks the command can act on.
 
 ## 2.0.0
 

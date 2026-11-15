@@ -78,14 +78,13 @@ const inScope: Record<Scope, (t: Task) => boolean> = {
 };
 
 /**
- * The one task `ref` names (PRD §11): an id start that only one task has, else a title that contains
- * `ref` (ignoring case) among the tasks the command can act on. A title that equals `ref` wins over ones
- * that only contain it. Several matches are listed, never guessed between.
+ * The one task `ref` names (PRD §11), looking only among the tasks the command can act on: a title that
+ * equals `ref` (ignoring case), else titles that contain it, else an id start of at least 4 characters
+ * that only one task has. Short words like "bed" are valid hex, so ids come last. Several matches are
+ * listed, never guessed between.
  */
 function findTask(l: Loaded, ref: string, scope: Scope): Task {
   const { list, today } = l;
-  const byId = list.data.tasks.filter((t) => t.id.startsWith(ref));
-  if (byId.length === 1) return byId[0]!;
   const needle = ref.toLowerCase();
   const pool = list.data.tasks.filter(inScope[scope]);
   const byTitle = pool.filter((t) => t.title.toLowerCase().includes(needle));
@@ -93,6 +92,8 @@ function findTask(l: Loaded, ref: string, scope: Scope): Task {
   const matches = exact.length ? exact : byTitle;
   if (matches.length === 1) return matches[0]!;
   if (matches.length === 0) {
+    const byId = needle.length >= 4 ? pool.filter((t) => t.id.startsWith(needle)) : [];
+    if (byId.length === 1) return byId[0]!;
     if (byId.length > 1)
       throw new ProblemError(`${byId.length} tasks have ids starting with "${ref}"; give more of the id`);
     throw new ProblemError(`no task matches "${ref}"`);

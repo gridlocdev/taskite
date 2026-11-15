@@ -97,6 +97,24 @@ describe('taskite', () => {
     expect(saved().tasks.every((t) => !('deletedAt' in t) || t.deletedAt === null)).toBe(true);
   });
 
+  it('prefers a title to an id that happens to start with the same letters', async () => {
+    const task = (id: string, title: string) => ({ id, title, projectId: 'inbox', createdAt: 1 });
+    writeFileSync(
+      file,
+      JSON.stringify({
+        version: 1,
+        tasks: [
+          task('bed12345-0000-4000-8000-000000000001', 'Other'),
+          task('aaaa0000-0000-4000-8000-000000000002', 'Make bed'),
+        ],
+      }),
+    );
+    expect((await cli('done', 'bed')).out).toBe('Completed "Make bed".\n');
+    // An id start names a task only from 4 characters, and only among the tasks the command can act on.
+    expect((await cli('done', 'bed1')).out).toBe('Completed "Other".\n');
+    expect((await cli('done', 'bed1')).code).toBe(1);
+  });
+
   it('moves a task to a project and sets its due date', async () => {
     await cli('add', 'Fix the gate #Home_Repairs');
     await cli('add', 'Water plants');
