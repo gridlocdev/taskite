@@ -1150,3 +1150,70 @@ fieldset {
 .tk-nav .tk-nav-icon[style] .tk-icon {
   color: inherit;
 }
+
+/* Month calendar in the due date dialog (PRD §4.4). */
+.tk-calendar {
+  margin-top: 4px;
+}
+.tk-calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+.tk-calendar-grid {
+  display: grid;
+  gap: 2px;
+}
+.tk-calendar-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.tk-calendar-weekday {
+  padding: 4px 0;
+  color: var(--tk-text-2);
+  font-size: 12px;
+  text-align: center;
+  text-decoration: none;
+}
+.tk-calendar-day {
+  justify-self: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--tk-text);
+  font: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.tk-calendar-day:hover {
+  background: var(--tk-hover);
+}
+.tk-calendar-day:focus-visible {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: -2px;
+}
+.tk-calendar-past,
+.tk-calendar-other {
+  color: var(--tk-text-3);
+}
+.tk-calendar-other {
+  opacity: 0.55;
+}
+.tk-calendar-today {
+  box-shadow: inset 0 0 0 2px var(--tk-accent);
+  color: var(--tk-accent);
+  font-weight: 700;
+}
+.tk-calendar-selected,
+.tk-calendar-selected:hover {
+  background: var(--tk-accent);
+  color: var(--tk-accent-text);
+  font-weight: 600;
+}

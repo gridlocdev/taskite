@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseQuickAdd } from '../src/index.ts';
+import { parseDueText, parseQuickAdd } from '../src/index.ts';
 
 const TODAY = '2026-10-09'; // a Friday
 
@@ -65,5 +65,16 @@ describe('parseQuickAdd', () => {
 
   it('drops duplicate labels ignoring case', () => {
     expect(parseQuickAdd('x @Home @home', TODAY).labels).toEqual(['Home']);
+  });
+
+  it('reads a due date typed on its own, short weekday names included', () => {
+    // 2026-11-15 is a Sunday.
+    expect(parseDueText('fri', '2026-11-15')).toEqual({ due: '2026-11-20', ok: true });
+    expect(parseDueText('next Tue', '2026-11-15')).toEqual({ due: '2026-11-17', ok: true });
+    expect(parseDueText('thurs', '2026-11-15')).toEqual({ due: '2026-11-19', ok: true });
+    expect(parseDueText('none', '2026-11-15')).toEqual({ due: null, ok: true });
+    expect(parseDueText('someday', '2026-11-15')).toEqual({ due: null, ok: false });
+    // Quick Add leaves short names in the title.
+    expect(parseQuickAdd('Buy sun cream', '2026-11-15')).toMatchObject({ title: 'Buy sun cream', due: null });
   });
 });

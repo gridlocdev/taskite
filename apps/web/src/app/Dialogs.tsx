@@ -12,6 +12,7 @@ import {
   type Theme,
 } from '@taskite/core';
 import { Dialog, Icon, ListPopup, filterEntries, isMac, type CommandCatalog } from '@taskite/ui';
+import { Calendar } from './Calendar.tsx';
 import { CommandMenu } from './CommandMenu.tsx';
 import type { AppController } from './controller.ts';
 import { duePreview, parseDueText, parseLabels } from './forms.ts';
@@ -300,6 +301,14 @@ function DueDialog({ app, ids }: { readonly app: AppController; readonly ids: re
           </button>
         ))}
       </div>
+      <Calendar
+        today={today}
+        selected={parsed.ok ? parsed.due : null}
+        onPick={(iso) => {
+          app.close();
+          app.setDue(ids, iso);
+        }}
+      />
     </Dialog>
   );
 }

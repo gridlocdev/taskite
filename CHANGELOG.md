@@ -4,6 +4,7 @@
 
 ### What's new
 
+- **A calendar for due dates.** The due date dialog (`D`) has a month calendar with today ringed. Pick a day with the mouse or the arrow keys. The dialog also takes short day names such as "fri" and "next tue".
 - **Label colours and renaming.** Right-click a label and choose **Edit Label…** to rename it on every task or give it a colour, which shows on task rows and in the sidebar.
 - **`taskite` knows tasks by name.** `taskite done call mum` works without looking up an id; when several tasks match, it lists them instead of guessing. New `taskite move <task> <project>` and `taskite due <task> <date>` commands.
 - **Changes from elsewhere show up on their own.** A task added with the `taskite` command, or in another window or on another device, appears when you come back to the window (and every 15 seconds while it's in front), with Undo. Before, you only found out when your next change ran into it.

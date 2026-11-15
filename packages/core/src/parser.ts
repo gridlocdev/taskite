@@ -167,10 +167,25 @@ export interface DueText {
   readonly ok: boolean;
 }
 
+const SHORT_DAYS: Readonly<Record<string, string>> = {
+  sun: 'sunday',
+  mon: 'monday',
+  tue: 'tuesday',
+  tues: 'tuesday',
+  wed: 'wednesday',
+  thu: 'thursday',
+  thur: 'thursday',
+  thurs: 'thursday',
+  fri: 'friday',
+  sat: 'saturday',
+};
+
 /** A due date typed on its own: "tomorrow", "fri", "jan 5", "2026-12-01", or nothing / "none" for no date. */
 export function parseDueText(text: string, today: string = todayISO()): DueText {
   const trimmed = text.trim().toLowerCase();
   if (!trimmed || trimmed === 'no date' || trimmed === 'none') return { due: null, ok: true };
-  const parsed = parseQuickAdd(trimmed, today);
+  // Short weekday names only here, where the text is a date: in Quick Add "sun" or "sat" may be words.
+  const full = trimmed.replace(/\b(sun|mon|tues?|wed|thu(?:rs?)?|fri|sat)\b/g, (w) => SHORT_DAYS[w] ?? w);
+  const parsed = parseQuickAdd(full, today);
   return parsed.due && !parsed.title ? { due: parsed.due, ok: true } : { due: null, ok: false };
 }

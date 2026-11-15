@@ -154,3 +154,50 @@ export function formatDayHeading(iso: string, today: string = todayISO()): strin
   if (diff === 1) return `Tomorrow · ${full}`;
   return full;
 }
+
+/** Regions whose weeks start on Sunday, for runtimes without `Intl.Locale` week info. */
+const SUNDAY_REGIONS = new Set([
+  'US',
+  'CA',
+  'MX',
+  'BR',
+  'JP',
+  'KR',
+  'TW',
+  'HK',
+  'IL',
+  'PH',
+  'IN',
+  'ZA',
+  'AU',
+]);
+
+/** The first day of the week for a locale (0 = Sunday, 1 = Monday, 6 = Saturday). */
+export function firstDayOfWeek(locale?: string): number {
+  try {
+    const loc = new Intl.Locale(locale ?? new Intl.DateTimeFormat().resolvedOptions().locale);
+    // `getWeekInfo()` in newer engines, the `weekInfo` getter in older ones; firstDay is 1..7, 7 = Sunday.
+    const withInfo = loc as Intl.Locale & {
+      getWeekInfo?: () => { firstDay: number };
+      weekInfo?: { firstDay: number };
+    };
+    const info = withInfo.getWeekInfo?.() ?? withInfo.weekInfo;
+    if (info) return info.firstDay % 7;
+    return SUNDAY_REGIONS.has(loc.maximize().region ?? '') ? 0 : 1;
+  } catch {
+    return 1;
+  }
+}
+
+/** The first day of the week holding `iso`, for weeks starting on `weekStart` (0 = Sunday). */
+export function startOfWeek(iso: string, weekStart: number): string {
+  const day = parseISODate(iso).getDay();
+  return addDays(iso, -((day - weekStart + 7) % 7));
+}
+
+/** The 42 days (6 weeks) a month calendar shows for the month holding `iso`. */
+export function monthGrid(iso: string, weekStart: number): string[] {
+  const first = `${iso.slice(0, 8)}01`;
+  const start = startOfWeek(first, weekStart);
+  return Array.from({ length: 42 }, (_, i) => addDays(start, i));
+}

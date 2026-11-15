@@ -33,6 +33,7 @@ Drop a task on a project, a label, Today or the Trash in the sidebar to move it 
 
 - **Complete** a task with its circle or Space. A repeating task moves to its next date instead, and says when that is.
 - **Edit** a task (click it, or Enter) to change its name, description, date, repeat, priority, project, labels and subtasks.
+- **Set a due date** with `D`: type it ("fri", "jan 5") or pick a day on the month calendar, where today is ringed.
 - **Subtasks** are one level deep. Completing a task completes its subtasks; reopening a subtask reopens its parent.
 - **Choose several tasks** with Shift and the arrow keys, ⌘-click or Shift-click, then complete, date, prioritise, move or delete them all at once.
 - **Reorder** the chosen tasks with `⌥↑` and `⌥↓` in the Inbox and projects. A task moves with its subtasks.

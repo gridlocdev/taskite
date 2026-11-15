@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  firstDayOfWeek,
+  monthGrid,
+  startOfWeek,
   addDays,
   addMonths,
   diffDays,
@@ -50,5 +53,19 @@ describe('dates', () => {
     expect(isISODate('2026-02-30')).toBe(false);
     expect(isISODate('tomorrow')).toBe(false);
     expect(isISODate(null)).toBe(false);
+  });
+
+  it('knows where a locale starts its week, and lays out a month', () => {
+    expect(firstDayOfWeek('en-US')).toBe(0);
+    expect(firstDayOfWeek('en-GB')).toBe(1);
+    expect(firstDayOfWeek('de-DE')).toBe(1);
+    expect(startOfWeek('2026-03-10', 1)).toBe('2026-03-09');
+    expect(startOfWeek('2026-03-10', 0)).toBe('2026-03-08');
+    expect(startOfWeek('2026-03-08', 0)).toBe('2026-03-08');
+    const grid = monthGrid('2026-03-17', 1);
+    expect(grid).toHaveLength(42);
+    expect(grid[0]).toBe('2026-02-23');
+    expect(grid[6]).toBe('2026-03-01');
+    expect(monthGrid('2026-03-17', 0)[0]).toBe('2026-03-01');
   });
 });
