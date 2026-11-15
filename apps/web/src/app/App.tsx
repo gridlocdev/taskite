@@ -9,9 +9,12 @@ import { TaskView } from './TaskView.tsx';
 
 /** Where keyboard focus is, for deciding which keys are commands (PRD §8). */
 export function keyFocus(el: Element | null): KeyFocus {
-  if (!el || el === document.body) return 'list';
+  if (!el || el === el.ownerDocument?.body) return 'list';
   if (el.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return 'text';
-  if (el.closest('[role=option], .tk-list')) return 'list';
+  if (el.closest('[role=option]')) return 'list';
+  // Add task, Add section and a section's ⋯ sit in the list but are buttons: Enter and Space press them.
+  if (el.closest('button, a, [role=button]')) return 'control';
+  if (el.closest('.tk-list')) return 'list';
   return 'control';
 }
 
