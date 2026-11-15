@@ -141,6 +141,8 @@ Everything else, with spaces collapsed, is the title.
 
 Add task; Inbox (open count); Today (count due today or overdue); Upcoming; Completed; Trash (count); **Projects** with a + button (each with colour dot and open count; "No projects yet." when none); **Labels** (every label used by a live task, alphabetical, ignoring case duplicates; hidden when none). A search box at the top.
 
+In a window narrower than 600 px (a phone), the sidebar sits above the list, full width, and scrolls within about a third of the screen.
+
 The app opens on the view it showed last (`settings.lastView`), else Today. A project or label view whose project or label no longer exists falls back to the Inbox.
 
 ### §5.2 The lists
@@ -218,7 +220,7 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
 
 - `node:http`, no framework. Serves the web client and:
   - `GET /api/info` → `{ "name": "Taskite", "version": "x.y.z" }`
-  - `GET /api/data` → the file (200, `ETag: "<sha256>"`), or 404 when there's none yet.
+  - `GET /api/data` → the file (200, `ETag: "<sha256>"`), or 404 when there's none yet. With `If-None-Match` naming the current version, 304 and no body: the app's regular re-reads (§3.4) download the file only when it changed.
   - `PUT /api/data` with `If-Match` (or `If-None-Match: *` for a new file) → 204 with the new `ETag`; 412 on a version mismatch; 428 with neither header; 400 for invalid JSON; body limit 10 MB.
   - `POST /api/copies?label=copy|corrupt` → 201 `{ "name": "tasks.copy-….json" }`: keeps the body as a dated copy next to the file (§3.2, §3.4).
   - `GET /api/info` also says whether a token is needed (`"auth": true`).
@@ -226,6 +228,7 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
 - Without a token, a non-loopback bind is refused unless `TASKITE_NO_AUTH=1`, and requests whose `Host` isn't loopback or listed get 421.
 - With a token, `/api` needs `Authorization: Bearer <token>`; the client asks for the token once and keeps it in `localStorage`.
 - Static files are served only from inside `TASKITE_STATIC`.
+- Every response carries a Content-Security-Policy (scripts only from the server itself, no framing). The web build also has the policy in a meta tag, for hosts that send no header.
 - Docker: two-stage `node:22-alpine`, runs as `node`, `HEALTHCHECK` on `/api/info`, data in a `/data` volume.
 
 ## §11 CLI

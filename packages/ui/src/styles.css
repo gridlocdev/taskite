@@ -467,6 +467,16 @@ kbd {
   align-items: center;
   padding: 2px 0;
 }
+.tk-section-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tk-section-heading .tk-count,
+.tk-section-more {
+  flex: none;
+}
 .tk-section-more {
   width: 26px;
   height: 26px;
@@ -1218,6 +1228,25 @@ fieldset {
   }
   .tk-main-inner {
     padding: 20px 16px 48px;
+  }
+}
+
+/* Phone width: the sidebar sits above the list, full width, and scrolls within a third of the screen. */
+@media (max-width: 600px) {
+  .tk-body {
+    flex-direction: column;
+  }
+  .tk-sidebar {
+    width: 100%;
+    max-height: 36vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--tk-border);
+  }
+  .tk-sidebar-scroll {
+    min-height: 0;
+  }
+  .tk-main {
+    min-height: 0;
   }
 }
 

@@ -52,6 +52,7 @@
 - Priority keys 1–4 work on AZERTY keyboards, and pressing G in the list then typing I in the search box types the I instead of jumping to the Inbox.
 - Deleting a project or removing a label from the sidebar while another view is open no longer jumps to the Inbox.
 - A task dropped on the lower half of a row lands below it, and the drop line no longer flickers as the pointer crosses the row's title.
+- On a phone-width screen the sidebar sits above the list instead of squeezing it, and a long section name no longer hides its ⋯ button.
 
 ## 2.0.0
 
