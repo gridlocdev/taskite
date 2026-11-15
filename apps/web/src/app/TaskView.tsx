@@ -14,6 +14,12 @@ import type { AppController } from './controller.ts';
 import { openMenu } from './ContextMenu.tsx';
 import { dropOrder } from './forms.ts';
 
+/** A coloured label's text colour (PRD §4.7); none for a plain label. */
+function labelStyle(app: AppController, label: string) {
+  const color = app.list.labelColor(label);
+  return color ? { color: PROJECT_COLORS[color] } : undefined;
+}
+
 /** The drag payload type: the dragged task ids as JSON. */
 export const DRAG_TYPE = 'application/x-taskite-tasks';
 
@@ -44,7 +50,14 @@ export function TaskView({
 
   const title = app.title();
   const project = app.currentProject();
-  const viewMenu = ['task.clearCompleted', 'trash.empty', 'project.edit', 'project.delete', 'label.remove']
+  const viewMenu = [
+    'task.clearCompleted',
+    'trash.empty',
+    'project.edit',
+    'project.delete',
+    'label.edit',
+    'label.remove',
+  ]
     .map((id) => catalog.get(id))
     .filter((c) => c && catalog.isEnabled(c));
 
@@ -328,7 +341,7 @@ function TaskRow({
             </span>
           )}
           {task.labels.map((l) => (
-            <span key={l} class="tk-label">
+            <span key={l} class="tk-label" style={labelStyle(app, l)}>
               <Icon name="tag" />
               {l}
             </span>

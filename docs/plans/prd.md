@@ -29,6 +29,7 @@ All data is one JSON file, `tasks.json`, written pretty-printed (two-space inden
 - **Project**: `id`, `name`, `color` (one of `gray red orange yellow green teal blue purple magenta pink`). The Inbox has id `inbox`, is always present and is listed first.
 - **Task**: `id` (UUID), `title`, `description`, `projectId`, `parentId` (null, or the id of its parent; subtasks are one level deep), `labels` (strings), `priority` (1 urgent … 4 normal), `due` (`YYYY-MM-DD` or null), `recurrence` (`daily`, `weekdays`, `weekly`, `monthly`, `yearly` or null), `completed`, `completedAt` (epoch ms or null), `createdAt` (epoch ms), `order` (position within its project), `deletedAt` (epoch ms or null).
 - **Settings**: `theme` (`auto`, `light`, `dark`), `lastView` (§5.1, or null).
+- **labelColors** (optional): label in lower case → a project colour name. Left out until a label has a colour.
 
 ### §3.2 Reading
 
@@ -158,7 +159,7 @@ The list re-renders at midnight so Today stays right.
 
 ### §5.3 View actions
 
-A ⋯ button by the title holds actions for the view: project → Edit Project…, Delete Project… (asks first; its tasks go to the Trash; Undo); Completed → Move Completed Tasks to Trash; Trash → Empty Trash…; label → Remove Label from All Tasks. All are commands too.
+A ⋯ button by the title holds actions for the view: project → Edit Project…, Delete Project… (asks first; its tasks go to the Trash; Undo); Completed → Move Completed Tasks to Trash; Trash → Empty Trash…; label → Edit Label…, Remove Label from All Tasks. All are commands too.
 
 ### §5.4 Search
 
@@ -168,6 +169,7 @@ Typing in the search box (`/`, ⌘F) shows Search results; clearing it, or Esc, 
 
 - **New Project…** asks for a name (required, at most 80 characters) and a colour (swatches), then opens the project. **Edit Project…** changes both. **Delete Project…** §5.3. The Inbox can't be renamed or deleted.
 - Labels exist while a task uses them. **Remove Label from All Tasks** removes it everywhere, with Undo.
+- **Edit Label…** (a label's right-click menu, its ⋯ button, ⌘K) renames a label on every task and gives it a colour from the project swatches, or none. Renaming onto a label a task already has leaves one copy. A coloured label shows its colour on rows and its sidebar tag. One undo step; a label view stays on the renamed label.
 
 ## §7 Choosing tasks
 
@@ -186,8 +188,8 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
 - The command menu (⌘K, ⌘P) lists enabled commands, plus "Go to <project>", "Go to @<label>" and, with tasks chosen, "Move to <project>". Spaces don't count ("newtask" finds New Task). Best first: the title starts with what was typed, then contains it, then the group, keywords or description contain it (or every typed word appears somewhere), then the title holds the typed letters in order ("nwtk"). Within each rank, recently run commands lead. Each command has keywords: other words people type for it ("preferences" for Settings, "reorder" for Move Up). The 5 most recently run commands come first when nothing is typed.
 - Right-click menus list only enabled commands, grouped by separators, with destructive commands last. A menu with nothing in it doesn't open, so the browser's own menu shows instead. Each surface has its own menu:
   - **A task:** Complete, Edit…, Set Due Date… | Priority 1–4 | Move to Project…, Move Up, Move Down | Restore, Move to Trash, Delete Forever. Right-clicking a task that isn't chosen chooses it alone; with several chosen, a header says "N tasks chosen".
-  - **The empty part of a view:** New Task, Select All | Edit Project…, Move Completed Tasks to Trash, Empty Trash… | Delete Project…, Remove Label from All Tasks.
-  - **A sidebar project:** Add Task Here | Edit Project… | Delete Project… (the Inbox: Add Task Here only). **A sidebar label:** Remove Label from All Tasks. **Completed:** Move Completed Tasks to Trash. **Trash:** Empty Trash…. **The Projects heading:** New Project….
+  - **The empty part of a view:** New Task, Select All | Edit Project…, Move Completed Tasks to Trash, Empty Trash… | Delete Project…, Edit Label…, Remove Label from All Tasks.
+  - **A sidebar project:** Add Task Here | Edit Project… | Delete Project… (the Inbox: Add Task Here only). **A sidebar label:** Edit Label… | Remove Label from All Tasks. **Completed:** Move Completed Tasks to Trash. **Trash:** Empty Trash…. **The Projects heading:** New Project….
   - A sidebar menu acts on the item right-clicked, not the open view.
   - Shift+F10 and the context-menu key open the menu for the focused task (or the view) and the focused sidebar item.
   - Text fields keep the system's edit menu (§12).

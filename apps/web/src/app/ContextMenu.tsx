@@ -25,6 +25,7 @@ const ICONS: Record<string, string> = {
   'select.all': 'check',
   'task.clearCompleted': 'done',
   'trash.empty': 'trash',
+  'label.edit': 'edit',
   'label.remove': 'tag',
   'task.restore': 'restore',
   'task.delete': 'trash',

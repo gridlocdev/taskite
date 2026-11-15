@@ -179,6 +179,28 @@ describe('TaskList', () => {
     expect(list.getLabels()).toEqual(['Errands']);
   });
 
+  it('gives labels colours and renames them everywhere, as one undo step each', () => {
+    const a = list.addTask({ title: 'A', labels: ['home', 'call'] });
+    const b = list.addTask({ title: 'B', labels: ['Home'] });
+    expect(list.labelColor('home')).toBeNull();
+    list.editLabel('home', 'home', 'green');
+    expect(list.labelColor('HOME')).toBe('green');
+    expect(list.data.labelColors).toEqual({ home: 'green' });
+    list.editLabel('Home', '@house chores', 'green');
+    expect(task(a.id).labels).toEqual(['call', 'house-chores']);
+    expect(task(b.id).labels).toEqual(['house-chores']);
+    expect(list.labelColor('house-chores')).toBe('green');
+    expect(list.labelColor('home')).toBeNull();
+    // Renaming onto a label the task already has leaves one copy.
+    list.editLabel('call', 'House-Chores', null);
+    expect(task(a.id).labels).toEqual(['House-Chores']);
+    list.undo();
+    expect(task(a.id).labels).toEqual(['call', 'house-chores']);
+    expect(list.editLabel('call', '  ', null)).toBe(false);
+    list.deleteLabel('house-chores');
+    expect(list.data.labelColors).toBeUndefined();
+  });
+
   it('redo repeats an undone change; a new change clears redo', () => {
     const t = list.addTask({ title: 'Task' });
     list.updateTasks(t.id, { title: 'Renamed' });

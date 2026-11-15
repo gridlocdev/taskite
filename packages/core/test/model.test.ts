@@ -92,4 +92,11 @@ describe('copy names', () => {
     expect(copyFileName('copy', now, 2)).toBe('tasks.copy-2026-11-15-090507-2.json');
     expect(copyFileName('corrupt', now)).toBe(`tasks.corrupt-${now.getTime()}.json`);
   });
+
+  it('keeps label colours it knows, by lower-case label, and leaves the field out when there are none', () => {
+    const data = normalize({ labelColors: { Home: 'green', Work: 'plaid', x: 3 } });
+    expect(data.labelColors).toEqual({ home: 'green' });
+    expect('labelColors' in normalize({ labelColors: { a: 'nope' } })).toBe(false);
+    expect('labelColors' in normalize({})).toBe(false);
+  });
 });

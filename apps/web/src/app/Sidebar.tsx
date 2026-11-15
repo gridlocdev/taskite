@@ -1,11 +1,21 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { INBOX_ID, PROJECT_COLORS, sameView, sidebarCounts, type SavedView } from '@taskite/core';
+import {
+  INBOX_ID,
+  PROJECT_COLORS,
+  sameView,
+  sidebarCounts,
+  type ProjectColor,
+  type SavedView,
+} from '@taskite/core';
 import { Icon, type CommandCatalog } from '@taskite/ui';
 import { openMenu } from './ContextMenu.tsx';
 import type { AppController, ContextMenuState } from './controller.ts';
 import { DRAG_TYPE } from './TaskView.tsx';
 
 type DropKind = 'project' | 'today' | 'trash' | 'label';
+
+const colorOf = (color: ProjectColor | null): string | undefined =>
+  color ? PROJECT_COLORS[color] : undefined;
 
 export function Sidebar({ app, catalog }: { readonly app: AppController; readonly catalog: CommandCatalog }) {
   void app.rev.value;
@@ -133,7 +143,14 @@ export function Sidebar({ app, catalog }: { readonly app: AppController; readonl
             </div>
             <ul class="tk-nav-list">
               {labels.map((l) =>
-                item({ type: 'label', name: l }, l, 'tag', counts.labels.get(l) || null, 'label'),
+                item(
+                  { type: 'label', name: l },
+                  l,
+                  'tag',
+                  counts.labels.get(l) || null,
+                  'label',
+                  colorOf(app.list.labelColor(l)),
+                ),
               )}
             </ul>
           </>
@@ -210,7 +227,9 @@ function NavItem(props: {
         }}
       >
         {props.icon ? (
-          <Icon name={props.icon} />
+          <span class="tk-nav-icon" style={props.color ? { color: props.color } : undefined}>
+            <Icon name={props.icon} />
+          </span>
         ) : (
           <span class="tk-dot" style={{ background: props.color }} />
         )}

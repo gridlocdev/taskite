@@ -56,6 +56,7 @@ export type DialogState =
   | { readonly kind: 'task'; readonly id: string }
   | { readonly kind: 'due'; readonly ids: readonly string[] }
   | { readonly kind: 'project'; readonly id: string | null }
+  | { readonly kind: 'label'; readonly name: string }
   | {
       readonly kind: 'confirm';
       readonly title: string;
@@ -634,6 +635,19 @@ export class AppController {
         this.sayUndoable(`Deleted project "${project.name}".`);
       },
     });
+  }
+
+  /** Renames and recolours a label (PRD §4.7); a label on screen stays on screen under its new name. */
+  editLabel(name: string, next: string, color: ProjectColor | null): void {
+    const before = this.list.labelColor(name);
+    const renamed = next.trim().replace(/^@/, '').replace(/\s+/g, '-');
+    if (renamed === name && before === color) return;
+    // Read before the edit: once the old name is gone, the view on screen falls back.
+    const view = this.shown.peek();
+    if (!this.list.editLabel(name, next, color)) return;
+    if (view.type === 'label' && view.name.toLowerCase() === name.toLowerCase())
+      this.go({ type: 'label', name: renamed });
+    if (renamed !== name) this.sayUndoable(`Renamed @${name} to @${renamed}.`);
   }
 
   removeLabel(name: string): void {

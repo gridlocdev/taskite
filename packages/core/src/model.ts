@@ -73,6 +73,11 @@ export interface AppData {
   projects: Project[];
   tasks: Task[];
   settings: Settings;
+  /**
+   * Colours chosen for labels, keyed by the label in lower case. Left out of the file until a label gets
+   * one, so files without coloured labels stay as 1.x wrote them.
+   */
+  labelColors?: Record<string, ProjectColor>;
 }
 
 export const FORMAT_VERSION = 1;
@@ -155,8 +160,14 @@ export function normalize(raw: unknown, now: number = Date.now()): AppData {
     }));
   const settings = isObject(raw['settings']) ? raw['settings'] : {};
   const theme = settings['theme'];
+  const labelColors: Record<string, ProjectColor> = {};
+  if (isObject(raw['labelColors']))
+    for (const [label, color] of Object.entries(raw['labelColors']))
+      if (isColor(color)) labelColors[label.toLowerCase()] = color;
+  const { labelColors: _rawColors, ...rest } = raw;
   return {
-    ...raw,
+    ...rest,
+    ...(Object.keys(labelColors).length ? { labelColors } : {}),
     version: FORMAT_VERSION,
     projects,
     tasks,

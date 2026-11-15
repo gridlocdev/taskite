@@ -44,6 +44,18 @@ function toList(ids: Ids): readonly string[] {
   return typeof ids === 'string' ? [ids] : ids;
 }
 
+/** Sets or clears a label's colour in `data`; true when it changed. */
+function setColor(data: AppData, label: string, color: ProjectColor | null): boolean {
+  const key = labelKey(label);
+  const colors = data.labelColors ?? {};
+  if ((colors[key] ?? null) === color) return false;
+  if (color) colors[key] = color;
+  else delete colors[key];
+  if (Object.keys(colors).length) data.labelColors = colors;
+  else delete data.labelColors;
+  return true;
+}
+
 function labelKey(label: string): string {
   return label.toLowerCase();
 }
@@ -424,11 +436,42 @@ export class TaskList {
     return [...seen.values()].sort((a, b) => a.localeCompare(b));
   }
 
-  /** Removes a label from every task. */
+  /** Removes a label from every task, and forgets its colour. */
   deleteLabel(label: string): void {
     this.#edit((data) => {
       for (const task of data.tasks) task.labels = task.labels.filter((l) => labelKey(l) !== labelKey(label));
+      setColor(data, label, null);
     });
+  }
+
+  /** The colour chosen for a label, or null for the plain label colour. */
+  labelColor(label: string): ProjectColor | null {
+    return this.#data.labelColors?.[labelKey(label)] ?? null;
+  }
+
+  /**
+   * Renames a label on every task and gives it a colour (null for none), as one undo step. Renaming onto
+   * a label a task already has leaves that task with one copy. False when the name is empty.
+   */
+  editLabel(label: string, name: string, color: ProjectColor | null): boolean {
+    const next = name.trim().replace(/^@/, '').replace(/\s+/g, '-');
+    if (!next) return false;
+    this.#edit((data) => {
+      let changed = false;
+      if (next !== label) {
+        for (const task of data.tasks) {
+          if (!task.labels.some((l) => labelKey(l) === labelKey(label))) continue;
+          const kept = task.labels.filter(
+            (l) => labelKey(l) !== labelKey(label) && labelKey(l) !== labelKey(next),
+          );
+          task.labels = [...kept, next];
+          changed = true;
+        }
+        if (labelKey(next) !== labelKey(label)) changed = setColor(data, label, null) || changed;
+      }
+      return setColor(data, next, color) || changed;
+    });
+    return true;
   }
 
   // ---------- Settings ----------

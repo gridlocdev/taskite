@@ -31,6 +31,8 @@ export function Dialogs({ app, catalog }: { readonly app: AppController; readonl
       return <DueDialog app={app} ids={d.ids} />;
     case 'project':
       return <ProjectDialog app={app} id={d.id} />;
+    case 'label':
+      return <LabelDialog app={app} name={d.name} />;
     case 'confirm':
       return (
         <Dialog
@@ -329,6 +331,56 @@ function ProjectDialog({ app, id }: { readonly app: AppController; readonly id: 
       </label>
       <fieldset class="tk-swatches">
         <legend>Colour</legend>
+        {PROJECT_COLOR_NAMES.map((c) => (
+          <label key={c} class="tk-swatch" title={c}>
+            <input
+              type="radio"
+              name="color"
+              value={c}
+              checked={c === color}
+              aria-label={c}
+              onChange={() => setColor(c)}
+            />
+            <span style={{ background: PROJECT_COLORS[c] }} />
+          </label>
+        ))}
+      </fieldset>
+    </Dialog>
+  );
+}
+
+/** Edit label (PRD §9.3): a name and a colour, or none for the plain label colour. */
+function LabelDialog({ app, name: label }: { readonly app: AppController; readonly name: string }) {
+  const [name, setName] = useState(label);
+  const [color, setColor] = useState<ProjectColor | null>(app.list.labelColor(label));
+  return (
+    <Dialog
+      title="Edit label"
+      onClose={() => app.close()}
+      onSubmit={() => {
+        if (!name.trim().replace(/^@/, '')) return;
+        app.close();
+        app.editLabel(label, name, color);
+      }}
+      actions={<Actions app={app} save="Save" />}
+    >
+      <label class="tk-field">
+        <span>Name</span>
+        <input required value={name} onInput={(e) => setName((e.target as HTMLInputElement).value)} />
+      </label>
+      <fieldset class="tk-swatches">
+        <legend>Colour</legend>
+        <label class="tk-swatch tk-swatch-none" title="none">
+          <input
+            type="radio"
+            name="color"
+            value=""
+            checked={color === null}
+            aria-label="none"
+            onChange={() => setColor(null)}
+          />
+          <span />
+        </label>
         {PROJECT_COLOR_NAMES.map((c) => (
           <label key={c} class="tk-swatch" title={c}>
             <input

@@ -4,6 +4,7 @@
 
 ### What's new
 
+- **Label colours and renaming.** Right-click a label and choose **Edit Label…** to rename it on every task or give it a colour, which shows on task rows and in the sidebar.
 - **`taskite` knows tasks by name.** `taskite done call mum` works without looking up an id; when several tasks match, it lists them instead of guessing. New `taskite move <task> <project>` and `taskite due <task> <date>` commands.
 - **Changes from elsewhere show up on their own.** A task added with the `taskite` command, or in another window or on another device, appears when you come back to the window (and every 15 seconds while it's in front), with Undo. Before, you only found out when your next change ran into it.
 - **Move tasks up and down** with `⌥↑` and `⌥↓` (`Alt+Up` / `Alt+Down` on Windows and Linux). Choose one or several tasks; subtasks come along with their task.

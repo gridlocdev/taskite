@@ -42,10 +42,11 @@ export const MENUS: Readonly<Record<MenuKind, readonly string[]>> = {
     'trash.empty',
     '|',
     'project.delete',
+    'label.edit',
     'label.remove',
   ],
   project: ['task.newIn', '|', 'project.edit', '|', 'project.delete'],
-  label: ['label.remove'],
+  label: ['label.edit', '|', 'label.remove'],
   completed: ['task.clearCompleted'],
   trash: ['trash.empty'],
   projects: ['project.new'],
@@ -320,6 +321,18 @@ export function buildCommands(app: AppController): CommandCatalog {
       run: () => {
         const p = app.projectTarget();
         if (p) app.deleteProject(p.id);
+      },
+    },
+    {
+      id: 'label.edit',
+      title: 'Edit Label…',
+      keywords: 'rename change colour color tag',
+      description: "Renames or recolours the label you're looking at (or right-clicked).",
+      group: 'Task',
+      enabled: () => !!app.labelTarget(),
+      run: () => {
+        const l = app.labelTarget();
+        if (l) app.open({ kind: 'label', name: l });
       },
     },
     {

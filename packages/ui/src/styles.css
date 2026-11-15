@@ -945,6 +945,16 @@ fieldset {
   height: 26px;
   border-radius: 50%;
 }
+.tk-swatch-none span {
+  border: 2px solid var(--tk-border-strong);
+  background: linear-gradient(
+    to top right,
+    transparent calc(50% - 1px),
+    var(--tk-text-2) calc(50% - 1px),
+    var(--tk-text-2) calc(50% + 1px),
+    transparent calc(50% + 1px)
+  );
+}
 .tk-swatch input:checked + span {
   box-shadow:
     0 0 0 2px var(--tk-raised),
@@ -1132,4 +1142,11 @@ fieldset {
   .tk-main-inner {
     padding: 20px 16px 48px;
   }
+}
+
+.tk-nav-icon {
+  display: contents;
+}
+.tk-nav .tk-nav-icon[style] .tk-icon {
+  color: inherit;
 }
