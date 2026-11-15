@@ -21,3 +21,4 @@ export {
   type SaveStatus,
   type SessionOptions,
 } from './session/taskSession.ts';
+export * from './commands/index.ts';
