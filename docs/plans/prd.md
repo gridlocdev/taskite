@@ -112,7 +112,7 @@ Everything else, with spaces collapsed, is the title.
 - Subtasks: a list with check circles and delete buttons, plus an input that takes Quick Add text (Enter adds). Subtasks can't have subtasks and always live in their parent's project.
 - **Set Due Date…** (D) opens a small dialog: type a date in Quick Add words; the preview shows "Due friday (2026-11-20)", "No due date", or "Not a date I understand yet." Short weekday names (`fri`, `next tue`) work here, though not in Quick Add, where `sun` or `sat` may be words. Buttons: Today, Tomorrow, Next week, No date. Under them, a month calendar: the week starts where the system's locale starts it; today is ringed in the accent colour, the date in the field is filled, and typing a date turns to its month. ‹ › or Page Up/Down change month, arrow keys move a day or a week, and a click or Enter on a day sets it. Clearing the date of a repeating task stops it repeating.
 - **Priority 1–4** (`1`–`4`) set priority on the chosen tasks.
-- **Move to Project…** (M) opens the command menu filtered to "Move to "; only top-level tasks move (subtasks follow their parent).
+- **Move to Project…** (M) opens the command menu filtered to "Move to ". A task's subtasks move with it. A subtask moved without its parent leaves the parent and becomes a task in that project, so this is also how a subtask is promoted (Undo puts it back).
 
 ### §4.5 Order and drag and drop
 
