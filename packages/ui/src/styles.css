@@ -812,6 +812,9 @@ kbd {
 }
 .tk-context-menu {
   position: fixed;
+  /* A long menu in a short window scrolls instead of running off the bottom. */
+  max-height: calc(100vh - 8px);
+  overflow-y: auto;
 }
 .tk-menu-dropdown {
   position: absolute;

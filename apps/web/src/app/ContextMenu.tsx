@@ -114,7 +114,13 @@ export function ContextMenu({
     const h = ref.current?.offsetHeight ?? 360;
     setAt({
       x: menu.x + w > innerWidth - 4 ? Math.max(4, menu.x - w) : menu.x,
-      y: menu.y + h > innerHeight - 4 ? Math.max(4, menu.y - h) : menu.y,
+      // Below the pointer, else above it, else as low as it fits (it is never taller than the window).
+      y:
+        menu.y + h <= innerHeight - 4
+          ? menu.y
+          : menu.y - h >= 4
+            ? menu.y - h
+            : Math.max(4, innerHeight - 4 - h),
     });
   }, [menu]);
 
