@@ -103,16 +103,27 @@ function unquote(etag: string | null): string | null {
 export class NasStore implements TaskStore {
   readonly kind = 'nas';
   readonly client: NasClient;
+  /** The text of the last version read or written, so a read of an unchanged file needs no download. */
+  #last: { readonly text: string; readonly version: string } | null = null;
 
   constructor(client: NasClient) {
     this.client = client;
   }
 
   async load(): Promise<StoredFile> {
-    const res = await this.client.request('/api/data');
-    if (res.status === 404) return { text: null, version: null };
+    const last = this.#last;
+    const headers: Record<string, string> = last ? { 'If-None-Match': `"${last.version}"` } : {};
+    const res = await this.client.request('/api/data', { headers });
+    if (res.status === 304 && last) return { ...last };
+    if (res.status === 404) {
+      this.#last = null;
+      return { text: null, version: null };
+    }
     if (!res.ok) throw await failure(res);
-    return { text: await res.text(), version: unquote(res.headers.get('ETag')) };
+    const text = await res.text();
+    const version = unquote(res.headers.get('ETag'));
+    this.#last = version ? { text, version } : null;
+    return { text, version };
   }
 
   async save(text: string, expected: string | null): Promise<string> {
@@ -124,6 +135,7 @@ export class NasStore implements TaskStore {
     if (!res.ok) throw await failure(res);
     const version = unquote(res.headers.get('ETag'));
     if (!version) throw new Error('The server sent no version.');
+    this.#last = { text, version };
     return version;
   }
 

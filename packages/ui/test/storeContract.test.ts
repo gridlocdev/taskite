@@ -129,6 +129,27 @@ describe('the native store', () => {
 });
 
 describe('the NAS client', () => {
+  it('reads an unchanged file without downloading it again', async () => {
+    const store = await nasStore();
+    const v1 = await store.save('{"a":1}', null);
+    const fetched: number[] = [];
+    const real = globalThis.fetch;
+    globalThis.fetch = async (...args: Parameters<typeof fetch>) => {
+      const res = await real(...args);
+      if (String(args[0]).endsWith('/api/data')) fetched.push(res.status);
+      return res;
+    };
+    try {
+      expect(await store.load()).toEqual({ text: '{"a":1}', version: v1 });
+      expect(fetched).toEqual([304]);
+    } finally {
+      globalThis.fetch = real;
+    }
+    // A store that has seen nothing downloads it.
+    const fresh = new NasStore(new NasClient(base, { get: () => null, set: () => undefined }));
+    expect((await fresh.load()).text).toBe('{"a":1}');
+  });
+
   it('gives up on a server that never answers, so saving can report the failure', async () => {
     const { createServer: createHttp } = await import('node:http');
     const hung = createHttp(() => undefined);

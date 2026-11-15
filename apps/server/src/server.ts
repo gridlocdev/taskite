@@ -94,6 +94,9 @@ const MIME: Record<string, string> = {
 };
 
 const SECURITY_HEADERS = {
+  // The web build carries the same policy in a meta tag; only a header can say frame-ancestors.
+  'Content-Security-Policy':
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'no-referrer',
   'X-Frame-Options': 'DENY',
@@ -140,6 +143,15 @@ function etagValue(h: string | null): string | null {
   return m ? (m[1] ?? null) : null;
 }
 
+/** The versions in an If-None-Match header (`"a", W/"b"`). */
+function etagList(h: string | null): string[] {
+  if (h === null) return [];
+  return h.split(',').flatMap((part) => {
+    const v = etagValue(part);
+    return v === null ? [] : [v];
+  });
+}
+
 async function api(
   req: http.IncomingMessage,
   res: http.ServerResponse,
@@ -152,6 +164,11 @@ async function api(
     case 'GET /api/data': {
       const { text, version } = await readDataFile(opts.file);
       if (text === null) throw new HttpError(404, 'No tasks file yet');
+      // The app reads every few seconds; an unchanged file costs a header, not the whole file (PRD §10).
+      if (version && etagList(header(req, 'if-none-match')).includes(version)) {
+        res.writeHead(304, { 'Cache-Control': 'no-store', ETag: `"${version}"`, ...SECURITY_HEADERS });
+        return void res.end();
+      }
       res.writeHead(200, {
         'Content-Type': 'application/json; charset=utf-8',
         'Content-Length': Buffer.byteLength(text),

@@ -64,6 +64,27 @@ describe('the data API', () => {
     expect(stale.status).toBe(412);
   });
 
+  it('answers a read of an unchanged file with 304 and no body', async () => {
+    await start();
+    const created = await fetch(`${base}/api/data`, {
+      method: 'PUT',
+      headers: { 'If-None-Match': '*' },
+      body: '{"a":1}',
+    });
+    const etag = created.headers.get('etag') ?? '';
+    const same = await fetch(`${base}/api/data`, { headers: { 'If-None-Match': etag } });
+    expect([same.status, same.headers.get('etag'), await same.text()]).toEqual([304, etag, '']);
+    const other = await fetch(`${base}/api/data`, { headers: { 'If-None-Match': '"something-else"' } });
+    expect([other.status, await other.text()]).toEqual([200, '{"a":1}']);
+  });
+
+  it('sends a Content-Security-Policy that forbids framing', async () => {
+    await start();
+    const csp = (await fetch(`${base}/api/info`)).headers.get('content-security-policy') ?? '';
+    expect(csp).toContain("script-src 'self'");
+    expect(csp).toContain("frame-ancestors 'none'");
+  });
+
   it('refuses bodies that are not JSON, and saves without a version', async () => {
     await start();
     const bad = await fetch(`${base}/api/data`, {
