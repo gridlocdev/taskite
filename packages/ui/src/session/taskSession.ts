@@ -1,7 +1,7 @@
 /**
  * One open tasks file: the TaskList, the store it came from, and the saving around it (PRD §3.2–§3.5).
  * Every change saves at once; saves never overlap; failures retry, then wait for "Try again"; a conflict stops
- * saving until the user picks Reload, Keep mine or Save a copy.
+ * saving until the user picks Use Theirs, Keep Mine or Save Mine as a Copy.
  */
 import { signal } from '@preact/signals';
 import {

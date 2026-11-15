@@ -6,30 +6,30 @@ Single-letter keys only work when you aren't typing in a box.
 
 ## Adding tasks
 
-| Action                               | macOS                             | Windows / Linux                       |
-| ------------------------------------ | --------------------------------- | ------------------------------------- |
-| New task                             | **Q**, **N** or **⌘N**            | **Q**, **N** or **Ctrl+N**            |
-| Save the task and start the next one | **↵**                             | **Enter**                             |
-| Stop adding                          | **↵** on an empty row, or **Esc** | **Enter** on an empty row, or **Esc** |
+| Action                               | macOS                           | Windows / Linux                       |
+| ------------------------------------ | ------------------------------- | ------------------------------------- |
+| New task                             | **Q**, **N** or **⌘N**          | **Q**, **N** or **Ctrl+N**            |
+| Save the task and start the next one | **↩**                           | **Enter**                             |
+| Stop adding                          | **↩** on an empty row, or **⎋** | **Enter** on an empty row, or **Esc** |
 
 ## Choosing tasks
 
-| Action                       | macOS                            | Windows / Linux                  |
-| ---------------------------- | -------------------------------- | -------------------------------- |
-| Next / previous task         | **↓** / **↑** (or **J** / **K**) | **↓** / **↑** (or **J** / **K**) |
-| Add the task below / above   | **⇧↓** / **⇧↑**                  | **Shift+↓** / **Shift+↑**        |
-| Add or remove one task       | **⌘-click**                      | **Ctrl-click**                   |
-| Choose a range               | **Shift-click**                  | **Shift-click**                  |
-| Choose all tasks in the list | **⌘A**                           | **Ctrl+A**                       |
-| Clear the choice             | **Esc**                          | **Esc**                          |
-| Menu of actions              | Right-click a task               | Right-click a task               |
+| Action                       | macOS                                | Windows / Linux                                              |
+| ---------------------------- | ------------------------------------ | ------------------------------------------------------------ |
+| Next / previous task         | **↓** / **↑** (or **J** / **K**)     | **Down** / **Up** (or **J** / **K**)                         |
+| Add the task below / above   | **⇧↓** / **⇧↑** (or **⇧J** / **⇧K**) | **Shift+Down** / **Shift+Up** (or **Shift+J** / **Shift+K**) |
+| Add or remove one task       | **⌘-click**                          | **Ctrl-click**                                               |
+| Choose a range               | **Shift-click**                      | **Shift-click**                                              |
+| Choose all tasks in the list | **⌘A**                               | **Ctrl+A**                                                   |
+| Clear the choice             | **⎋**                                | **Esc**                                                      |
+| Menu of actions              | Right-click a task                   | Right-click a task                                           |
 
 ## Working on the chosen tasks
 
 | Action                              | macOS                      | Windows / Linux                |
 | ----------------------------------- | -------------------------- | ------------------------------ |
-| Complete, or reopen if already done | **Space**                  | **Space**                      |
-| Edit (one task)                     | **↵**                      | **Enter**                      |
+| Complete, or reopen if already done | **␣**                      | **Space**                      |
+| Edit (one task)                     | **↩**                      | **Enter**                      |
 | Set due date                        | **D**                      | **D**                          |
 | Priority 1 to 4                     | **1**, **2**, **3**, **4** | **1**, **2**, **3**, **4**     |
 | Move to a project                   | **M**                      | **M**                          |
@@ -37,7 +37,7 @@ Single-letter keys only work when you aren't typing in a box.
 | Restore (in the Trash)              | **R**                      | **R**                          |
 | Delete forever (in the Trash)       | **⌫** or **⌦**             | **Backspace** or **Delete**    |
 | Undo                                | **⌘Z**                     | **Ctrl+Z**                     |
-| Redo                                | **⇧⌘Z**                    | **Ctrl+Shift+Z** or **Ctrl+Y** |
+| Redo                                | **⇧⌘Z** or **⌘Y**          | **Ctrl+Shift+Z** or **Ctrl+Y** |
 
 ## Going places
 
@@ -51,10 +51,11 @@ Single-letter keys only work when you aren't typing in a box.
 | Search             | **/** or **⌘F**            | **/** or **Ctrl+F**            |
 | A project or label | **⌘K**, then type its name | **Ctrl+K**, then type its name |
 
-## Help
+## Settings and help
 
 | Action                         | macOS            | Windows / Linux          |
 | ------------------------------ | ---------------- | ------------------------ |
+| Settings                       | **⌘,**           | **Ctrl+,**               |
 | Command menu                   | **⌘K** or **⌘P** | **Ctrl+K** or **Ctrl+P** |
 | Keyboard shortcuts             | **?** or **⌘/**  | **?** or **Ctrl+/**      |
-| Close a window or clear search | **Esc**          | **Esc**                  |
+| Close a window or clear search | **⎋**            | **Esc**                  |

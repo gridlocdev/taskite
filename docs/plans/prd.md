@@ -47,10 +47,10 @@ All data is one JSON file, `tasks.json`, written pretty-printed (two-space inden
 ### §3.4 Versions and conflicts
 
 - Every read returns a version: the SHA-256 of the file's bytes (hex). Every save sends the version it last read or wrote. If the file on disk has a different version, the save fails with a conflict instead of writing.
-- On a conflict the app shows a dialog: "Your tasks were changed somewhere else" with three choices:
-  - **Reload** (default): load the file on disk; this window's unsaved change is lost, after the dialog says how many tasks differ.
-  - **Keep mine**: overwrite the file with this window's data.
-  - **Save a copy**: write this window's data to `tasks.copy-<YYYY-MM-DD-HHmmss>.json` next to the file, then reload.
+- On a conflict the app shows a dialog, "Your tasks changed somewhere else", which says how many tasks differ and offers three choices:
+  - **Save Mine as a Copy** (default, the one that loses nothing): write this window's data to `tasks.copy-<YYYY-MM-DD-HHmmss>.json` next to the file, then load the file on disk.
+  - **Keep Mine**: overwrite the file with this window's data.
+  - **Use Theirs**: load the file on disk; this window's unsaved changes are lost.
 - Nothing merges, and nothing overwrites without the user choosing it.
 - The browser store has no other writers, so it never conflicts, but runs the same code.
 
