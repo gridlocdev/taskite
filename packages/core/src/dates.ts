@@ -82,6 +82,14 @@ export function addMonths(iso: string, months: number): string {
   return toISODate(d);
 }
 
+/** The same month with the day set to `day`, or to the month's last day if it has fewer days. */
+export function withDay(iso: string, day: number): string {
+  const d = parseISODate(iso);
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(day, lastDay));
+  return toISODate(d);
+}
+
 /** Whole days from `from` to `to` (negative if `to` is earlier). */
 export function diffDays(from: string, to: string): number {
   return Math.round((parseISODate(to).getTime() - parseISODate(from).getTime()) / DAY_MS);
@@ -120,13 +128,20 @@ export function stepRecurrence(iso: string, recurrence: Recurrence): string {
 }
 
 /** The next due date of a repeating task once it's checked off: step from its due date until after today (PRD §4.3). */
-export function nextOccurrence(dueISO: string, recurrence: Recurrence, today: string = todayISO()): string {
-  // Months count from the due date itself, so catching up over February doesn't move the 31st to the 28th.
+export function nextOccurrence(
+  dueISO: string,
+  recurrence: Recurrence,
+  today: string = todayISO(),
+  day: number = parseISODate(dueISO).getDate(),
+): string {
+  // Months count from the due date and land on `day`, or the month's last day if it is shorter, so neither
+  // catching up over February nor checking off the Feb 28 of a task set on the 31st loses the 31st.
   if (recurrence === 'monthly' || recurrence === 'yearly') {
     const step = recurrence === 'monthly' ? 1 : 12;
+    const at = (k: number) => withDay(addMonths(dueISO, k * step), day);
     let k = 1;
-    while (addMonths(dueISO, k * step) <= today) k++;
-    return addMonths(dueISO, k * step);
+    while (at(k) <= today) k++;
+    return at(k);
   }
   let next = stepRecurrence(dueISO, recurrence);
   while (next <= today) next = stepRecurrence(next, recurrence);

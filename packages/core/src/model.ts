@@ -28,6 +28,11 @@ export interface Task {
   /** Epoch ms when moved to the Trash. */
   deletedAt: number | null;
   /** The project section it sits in. Left out for tasks above the first section. */
+  /**
+   * The day of the month a monthly or yearly repeat falls on, kept only while a short month has pulled the
+   * due date earlier (the 31st due on Feb 28), so the next check-off goes back to it (PRD §4.3).
+   */
+  repeatDay?: number;
   sectionId?: string;
 }
 
@@ -160,12 +165,15 @@ export function normalize(raw: unknown, now: number = Date.now()): AppData {
   const rawTasks = Array.isArray(raw['tasks']) ? (raw['tasks'] as unknown[]) : [];
   const tasks: Task[] = rawTasks
     .filter((t): t is Loose => isObject(t) && Boolean(t['id']) && typeof t['title'] === 'string')
-    .map(({ sectionId, ...t }, i) => {
+    .map(({ sectionId, repeatDay, ...t }, i) => {
       const projectId = projectIds.has(t['projectId'] as string) ? (t['projectId'] as string) : INBOX_ID;
       return {
         ...t,
         ...(typeof sectionId === 'string' && sectionIds.has(`${projectId}/${sectionId}`)
           ? { sectionId }
+          : {}),
+        ...(Number.isInteger(repeatDay) && (repeatDay as number) >= 1 && (repeatDay as number) <= 31
+          ? { repeatDay: repeatDay as number }
           : {}),
         id: String(t['id']),
         title: t['title'] as string,

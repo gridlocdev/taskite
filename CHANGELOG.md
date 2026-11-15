@@ -55,6 +55,7 @@
 - On a phone-width screen the sidebar sits above the list instead of squeezing it, and a long section name no longer hides its ⋯ button.
 - Completed shows each day's heading once, and the Trash lists a subtask whose parent no longer exists instead of hiding it.
 - When the browser's storage is full, a failed save says there is no backup copy, and an older backup is removed instead of offering stale tasks to restore next time.
+- A task that repeats monthly on the 29th, 30th or 31st no longer stays on an earlier day after it is checked off in a short month: a task due on the 31st goes to February 28, then back to March 31.
 
 ## 2.0.0
 

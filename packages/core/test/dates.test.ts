@@ -41,6 +41,12 @@ describe('dates', () => {
     expect(nextOccurrence('2024-02-29', 'yearly', '2027-06-01')).toBe('2028-02-29');
   });
 
+  it('nextOccurrence goes back to the day the repeat was set on after a short month', () => {
+    expect(nextOccurrence('2026-02-28', 'monthly', '2026-02-28', 31)).toBe('2026-03-31');
+    expect(nextOccurrence('2026-02-28', 'monthly', '2026-02-28', 30)).toBe('2026-03-30');
+    expect(nextOccurrence('2027-02-28', 'yearly', '2027-02-28', 29)).toBe('2028-02-29');
+  });
+
   it('nextOccurrence skips past today for overdue repeating tasks', () => {
     expect(nextOccurrence('2026-10-01', 'daily', '2026-10-09')).toBe('2026-10-10');
     expect(nextOccurrence('2026-10-09', 'weekly', '2026-10-09')).toBe('2026-10-16');

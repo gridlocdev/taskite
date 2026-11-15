@@ -2,7 +2,7 @@
  * The task list engine: every edit to tasks, projects and labels, with undo (PRD §4, §6). It holds the
  * data in memory and tells listeners after each change; saving is the caller's job.
  */
-import { nextOccurrence, todayISO } from './dates.ts';
+import { nextOccurrence, parseISODate, todayISO } from './dates.ts';
 import {
   INBOX_ID,
   PROJECT_COLOR_NAMES,
@@ -342,7 +342,12 @@ export class TaskList {
     this.#edit(() => {
       for (const task of tasks) {
         const moved = fields.projectId !== undefined && fields.projectId !== task.projectId;
+        // A date or repeat set by hand starts a new day of the month.
+        const redated =
+          (fields.due !== undefined && fields.due !== task.due) ||
+          (fields.recurrence !== undefined && fields.recurrence !== task.recurrence);
         Object.assign(task, fields);
+        if (redated) delete task.repeatDay;
         if (setsSection || moved) {
           if (sectionId && this.getSection(task.projectId, sectionId)) task.sectionId = sectionId;
           else delete task.sectionId;
@@ -369,7 +374,12 @@ export class TaskList {
       const now = this.#now();
       for (const task of tasks) {
         if (task.recurrence && task.due) {
-          task.due = nextOccurrence(task.due, task.recurrence, today);
+          const day = task.repeatDay ?? parseISODate(task.due).getDate();
+          task.due = nextOccurrence(task.due, task.recurrence, today, day);
+          // Remember the day only while a short month has moved the date off it.
+          const monthly = task.recurrence === 'monthly' || task.recurrence === 'yearly';
+          if (monthly && parseISODate(task.due).getDate() !== day) task.repeatDay = day;
+          else delete task.repeatDay;
           results.push({ id: task.id, repeated: true, nextDue: task.due });
           continue;
         }

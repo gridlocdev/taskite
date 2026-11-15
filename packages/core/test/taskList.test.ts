@@ -44,6 +44,39 @@ describe('TaskList', () => {
     expect(task(t.id).completed).toBe(false);
   });
 
+  it('a monthly repeat on the 31st comes back to the 31st after February, check-off by check-off', () => {
+    const t = list.addTask({ title: 'Rent', due: '2026-01-31', recurrence: 'monthly' });
+    const dues = ['2026-01-31', '2026-02-28', '2026-03-31'].map((today) => {
+      list.completeTasks(t.id, today);
+      return task(t.id).due;
+    });
+    expect(dues).toEqual(['2026-02-28', '2026-03-31', '2026-04-30']);
+    list.completeTasks(t.id, '2026-04-30');
+    expect(task(t.id).due).toBe('2026-05-31');
+    expect(task(t.id).repeatDay).toBeUndefined();
+  });
+
+  it('setting the date or the repeat by hand forgets the old day of the month', () => {
+    const t = list.addTask({ title: 'Rent', due: '2026-01-31', recurrence: 'monthly' });
+    list.completeTasks(t.id, '2026-01-31');
+    expect(task(t.id).repeatDay).toBe(31);
+    list.updateTasks(t.id, { due: '2026-02-15' });
+    list.completeTasks(t.id, '2026-02-15');
+    expect(task(t.id).due).toBe('2026-03-15');
+    list.updateTasks(t.id, { due: '2026-04-30' });
+    list.completeTasks(t.id, '2026-01-31');
+    expect(task(t.id).repeatDay).toBeUndefined();
+  });
+
+  it('keeps a valid repeat day from the file and drops a bad one', () => {
+    const raw = (repeatDay: unknown) => ({
+      tasks: [{ id: 'a', title: 'A', due: '2026-02-28', recurrence: 'monthly', repeatDay }],
+    });
+    expect(make(raw(31)).getTask('a')?.repeatDay).toBe(31);
+    expect(make(raw(40)).getTask('a')?.repeatDay).toBeUndefined();
+    expect(make(raw('31')).getTask('a')?.repeatDay).toBeUndefined();
+  });
+
   it('completing a parent completes its subtasks; undo restores', () => {
     const parent = list.addTask({ title: 'Parent' });
     const child = list.addTask({ title: 'Child', parentId: parent.id });
