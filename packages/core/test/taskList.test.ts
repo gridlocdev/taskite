@@ -149,7 +149,8 @@ describe('TaskList', () => {
       {
         tasks: [
           t('old', now - 31 * DAY_MS),
-          t('oldChild', null, 'old'),
+          t('oldChild', now - 31 * DAY_MS, 'old'),
+          t('liveChild', null, 'old'),
           t('recent', now - 29 * DAY_MS),
           t('live', null),
         ],
@@ -157,7 +158,9 @@ describe('TaskList', () => {
       now,
     );
     expect(list.purgeExpired(now)).toBe(true);
-    expect(list.data.tasks.map((x) => x.id).sort()).toEqual(['live', 'recent']);
+    // A live subtask of an expired parent (only in hand-edited data) stays, as a task of its own.
+    expect(list.data.tasks.map((x) => x.id).sort()).toEqual(['live', 'liveChild', 'recent']);
+    expect(list.getTask('liveChild')?.parentId).toBeNull();
     expect(list.canUndo).toBe(false);
     expect(changes).toEqual(['settings']);
     expect(list.purgeExpired(now)).toBe(false);

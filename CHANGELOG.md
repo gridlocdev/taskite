@@ -22,6 +22,10 @@
 - **The command menu (`⌘K`) finds more.** Spaces don't matter (`newtask` finds **New Task**), the closest matches come first, and commands answer to other words for them, such as `preferences`, `deadline` or `reorder`.
 - **Text fields have a right-click menu** in the desktop app: Cut, Copy, Paste, Select All, and spelling suggestions.
 
+### Bugs fixed
+
+- **Emptying the Trash could delete a subtask that wasn't in it.** A subtask restored on its own, whose parent was later trashed and deleted, went with it. Subtasks in the Trash now also move with their parent, so a restored one comes back beside it.
+
 ## 2.0.0
 
 ### Before you update

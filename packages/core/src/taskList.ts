@@ -269,7 +269,8 @@ export class TaskList {
           else delete task.sectionId;
         }
         if (!setsSection && fields.projectId === undefined) continue;
-        for (const sub of this.getSubtasks(task.id)) {
+        // Subtasks in the Trash move too, so a restored one comes back beside its parent.
+        for (const sub of this.#data.tasks.filter((t) => t.parentId === task.id)) {
           sub.projectId = task.projectId;
           if (task.sectionId) sub.sectionId = task.sectionId;
           else delete sub.sectionId;
@@ -355,6 +356,14 @@ export class TaskList {
         if (!this.getProject(task.projectId)) task.projectId = INBOX_ID;
         if (task.sectionId && !this.getSection(task.projectId, task.sectionId)) delete task.sectionId;
       }
+      // A subtask always sits in its parent's project and section (PRD §6).
+      for (const task of toRestore) {
+        const parent = task.parentId ? this.getTask(task.parentId) : undefined;
+        if (!parent) continue;
+        task.projectId = parent.projectId;
+        if (parent.sectionId) task.sectionId = parent.sectionId;
+        else delete task.sectionId;
+      }
     });
   }
 
@@ -363,7 +372,11 @@ export class TaskList {
     const idSet = new Set(toList(ids).filter((id) => this.getTask(id)?.deletedAt != null));
     if (!idSet.size) return;
     this.#edit((data) => {
-      data.tasks = data.tasks.filter((t) => !idSet.has(t.id) && !(t.parentId && idSet.has(t.parentId)));
+      // A subtask goes with its parent only when it's in the Trash too; a live one was restored on its own.
+      data.tasks = data.tasks.filter(
+        (t) => !idSet.has(t.id) && !(t.parentId && idSet.has(t.parentId) && t.deletedAt !== null),
+      );
+      for (const t of data.tasks) if (t.parentId && idSet.has(t.parentId)) t.parentId = null;
     });
   }
 
@@ -398,6 +411,7 @@ export class TaskList {
     const ids = expiredTaskIds(this.#data, now);
     if (!ids.size) return false;
     this.#data.tasks = this.#data.tasks.filter((t) => !ids.has(t.id));
+    for (const t of this.#data.tasks) if (t.parentId && ids.has(t.parentId)) t.parentId = null;
     this.#emit('settings');
     return true;
   }

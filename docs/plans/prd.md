@@ -124,8 +124,8 @@ Everything else, with spaces collapsed, is the title.
 
 - **Move to Trash** (Backspace, Delete) moves the chosen tasks and their subtasks to the Trash, with Undo. Rows slide out.
 - The Trash lists top-level trashed tasks and subtasks whose parent isn't trashed, newest first, each with "Deleted N days ago · N days left".
-- **Restore** (R) brings tasks back with the subtasks deleted alongside them; restoring a subtask restores its parent; a task whose project is gone goes to the Inbox.
-- **Delete Forever** (Backspace, Delete in the Trash) and **Empty Trash…** remove tasks for good. Empty Trash asks first, with Cancel as the default button. Undo still works right after.
+- **Restore** (R) brings tasks back with the subtasks deleted alongside them; restoring a subtask restores its parent and puts it back in its parent's project and section; a task whose project is gone goes to the Inbox. Subtasks in the Trash still move with their parent.
+- **Delete Forever** (Backspace, Delete in the Trash) and **Empty Trash…** remove tasks for good, with their subtasks that are in the Trash too (a subtask restored on its own stays). Empty Trash asks first, with Cancel as the default button. Undo still works right after.
 - Tasks in the Trash for 30 days are removed when the file loads (§3.2).
 
 ### §4.7 Undo

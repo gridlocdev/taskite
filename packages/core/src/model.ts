@@ -245,6 +245,6 @@ export function expiredTaskIds(data: AppData, now: number): Set<string> {
   const ids = new Set(
     data.tasks.filter((t) => t.deletedAt !== null && t.deletedAt < cutoff).map((t) => t.id),
   );
-  for (const t of data.tasks) if (t.parentId && ids.has(t.parentId)) ids.add(t.id);
+  for (const t of data.tasks) if (t.parentId && ids.has(t.parentId) && t.deletedAt !== null) ids.add(t.id);
   return ids;
 }
