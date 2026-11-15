@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Taskite's icon. 1024 canvas on Apple's icon grid: an 824-unit tile at (100,100) with a transparent
+     margin; scripts/make-icons.sh crops to the tile for Windows and Linux, so keep the tile there.
+     Glyph: a kite with a check mark in it, and its tail. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="tile" gradientUnits="userSpaceOnUse" x1="0" y1="100" x2="0" y2="924">
+      <stop offset="0" stop-color="#EE6F62" />
+      <stop offset="1" stop-color="#B9362B" />
+    </linearGradient>
+  </defs>
+
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#tile)" />
+
+  <g transform="translate(0 -6)" fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 512 214 L 708 424 L 512 724 L 316 424 Z" stroke-width="44" />
+    <path d="M 422 440 L 492 512 L 610 376" stroke-width="56" />
+    <path d="M 512 724 C 488 770 552 790 528 836" stroke-width="36" />
+  </g>
+</svg>

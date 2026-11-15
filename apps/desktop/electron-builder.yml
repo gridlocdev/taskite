@@ -12,15 +12,18 @@ asar: true
 # One naming scheme on every system: Taskite-1.0.0-mac-arm64.dmg, Taskite-1.0.0-win-x64.exe, …
 artifactName: ${productName}-${version}-${os}-${arch}.${ext}
 mac:
+  icon: build/icon.icns
   category: public.app-category.productivity
   target: [dmg, zip]
   hardenedRuntime: true
   # Ad-hoc signature, so Apple silicon will run a local build. Swap for a Developer ID to distribute.
   identity: '-'
 linux:
+  icon: build/icon.png
   target: [AppImage]
   # The package name (@taskite/desktop) isn't a usable file name.
   executableName: taskite
   category: Office
 win:
+  icon: build/icon.ico
   target: [nsis]
