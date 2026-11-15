@@ -43,6 +43,16 @@ describe('the data file', () => {
     expect(parseDataFile('{"version": 2, "tasks": []}')).toEqual({ ok: false, reason: 'newer', version: 2 });
   });
 
+  it('reads a file that starts with a byte-order mark', () => {
+    const parsed = parseDataFile('\uFEFF{"version": 1, "tasks": [{"id": "a", "title": "A"}]}');
+    expect(parsed.ok && parsed.data.tasks.map((t) => t.title)).toEqual(['A']);
+  });
+
+  it('treats JSON that is not an object as unreadable, so it is kept as a copy', () => {
+    for (const text of ['[]', 'null', '5', '"tasks"', '[{"id": "a"}]'])
+      expect(parseDataFile(text), text).toEqual({ ok: false, reason: 'corrupt' });
+  });
+
   it('reports text that is not JSON instead of throwing', () => {
     expect(parseDataFile('{ nope')).toEqual({ ok: false, reason: 'corrupt' });
   });

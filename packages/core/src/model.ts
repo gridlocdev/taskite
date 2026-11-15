@@ -230,11 +230,14 @@ export type ParseResult =
 export function parseDataFile(text: string, now: number = Date.now()): ParseResult {
   let raw: unknown;
   try {
-    raw = JSON.parse(text);
+    // Some editors save a byte-order mark, which JSON.parse refuses.
+    raw = JSON.parse(text.replace(/^\uFEFF/, ''));
   } catch {
     return { ok: false, reason: 'corrupt' };
   }
-  const version = isObject(raw) ? raw['version'] : undefined;
+  // `[]` or `null` would otherwise load as an empty list and be saved over the file.
+  if (!isObject(raw) || Array.isArray(raw)) return { ok: false, reason: 'corrupt' };
+  const version = raw['version'];
   if (typeof version === 'number' && version > FORMAT_VERSION) return { ok: false, reason: 'newer', version };
   return { ok: true, data: normalize(raw, now) };
 }

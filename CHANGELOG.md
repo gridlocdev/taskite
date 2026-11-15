@@ -29,6 +29,7 @@
 - The task editor saves only the fields you typed in, so it no longer puts back a change made elsewhere (the CLI, another window) to the task's other fields. Text you typed is saved before ⌘K, another dialog, a save conflict or closing the window replaces the editor, and the editor closes when its task is deleted elsewhere.
 - The desktop app's window closes when a save has failed or is in conflict; before, it ignored the close button. Unsaved changes are kept in the recovery snapshot and offered at the next start.
 - Keep Mine in a save conflict no longer overwrites a tasks file that a newer Taskite saved in the meantime; it says to update Taskite instead. An error from Keep Mine now shows as a notice.
+- A tasks file saved with a byte-order mark opens instead of being treated as unreadable, and a file holding JSON that isn't an object (`[]`, `null`) is kept as a copy instead of being replaced by an empty list.
 
 ## 2.0.0
 
