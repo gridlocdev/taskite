@@ -26,6 +26,35 @@ const titles = (view: Parameters<typeof viewContent>[1]) =>
   viewContent(list, view, TODAY).sections.map((s) => [s.heading, s.rows.map((r) => r.task.title)]);
 
 describe('views', () => {
+  it('Completed shows each day once, tasks without a completion time included', () => {
+    const at = (iso: string) => new Date(`${iso}T12:00:00`).getTime();
+    const data = emptyData();
+    const task = (id: string, completedAt: number | null, createdAt: number) => ({
+      ...list.addTask({ title: id }),
+      id,
+      title: id,
+      completed: true,
+      completedAt,
+      createdAt,
+    });
+    // Old data: B was completed without a time, so it goes by the day it was made.
+    data.tasks.push(task('A', at('2026-10-08'), at('2026-10-01')), task('B', null, at('2026-10-08')));
+    data.tasks.push(task('C', at('2026-10-07'), at('2026-10-01')));
+    list = new TaskList(data, { now: () => 0 });
+    const headings = viewContent(list, { type: 'completed' }, TODAY).sections.map((s) => s.key);
+    expect(headings).toEqual(['2026-10-08', '2026-10-07']);
+  });
+
+  it('the Trash lists a subtask whose parent is gone altogether', () => {
+    const data = emptyData();
+    const sub = { ...list.addTask({ title: 'Orphan' }), parentId: 'missing', deletedAt: 5 };
+    data.tasks.push(sub);
+    list = new TaskList(data, { now: () => 10 });
+    expect(list.trashList().map((t) => t.title)).toEqual(['Orphan']);
+    list.restoreTasks(sub.id);
+    expect(list.getTask(sub.id)).toMatchObject({ deletedAt: null, parentId: null });
+  });
+
   it('a project lists open tasks in order with their open subtasks under them', () => {
     const a = list.addTask({ title: 'A' });
     list.addTask({ title: 'B' });

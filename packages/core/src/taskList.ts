@@ -275,9 +275,15 @@ export class TaskList {
       .sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0));
   }
 
-  /** The Trash as listed: top-level tasks, and subtasks whose parent isn't trashed (PRD §4.6). */
+  /**
+   * The Trash as listed: top-level tasks, and subtasks whose parent isn't trashed (PRD §4.6), or is gone
+   * altogether, so nothing in the Trash is out of sight.
+   */
   trashList(): Task[] {
-    return this.trashedTasks().filter((t) => !t.parentId || this.getTask(t.parentId)?.deletedAt === null);
+    return this.trashedTasks().filter((t) => {
+      const parent = t.parentId ? this.getTask(t.parentId) : undefined;
+      return !parent || parent.deletedAt === null;
+    });
   }
 
   /** Subtasks not in the Trash, in order. */
@@ -432,7 +438,11 @@ export class TaskList {
       // A subtask always sits in its parent's project and section (PRD §6).
       for (const task of toRestore) {
         const parent = task.parentId ? this.getTask(task.parentId) : undefined;
-        if (!parent) continue;
+        if (!parent) {
+          // Its parent is gone for good (hand-edited data): it comes back as a task of its own.
+          task.parentId = null;
+          continue;
+        }
         task.projectId = parent.projectId;
         if (parent.sectionId) task.sectionId = parent.sectionId;
         else delete task.sectionId;

@@ -61,7 +61,7 @@ All data is one JSON file, `tasks.json`, written pretty-printed (two-space inden
 
 ### §3.5 Recovery
 
-- Before each save, the data being saved is written to `localStorage` under `taskite.unsaved`; a successful save removes it.
+- Before each save, the data being saved is written to `localStorage` under `taskite.unsaved`; a successful save removes it. If the browser has no room for it, any older copy there is removed too (it would offer stale data), and a failed save's notice says "Couldn't save your tasks, and this browser has no room to keep a copy. Keep this window open."
 - On start, if `taskite.unsaved` exists and differs from the loaded file, a dialog offers **Restore** (default; saves it over the file) or **Discard**.
 
 ### §3.6 Where the file lives
@@ -124,8 +124,8 @@ Everything else, with spaces collapsed, is the title.
 ### §4.6 Trash
 
 - **Move to Trash** (Backspace, Delete) moves the chosen tasks and their subtasks to the Trash, with Undo. Rows slide out.
-- The Trash lists top-level trashed tasks and subtasks whose parent isn't trashed, newest first, each with "Deleted N days ago · N days left".
-- **Restore** (R) brings tasks back with the subtasks deleted alongside them; restoring a subtask restores its parent and puts it back in its parent's project and section; a task whose project is gone goes to the Inbox. Subtasks in the Trash still move with their parent.
+- The Trash lists top-level trashed tasks and subtasks whose parent isn't trashed (or no longer exists), newest first, each with "Deleted N days ago · N days left".
+- **Restore** (R) brings tasks back with the subtasks deleted alongside them; restoring a subtask restores its parent and puts it back in its parent's project and section; a task whose project is gone goes to the Inbox; a subtask whose parent no longer exists comes back as a task of its own. Subtasks in the Trash still move with their parent.
 - **Delete Forever** (Backspace, Delete in the Trash) and **Empty Trash…** remove tasks for good, with their subtasks that are in the Trash too (a subtask restored on its own stays). Empty Trash asks first, with Cancel as the default button. Undo still works right after.
 - Tasks in the Trash for 30 days are removed when the file loads (§3.2).
 
@@ -153,7 +153,7 @@ The app opens on the view it showed last (`settings.lastView`), else Today. A pr
 | Today | open tasks due today or before: an **Overdue** section, then a heading for today | overdue by date, then priority, then order; today by priority, then order |
 | Upcoming | Overdue; then each remaining day of this calendar week (from today; the week starts where the locale starts it) with a heading ("Today · Sun Nov 15") and its own Add row; then **Next Week · Nov 16 – 22** (always shown; its Add row dates new tasks the week's first day); then **Later** (when it has tasks) | by date, priority, order |
 | Label | open tasks with that label | date, priority, order |
-| Completed | completed tasks (not trashed), grouped under the day they were completed | newest first |
+| Completed | completed tasks (not trashed), grouped under the day they were completed (the day they were made, for old tasks with no completion time); each day once | newest first |
 | Trash | §4.6 | newest deleted first |
 | Search | tasks whose title, description or a label contains the text (ignoring case), done ones included | open first, then date, priority, order |
 

@@ -269,13 +269,15 @@ export function viewContent(
       };
     }
     case 'completed': {
+      // Sorted by the same time the day heading uses, so a day's tasks are always together.
+      const at = (t: Task) => t.completedAt ?? t.createdAt;
       const done = list
         .liveTasks()
         .filter((t) => t.completed)
-        .sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0));
+        .sort((a, b) => at(b) - at(a));
       const sections: Section[] = [];
       for (const task of done) {
-        const day = toISODate(new Date(task.completedAt ?? task.createdAt));
+        const day = toISODate(new Date(at(task)));
         const last = sections[sections.length - 1];
         if (last?.key === day) last.rows.push({ task, isSubtask: false });
         else sections.push({ ...section(day, formatDayHeading(day, today), [task]), count: null });
