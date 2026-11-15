@@ -1,0 +1,21 @@
+{
+  "name": "taskite",
+  "productName": "Taskite",
+  "version": "1.0.0",
+  "description": "A simple, Todoist-style to-do list desktop app.",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "bootstrap": "^5.3.8"
+  },
+  "devDependencies": {
+    "electron": "^44.7.0"
+  }
+}

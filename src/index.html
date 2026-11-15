@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:">
+  <title>Taskite</title>
+  <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app d-flex">
+    <!-- Sidebar -->
+    <nav class="sidebar bg-body-tertiary border-end d-flex flex-column" aria-label="Views">
+      <div class="d-flex align-items-center justify-content-between px-3 pt-3 pb-2">
+        <span class="fs-5 fw-semibold">Taskite</span>
+        <div class="d-flex gap-1">
+          <button class="btn btn-sm btn-icon" id="btn-shortcuts" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts" data-icon="keyboard"></button>
+          <button class="btn btn-sm btn-icon" id="btn-theme" title="Switch light/dark" aria-label="Switch light/dark" data-icon="auto"></button>
+        </div>
+      </div>
+      <div class="px-3 pb-2">
+        <input type="search" class="form-control form-control-sm" id="search" placeholder="Search  ( / )" aria-label="Search tasks">
+      </div>
+      <div class="sidebar-scroll flex-grow-1 px-2 pb-3">
+        <button type="button" class="btn btn-link nav-link add-task-link" id="btn-add-task" title="Add task (Q)">
+          <span class="add-row-icon" data-icon="plus"></span><span class="nav-name">Add task</span>
+        </button>
+        <ul class="nav flex-column" id="nav-main"></ul>
+
+        <div class="sidebar-heading">
+          <span>Projects</span>
+          <button class="btn btn-sm btn-icon" id="btn-add-project" title="Add project" data-icon="plus"></button>
+        </div>
+        <ul class="nav flex-column" id="nav-projects"></ul>
+
+        <div class="sidebar-heading" id="labels-heading"><span>Labels</span></div>
+        <ul class="nav flex-column" id="nav-labels"></ul>
+      </div>
+    </nav>
+
+    <!-- Main content -->
+    <main class="content flex-grow-1">
+      <div class="content-inner px-4 py-4">
+        <header class="d-flex align-items-center gap-2 mb-3">
+          <h1 class="h3 mb-0 flex-grow-1 text-truncate" id="view-title">Inbox</h1>
+          <div class="dropdown" id="view-menu">
+            <button class="btn btn-sm btn-icon" data-bs-toggle="dropdown" aria-expanded="false" title="More actions" data-icon="dots"></button>
+            <ul class="dropdown-menu dropdown-menu-end" id="view-menu-items"></ul>
+          </div>
+        </header>
+
+        <div id="task-list" role="listbox" aria-label="Tasks" aria-multiselectable="true"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Task editor -->
+  <div class="modal fade" id="task-modal" tabindex="-1" aria-labelledby="task-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <form class="modal-content" id="task-form" autocomplete="off">
+        <div class="modal-header">
+          <h2 class="modal-title fs-5" id="task-modal-title">Edit task</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="task-title" class="form-label">Task name</label>
+            <input type="text" class="form-control" id="task-title" required>
+          </div>
+          <div class="mb-3">
+            <label for="task-description" class="form-label">Description</label>
+            <textarea class="form-control" id="task-description" rows="3" placeholder="Notes, links, details…"></textarea>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-sm-6 col-md-4">
+              <label for="task-due" class="form-label">Due date</label>
+              <input type="date" class="form-control" id="task-due">
+            </div>
+            <div class="col-sm-6 col-md-4">
+              <label for="task-recurrence" class="form-label">Repeat</label>
+              <select class="form-select" id="task-recurrence">
+                <option value="">Doesn't repeat</option>
+                <option value="daily">Every day</option>
+                <option value="weekdays">Every weekday</option>
+                <option value="weekly">Every week</option>
+                <option value="monthly">Every month</option>
+                <option value="yearly">Every year</option>
+              </select>
+            </div>
+            <div class="col-sm-6 col-md-4">
+              <label for="task-priority" class="form-label">Priority</label>
+              <select class="form-select" id="task-priority">
+                <option value="1">Priority 1 (urgent)</option>
+                <option value="2">Priority 2 (high)</option>
+                <option value="3">Priority 3 (medium)</option>
+                <option value="4">Priority 4 (normal)</option>
+              </select>
+            </div>
+            <div class="col-sm-6 col-md-4" id="task-project-group">
+              <label for="task-project" class="form-label">Project</label>
+              <select class="form-select" id="task-project"></select>
+            </div>
+            <div class="col-md-8">
+              <label for="task-labels" class="form-label">Labels</label>
+              <input type="text" class="form-control" id="task-labels" placeholder="e.g. errands, phone">
+              <div class="form-text">Separate labels with commas.</div>
+            </div>
+          </div>
+
+          <div id="subtasks-section">
+            <h3 class="fs-6 fw-semibold">Subtasks</h3>
+            <div id="subtask-list" class="mb-2"></div>
+            <div class="input-group input-group-sm">
+              <input type="text" class="form-control" id="subtask-input" placeholder="Add a subtask and press Enter">
+              <button class="btn btn-outline-secondary" type="button" id="subtask-add">Add</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-danger me-auto" id="task-delete">Delete</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Project editor -->
+  <div class="modal fade" id="project-modal" tabindex="-1" aria-labelledby="project-modal-title" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" id="project-form" autocomplete="off">
+        <div class="modal-header">
+          <h2 class="modal-title fs-5" id="project-modal-title">Add project</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="project-name" class="form-label">Name</label>
+            <input type="text" class="form-control" id="project-name" required maxlength="80">
+          </div>
+          <fieldset>
+            <legend class="form-label fs-6">Color</legend>
+            <div class="d-flex flex-wrap gap-2" id="project-colors"></div>
+          </fieldset>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Confirm dialog -->
+  <div class="modal fade" id="confirm-modal" tabindex="-1" aria-labelledby="confirm-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title fs-5" id="confirm-title">Are you sure?</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="confirm-body"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger" id="confirm-ok">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keyboard shortcuts (built from the command list in app.js) -->
+  <div class="modal fade" id="shortcuts-modal" tabindex="-1" aria-labelledby="shortcuts-title" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title fs-5" id="shortcuts-title">Keyboard shortcuts</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body shortcuts-body" id="shortcuts-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Command menu -->
+  <div class="modal" id="palette-modal" tabindex="-1" aria-label="Command menu" aria-hidden="true">
+    <div class="modal-dialog palette-dialog">
+      <div class="modal-content">
+        <input type="text" class="form-control palette-input" id="palette-input" placeholder="Type a command…"
+               aria-label="Command" role="combobox" aria-expanded="true" aria-controls="palette-list" autocomplete="off">
+        <ul class="palette-list" id="palette-list" role="listbox" aria-label="Commands"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Due date -->
+  <div class="modal fade" id="due-modal" tabindex="-1" aria-labelledby="due-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <form class="modal-content" id="due-form" autocomplete="off">
+        <div class="modal-header">
+          <h2 class="modal-title fs-5" id="due-modal-title">Due date</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <label for="due-input" class="form-label visually-hidden">Due date</label>
+          <input type="text" class="form-control" id="due-input" placeholder="e.g. tomorrow, friday, jun 3">
+          <div class="form-text" id="due-preview" aria-live="polite"></div>
+          <div class="d-flex flex-wrap gap-1 mt-3" id="due-quick">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-due="today">Today</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-due="tomorrow">Tomorrow</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-due="next week">Next week</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-due="none">No date</button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">Set</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Right-click menu on tasks -->
+  <ul class="dropdown-menu context-menu" id="context-menu" role="menu" aria-label="Task actions"></ul>
+
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toasts"></div>
+
+  <script src="../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module" src="renderer/app.js"></script>
+</body>
+</html>
