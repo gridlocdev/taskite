@@ -220,6 +220,8 @@ export class AppController {
    * changes the tasks, so it can't take back a different change than the one it names.
    */
   sayUndoable(text: string): void {
+    // An edit that changed nothing says nothing: there is nothing to undo, and Undo would take back the step before.
+    if (!this.list.lastEditChanged) return;
     const step = this.list.step;
     this.say(text, {
       action: {

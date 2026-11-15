@@ -279,4 +279,17 @@ describe('TaskList', () => {
     list.addProject('A');
     expect(list.nextProjectColor()).toBe('yellow');
   });
+
+  it('records no undo step for an edit that changes nothing', () => {
+    const list = new TaskList(emptyData());
+    const t = list.addTask({ title: 'A', priority: 2 });
+    list.updateTasks(t.id, { priority: 1 });
+    list.updateTasks(t.id, { priority: 1 });
+    expect(list.lastEditChanged).toBe(false);
+    list.updateTasks(t.id, { projectId: INBOX_ID });
+    list.reorderTasks([t.id]);
+    list.batch(() => list.updateTasks(t.id, { priority: 1 }));
+    list.undo();
+    expect(list.getTask(t.id)?.priority).toBe(2);
+  });
 });

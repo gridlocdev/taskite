@@ -71,6 +71,11 @@ export function projectKey(name: string): string {
   return name.toLowerCase().replace(/[\s_-]+/g, '');
 }
 
+/** Whether an edit changed anything: an edit that leaves the data as it was records no undo step. */
+function sameData(a: AppData, b: AppData): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
 export class TaskList {
   #data: AppData;
   #undo: AppData[] = [];
@@ -81,6 +86,7 @@ export class TaskList {
   #batching = false;
   #batchChanged = false;
   #step = 0;
+  #lastEditChanged = false;
 
   constructor(data: AppData, options: TaskListOptions = {}) {
     this.#data = data;
@@ -121,6 +127,7 @@ export class TaskList {
     this.#undo = [structuredClone(this.#data)];
     this.#redo = [];
     this.#data = { ...data, settings: this.#data.settings };
+    this.#lastEditChanged = true;
     this.#emit('outside');
   }
 
@@ -131,11 +138,15 @@ export class TaskList {
       return;
     }
     const before = structuredClone(this.#data);
-    if (change(this.#data) === false) return;
+    if (change(this.#data) === false || sameData(before, this.#data)) {
+      this.#lastEditChanged = false;
+      return;
+    }
     this.#record(before);
   }
 
   #record(before: AppData): void {
+    this.#lastEditChanged = true;
     this.#undo.push(before);
     if (this.#undo.length > MAX_HISTORY) this.#undo.shift();
     this.#redo = [];
@@ -152,7 +163,8 @@ export class TaskList {
       return fn();
     } finally {
       this.#batching = false;
-      if (this.#batchChanged) this.#record(before);
+      if (this.#batchChanged && !sameData(before, this.#data)) this.#record(before);
+      else this.#lastEditChanged = false;
     }
   }
 
@@ -164,6 +176,11 @@ export class TaskList {
    */
   get step(): number {
     return this.#step;
+  }
+
+  /** False when the last edit left everything as it was (and so recorded no undo step). */
+  get lastEditChanged(): boolean {
+    return this.#lastEditChanged;
   }
 
   get canUndo(): boolean {

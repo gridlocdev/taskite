@@ -39,6 +39,7 @@
 - Quick Add: "Call mom on may 5" no longer leaves "on" in the name, and "feb 29" typed in a year before a non-leap year finds the next Feb 29 instead of being ignored.
 - CLI: `taskite done bed` completes "Make bed" instead of whichever task's id happens to start with "bed". Ids now need at least 4 characters and are tried after titles, among the tasks the command can act on.
 - Choosing tasks: ⇧↓ and ⇧-click grow a range again after you change view, the cursor moves to the next row when its own row goes away (Clear Completed, Undo, a change made elsewhere), and checking off a task outside your choice no longer clears the choice.
+- A change that leaves everything as it was (the same priority again, a move to the project a task is already in, Move Up at the top of a section) no longer adds an undo step, so the next ⌘Z always undoes something you can see.
 
 ## 2.0.0
 
