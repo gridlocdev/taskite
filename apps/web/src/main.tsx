@@ -48,10 +48,13 @@ async function start(): Promise<void> {
   if (startNotice) app.say(startNotice, { sticky: true, tone: 'error' });
   effect(() => app.saveStatusChanged(session.status.value));
   // Saves still waiting when the tab closes are kept by the recovery snapshot; ask the browser to wait.
-  addEventListener('beforeunload', (e) => {
-    app.flushDraft();
-    if (session.status.peek() !== 'saved') e.preventDefault();
-  });
+  // Not in the desktop app: Electron shows no prompt for this and the window would just refuse to close.
+  // It closes through onCloseRequested below, which saves first.
+  if (!native)
+    addEventListener('beforeunload', (e) => {
+      app.flushDraft();
+      if (session.status.peek() !== 'saved') e.preventDefault();
+    });
   if (import.meta.env.DEV) Object.assign(globalThis, { taskite: { app, catalog } });
 
   // Changes made elsewhere (the CLI, another window or device) show up when the window comes back, and
