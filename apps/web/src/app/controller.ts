@@ -424,12 +424,22 @@ export class AppController {
     if (id) this.open({ kind: 'task', id });
   }
 
+  /**
+   * Changes a task from the editor (PRD §9.1): one undo step, or none when nothing differs. A repeating
+   * task needs a date to repeat from, so repeating gives it today and clearing the date stops it repeating.
+   */
   saveTask(id: string, patch: TaskPatch): void {
     const task = this.list.getTask(id);
     if (!task) return;
-    // A repeating task needs a date to repeat from.
-    const due = patch.recurrence && !(patch.due ?? task.due) ? this.today.peek() : patch.due;
-    this.list.updateTasks(id, due === undefined ? patch : { ...patch, due });
+    const next: TaskPatch = { ...patch };
+    if (next.recurrence && !(next.due ?? task.due)) next.due = this.today.peek();
+    if (next.due === null && task.recurrence && next.recurrence === undefined) next.recurrence = null;
+    const changed = Object.fromEntries(
+      Object.entries(next).filter(
+        ([key, value]) => JSON.stringify(task[key as keyof typeof task]) !== JSON.stringify(value),
+      ),
+    ) as TaskPatch;
+    if (Object.keys(changed).length) this.list.updateTasks(id, changed);
   }
 
   addSubtask(parentId: string, title: string): void {

@@ -121,6 +121,28 @@ describe('AppController', () => {
     expect(app.list.getTask(id)).toMatchObject({ due: '2026-03-10', recurrence: 'weekly' });
   });
 
+  it('saves editor changes as one undo step each, and nothing when nothing changed', async () => {
+    const { app } = await makeApp();
+    app.addTask('Plan trip', 'end');
+    const id = app.ids.value[0]!;
+    const changes: unknown[] = [];
+    app.list.onChange((k) => changes.push(k));
+    // Added in Today, so it is due today.
+    app.saveTask(id, { title: 'Plan trip', description: '', labels: [], due: '2026-03-10' });
+    expect(changes).toEqual([]);
+    app.saveTask(id, { title: 'Plan the trip', labels: ['travel'] });
+    app.saveTask(id, { priority: 2 });
+    expect(app.list.getTask(id)).toMatchObject({ title: 'Plan the trip', labels: ['travel'], priority: 2 });
+    app.list.undo();
+    expect(app.list.getTask(id)?.priority).toBe(4);
+    app.list.undo();
+    expect(app.list.getTask(id)?.title).toBe('Plan trip');
+    // Clearing the date of a repeating task stops it repeating.
+    app.saveTask(id, { recurrence: 'daily' });
+    app.saveTask(id, { due: null });
+    expect(app.list.getTask(id)).toMatchObject({ due: null, recurrence: null });
+  });
+
   it('moves tasks to a project, and a subtask on its own leaves its parent', async () => {
     const { app } = await makeApp();
     app.addTask('Parent', 'end');

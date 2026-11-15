@@ -1217,3 +1217,45 @@ fieldset {
   color: var(--tk-accent-text);
   font-weight: 600;
 }
+
+/* The live task editor (PRD §9.1): a title and notes like a page, then only the fields in use. */
+.tk-editor-title,
+.tk-editor-notes {
+  display: block;
+  width: 100%;
+  padding: 4px 6px;
+  margin: 0 0 4px -6px;
+  border: 1px solid transparent;
+  border-radius: var(--tk-radius);
+  background: none;
+  color: var(--tk-text);
+  font: inherit;
+}
+.tk-editor-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+.tk-editor-notes {
+  margin-bottom: 12px;
+  color: var(--tk-text-2);
+  resize: vertical;
+}
+.tk-editor-title:hover,
+.tk-editor-notes:hover {
+  border-color: var(--tk-border);
+}
+.tk-editor-title:focus,
+.tk-editor-notes:focus {
+  border-color: var(--tk-border-strong);
+  background: var(--tk-bg);
+  outline: none;
+}
+.tk-add-field {
+  position: relative;
+}
+.tk-add-field-menu {
+  position: absolute;
+  left: 0;
+  bottom: 34px;
+  min-width: 160px;
+}

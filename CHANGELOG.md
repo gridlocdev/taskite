@@ -13,6 +13,7 @@
 
 ### Improvements
 
+- **A lighter task editor.** Changes apply as you make them, with no Save button, and each one can be undone. Only the fields a task uses are shown; add others from **+ Add**.
 - **Upcoming follows the calendar week.** It lists the rest of this week day by day, then Next Week as one group, then Later, so "this week" means the same thing as on your calendar. The week starts on the day your region uses.
 - **Safe with newer versions.** Taskite keeps parts of the tasks file it doesn't understand, and won't open a file saved by a newer Taskite, so running an older copy (an old Docker image, say) can't damage it.
 - **On macOS the title bar is gone.** The window buttons sit in the sidebar, and the top of the window still drags it.

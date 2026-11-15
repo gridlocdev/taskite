@@ -1,6 +1,5 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import {
-  INBOX_ID,
   PROJECT_COLORS,
   PROJECT_COLOR_NAMES,
   RECURRENCES,
@@ -9,6 +8,7 @@ import {
   type Priority,
   type ProjectColor,
   type Recurrence,
+  type TaskPatch,
   type Theme,
 } from '@taskite/core';
 import { Dialog, Icon, ListPopup, filterEntries, isMac, type CommandCatalog } from '@taskite/ui';
@@ -100,39 +100,135 @@ function Actions(props: { readonly app: AppController; readonly save: string }) 
   );
 }
 
-/** The task editor (PRD §9.1). Saving is one undo step. */
+/** Fields the editor hides until a task uses them, or until they're added from the + menu. */
+type Extra = 'due' | 'recurrence' | 'priority' | 'labels' | 'subtasks';
+
+const EXTRA_NAMES: Readonly<Record<Extra, string>> = {
+  due: 'Due date',
+  recurrence: 'Repeat',
+  priority: 'Priority',
+  labels: 'Labels',
+  subtasks: 'Subtasks',
+};
+
+/** The + menu: the fields the task doesn't show yet. ↑ ↓ move, Enter picks, Esc closes the menu only. */
+function AddFieldMenu(props: { readonly extras: readonly Extra[]; readonly onPick: (e: Extra) => void }) {
+  const [open, setOpen] = useState(false);
+  const menu = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (open) menu.current?.querySelector<HTMLButtonElement>('button')?.focus();
+  }, [open]);
+  if (!props.extras.length) return null;
+  const items = () => [...(menu.current?.querySelectorAll<HTMLButtonElement>('button') ?? [])];
+  return (
+    <div class="tk-add-field">
+      <button
+        type="button"
+        class="tk-button tk-button-quiet tk-button-small"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        <Icon name="plus" />
+        Add
+      </button>
+      {open && (
+        <div
+          ref={menu}
+          class="tk-menu tk-add-field-menu"
+          role="menu"
+          onKeyDown={(e) => {
+            const all = items();
+            const at = all.indexOf(document.activeElement as HTMLButtonElement);
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+              e.preventDefault();
+              all[(at + (e.key === 'ArrowDown' ? 1 : all.length - 1)) % all.length]?.focus();
+            } else if (e.key === 'Escape') {
+              e.preventDefault();
+              e.stopPropagation();
+              setOpen(false);
+            }
+          }}
+          onFocusOut={(e) => {
+            if (!menu.current?.contains(e.relatedTarget as Node | null)) setOpen(false);
+          }}
+        >
+          {props.extras.map((x) => (
+            <button
+              key={x}
+              type="button"
+              role="menuitem"
+              class="tk-menu-item"
+              onClick={() => {
+                setOpen(false);
+                props.onPick(x);
+              }}
+            >
+              {EXTRA_NAMES[x]}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The task editor (PRD §9.1). Changes apply as they're made, each one undo step: pickers at once, text
+ * when its field loses focus or the editor closes. Done, Enter in a one-line field, or Esc closes it.
+ * Due date, repeat, priority, labels and subtasks show only when the task has them, or once added.
+ */
 function TaskEditor({ app, id }: { readonly app: AppController; readonly id: string }) {
   const task = app.list.getTask(id);
   const [title, setTitle] = useState(task?.title ?? '');
   const [description, setDescription] = useState(task?.description ?? '');
   const [due, setDue] = useState(task?.due ?? '');
-  const [recurrence, setRecurrence] = useState<Recurrence | ''>(task?.recurrence ?? '');
-  const [priority, setPriority] = useState<Priority>(task?.priority ?? 4);
-  const [projectId, setProjectId] = useState(task?.projectId ?? INBOX_ID);
   const [labels, setLabels] = useState(task?.labels.join(', ') ?? '');
   const [subtask, setSubtask] = useState('');
+  const [added, setAdded] = useState<readonly Extra[]>([]);
+  const [focusField, setFocusField] = useState<Extra | null>(null);
+  const body = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!focusField) return;
+    body.current?.querySelector<HTMLElement>(`[data-field="${focusField}"]`)?.focus();
+    setFocusField(null);
+  }, [focusField]);
   void app.rev.value;
   if (!task) return null;
   const subtasks = app.list.getSubtasks(task.id);
-  const save = () => {
-    if (!title.trim()) return;
-    app.saveTask(task.id, {
-      title: title.trim(),
+  const has: Readonly<Record<Extra, boolean>> = {
+    due: task.due !== null,
+    recurrence: task.recurrence !== null,
+    priority: task.priority !== 4,
+    labels: task.labels.length > 0,
+    subtasks: subtasks.length > 0,
+  };
+  const shows = (x: Extra) => has[x] || added.includes(x);
+  const extras = (Object.keys(EXTRA_NAMES) as Extra[]).filter(
+    (x) => !shows(x) && !(x === 'subtasks' && task.parentId),
+  );
+  const save = (patch: TaskPatch) => app.saveTask(task.id, patch);
+  // Text fields: the typed text, saved when the field loses focus and when the editor closes.
+  const saveText = () => {
+    const name = title.trim();
+    if (!name) setTitle(task.title);
+    save({
+      ...(name ? { title: name } : {}),
       description: description.trim(),
-      due: due || null,
-      recurrence: recurrence || null,
-      priority,
       labels: parseLabels(labels),
-      ...(task.parentId ? {} : { projectId }),
+      due: due || null,
     });
+  };
+  const done = () => {
+    saveText();
     app.close();
   };
   return (
     <Dialog
-      title={task.parentId ? 'Edit subtask' : 'Edit task'}
+      title={task.parentId ? 'Subtask' : 'Task'}
       class="tk-dialog-wide"
-      onClose={() => app.close()}
-      onSubmit={save}
+      onClose={done}
+      onSubmit={done}
       actions={
         <>
           <button
@@ -146,118 +242,162 @@ function TaskEditor({ app, id }: { readonly app: AppController; readonly id: str
             <Icon name="trash" />
             Move to Trash
           </button>
-          <Actions app={app} save="Save" />
+          <button type="submit" class="tk-button tk-button-primary">
+            Done
+          </button>
         </>
       }
     >
-      <label class="tk-field">
-        <span>Task name</span>
-        <input required value={title} onInput={(e) => setTitle((e.target as HTMLInputElement).value)} />
-      </label>
-      <label class="tk-field">
-        <span>Description</span>
+      <div ref={body} class="tk-editor">
+        <input
+          class="tk-editor-title"
+          aria-label="Task name"
+          required
+          value={title}
+          onInput={(e) => setTitle((e.target as HTMLInputElement).value)}
+          onBlur={saveText}
+        />
         <textarea
-          rows={3}
-          placeholder="Notes, links, details…"
+          class="tk-editor-notes"
+          aria-label="Description"
+          rows={2}
+          placeholder="Description"
           value={description}
           onInput={(e) => setDescription((e.target as HTMLTextAreaElement).value)}
+          onBlur={saveText}
         />
-      </label>
-      <div class="tk-field-row">
-        <label class="tk-field">
-          <span>Due date</span>
-          <input type="date" value={due} onInput={(e) => setDue((e.target as HTMLInputElement).value)} />
-        </label>
-        <label class="tk-field">
-          <span>Repeat</span>
-          <select
-            value={recurrence}
-            onChange={(e) => setRecurrence((e.target as HTMLSelectElement).value as Recurrence | '')}
-          >
-            <option value="">Doesn't repeat</option>
-            {RECURRENCES.map((r) => (
-              <option key={r} value={r}>
-                {RECURRENCE_LABELS[r]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label class="tk-field">
-          <span>Priority</span>
-          <select
-            value={String(priority)}
-            onChange={(e) => setPriority(Number((e.target as HTMLSelectElement).value) as Priority)}
-          >
-            <option value="1">Priority 1 (urgent)</option>
-            <option value="2">Priority 2 (high)</option>
-            <option value="3">Priority 3 (medium)</option>
-            <option value="4">Priority 4 (normal)</option>
-          </select>
-        </label>
-      </div>
-      <div class="tk-field-row">
-        {!task.parentId && (
+        <div class="tk-field-row">
+          {!task.parentId && (
+            <label class="tk-field">
+              <span>Project</span>
+              <select
+                value={task.projectId}
+                onChange={(e) => save({ projectId: (e.target as HTMLSelectElement).value })}
+              >
+                {app.list.data.projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {shows('due') && (
+            <label class="tk-field">
+              <span>Due date</span>
+              <input
+                type="date"
+                data-field="due"
+                value={due}
+                onInput={(e) => setDue((e.target as HTMLInputElement).value)}
+                onBlur={saveText}
+              />
+            </label>
+          )}
+          {shows('recurrence') && (
+            <label class="tk-field">
+              <span>Repeat</span>
+              <select
+                data-field="recurrence"
+                value={task.recurrence ?? ''}
+                onChange={(e) => {
+                  const value = (e.target as HTMLSelectElement).value as Recurrence | '';
+                  save({ recurrence: value || null });
+                  // Repeating gives an undated task today's date.
+                  setDue(app.list.getTask(task.id)?.due ?? '');
+                }}
+              >
+                <option value="">Doesn't repeat</option>
+                {RECURRENCES.map((r) => (
+                  <option key={r} value={r}>
+                    {RECURRENCE_LABELS[r]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {shows('priority') && (
+            <label class="tk-field">
+              <span>Priority</span>
+              <select
+                data-field="priority"
+                value={String(task.priority)}
+                onChange={(e) =>
+                  save({ priority: Number((e.target as HTMLSelectElement).value) as Priority })
+                }
+              >
+                <option value="1">Priority 1 (urgent)</option>
+                <option value="2">Priority 2 (high)</option>
+                <option value="3">Priority 3 (medium)</option>
+                <option value="4">Priority 4 (normal)</option>
+              </select>
+            </label>
+          )}
+        </div>
+        {shows('labels') && (
           <label class="tk-field">
-            <span>Project</span>
-            <select value={projectId} onChange={(e) => setProjectId((e.target as HTMLSelectElement).value)}>
-              {app.list.data.projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            <span>Labels</span>
+            <input
+              data-field="labels"
+              placeholder="e.g. errands, phone"
+              value={labels}
+              onInput={(e) => setLabels((e.target as HTMLInputElement).value)}
+              onBlur={saveText}
+            />
+            <small class="tk-muted">Separate labels with commas.</small>
           </label>
         )}
-        <label class="tk-field tk-grow">
-          <span>Labels</span>
-          <input
-            placeholder="e.g. errands, phone"
-            value={labels}
-            onInput={(e) => setLabels((e.target as HTMLInputElement).value)}
-          />
-          <small class="tk-muted">Separate labels with commas.</small>
-        </label>
+        {shows('subtasks') && !task.parentId && (
+          <fieldset class="tk-subtasks">
+            <legend>Subtasks</legend>
+            <ul>
+              {subtasks.map((s) => (
+                <li key={s.id} class={s.completed ? 'tk-done' : undefined}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={s.completed}
+                      onChange={() =>
+                        s.completed ? app.list.reopenTasks(s.id) : app.list.completeTasks(s.id)
+                      }
+                    />
+                    <span>{s.title}</span>
+                  </label>
+                  <button
+                    type="button"
+                    class="tk-icon-button tk-small"
+                    aria-label={`Move "${s.title}" to the Trash`}
+                    onClick={() => app.list.deleteTasks(s.id)}
+                  >
+                    <Icon name="x" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <input
+              data-field="subtasks"
+              placeholder="Add a subtask and press Enter"
+              aria-label="New subtask"
+              value={subtask}
+              onInput={(e) => setSubtask((e.target as HTMLInputElement).value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.isComposing) {
+                  e.preventDefault();
+                  app.addSubtask(task.id, subtask);
+                  setSubtask('');
+                }
+              }}
+            />
+          </fieldset>
+        )}
+        <AddFieldMenu
+          extras={extras}
+          onPick={(x) => {
+            setAdded([...added, x]);
+            setFocusField(x);
+          }}
+        />
       </div>
-      {!task.parentId && (
-        <fieldset class="tk-subtasks">
-          <legend>Subtasks</legend>
-          <ul>
-            {subtasks.map((s) => (
-              <li key={s.id} class={s.completed ? 'tk-done' : undefined}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={s.completed}
-                    onChange={() => (s.completed ? app.list.reopenTasks(s.id) : app.list.completeTasks(s.id))}
-                  />
-                  <span>{s.title}</span>
-                </label>
-                <button
-                  type="button"
-                  class="tk-icon-button tk-small"
-                  aria-label={`Move "${s.title}" to the Trash`}
-                  onClick={() => app.list.deleteTasks(s.id)}
-                >
-                  <Icon name="x" />
-                </button>
-              </li>
-            ))}
-          </ul>
-          <input
-            placeholder="Add a subtask and press Enter"
-            aria-label="New subtask"
-            value={subtask}
-            onInput={(e) => setSubtask((e.target as HTMLInputElement).value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.isComposing) {
-                e.preventDefault();
-                app.addSubtask(task.id, subtask);
-                setSubtask('');
-              }
-            }}
-          />
-        </fieldset>
-      )}
     </Dialog>
   );
 }
