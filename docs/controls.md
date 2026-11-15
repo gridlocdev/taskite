@@ -56,9 +56,10 @@ Single-letter keys only work when you aren't typing in a box.
 
 ## Settings and help
 
-| Action                         | macOS            | Windows / Linux          |
-| ------------------------------ | ---------------- | ------------------------ |
-| Settings                       | **⌘,**           | **Ctrl+,**               |
-| Command menu                   | **⌘K** or **⌘P** | **Ctrl+K** or **Ctrl+P** |
-| Keyboard shortcuts             | **?** or **⌘/**  | **?** or **Ctrl+/**      |
-| Close a window or clear search | **⎋**            | **Esc**                  |
+| Action                              | macOS                            | Windows / Linux                               |
+| ----------------------------------- | -------------------------------- | --------------------------------------------- |
+| Settings                            | **⌘,**                           | **Ctrl+,**                                    |
+| Command menu                        | **⌘K** or **⌘P**                 | **Ctrl+K** or **Ctrl+P**                      |
+| Next / previous command in the menu | **↓** / **↑**, or **⇥** / **⇧⇥** | **Down** / **Up**, or **Tab** / **Shift+Tab** |
+| Keyboard shortcuts                  | **?** or **⌘/**                  | **?** or **Ctrl+/**                           |
+| Close a window or clear search      | **⎋**                            | **Esc**                                       |

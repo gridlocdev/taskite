@@ -3,8 +3,23 @@ import { useEffect, useRef } from 'preact/hooks';
 import { isComposingKey } from '../commands/shortcut.ts';
 
 /**
- * A search field over a list (the command menu, Move to…): ↑ ↓ move, Enter picks, Escape closes. The field
- * is the only Tab stop, so focus can't leave it.
+ * Where a key moves the highlight in a list of `count` items: ↓ and Tab go down, ↑ and Shift+Tab go up,
+ * stopping at the ends. `undefined` for any other key.
+ */
+export function listStep(
+  e: Pick<KeyboardEvent, 'key' | 'shiftKey' | 'ctrlKey' | 'metaKey' | 'altKey'>,
+  index: number,
+  count: number,
+): number | undefined {
+  const tab = e.key === 'Tab' && !e.ctrlKey && !e.metaKey && !e.altKey;
+  if (e.key === 'ArrowDown' || (tab && !e.shiftKey)) return Math.max(0, Math.min(count - 1, index + 1));
+  if (e.key === 'ArrowUp' || (tab && e.shiftKey)) return Math.max(0, index - 1);
+  return undefined;
+}
+
+/**
+ * A search field over a list (the command menu, Move to…): ↑ ↓ or Tab and Shift+Tab move, Enter picks,
+ * Escape closes. The field is the only Tab stop, so focus can't leave it.
  */
 export function ListPopup(props: {
   readonly label: string;
@@ -33,12 +48,10 @@ export function ListPopup(props: {
   const onKeyDown = (e: KeyboardEvent) => {
     // Keys that pick or cancel an input method's candidate belong to it.
     if (isComposingKey(e)) return;
-    if (e.key === 'ArrowDown') {
+    const step = listStep(e, props.index, props.count);
+    if (step !== undefined) {
       e.preventDefault();
-      props.onIndex(Math.min(props.count - 1, props.index + 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      props.onIndex(Math.max(0, props.index - 1));
+      props.onIndex(step);
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (props.count > 0) props.onPick(props.index);

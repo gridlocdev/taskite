@@ -37,7 +37,13 @@ function extras(mod: string): Partial<Record<CommandGroup, ShortcutLine[]>> {
       { title: 'Choose another task too', keys: [[`${mod}-click`]] },
       { title: 'Choose a range of tasks', keys: [['Shift-click']] },
     ],
-    Help: [{ title: 'Close a window, stop adding, or clear the search', keys: [['Esc']] }],
+    Help: [
+      {
+        title: 'Next / previous command in the command menu',
+        keys: [['Down'], ['Up'], ['Tab'], ['Shift+Tab']],
+      },
+      { title: 'Close a window, stop adding, or clear the search', keys: [['Esc']] },
+    ],
   };
 }
 

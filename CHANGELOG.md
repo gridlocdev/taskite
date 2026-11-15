@@ -14,6 +14,7 @@
 
 ### Improvements
 
+- In the command menu (⌘K) and the **Move to** list, Tab and Shift+Tab move the highlight down and up, like the arrow keys.
 - ⌘Enter (Ctrl+Enter on Windows and Linux) saves and closes the task editor from any field, the description included, like **Done**. It presses the main button in the other dialogs too.
 - **Faster with many tasks.** Long lists build about 40 times faster: with a few thousand tasks, moving through the list with the arrow keys no longer stutters.
 - **Dates read the way you mean them.** `next week` and `next month` are a week or a month from today, and `next monday` is the Monday after the coming one (on a Sunday, no longer tomorrow). New: `this friday`, `this weekend`, `next weekend`, `next year`, `day after tomorrow`, `end of month`, `in a week`, `in two months` and `3 days from now`.
