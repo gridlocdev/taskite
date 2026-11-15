@@ -46,9 +46,13 @@ export class NasClient {
   readonly base: string;
   readonly tokens: TokenStorage;
 
-  constructor(base: string, tokens: TokenStorage) {
+  /** How long a request may take before it counts as failed, so a hung server can't stall saving. */
+  readonly timeoutMs: number;
+
+  constructor(base: string, tokens: TokenStorage, timeoutMs = 20_000) {
     this.base = base.replace(/\/+$/, '');
     this.tokens = tokens;
+    this.timeoutMs = timeoutMs;
   }
 
   /** Is this page served by a Taskite server? Null when not (a plain static host, or no answer in 5 s). */
@@ -67,7 +71,12 @@ export class NasClient {
     const headers = new Headers(init.headers);
     const token = this.tokens.get();
     if (token) headers.set('Authorization', `Bearer ${token}`);
-    const res = await fetch(`${this.base}${path}`, { ...init, headers, cache: 'no-store' });
+    const res = await fetch(`${this.base}${path}`, {
+      ...init,
+      headers,
+      cache: 'no-store',
+      signal: init.signal ?? AbortSignal.timeout(this.timeoutMs),
+    });
     if (res.status === 401) throw new AuthError();
     return res;
   }

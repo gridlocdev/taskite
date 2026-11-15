@@ -33,6 +33,7 @@
 - A notice's **Undo** goes away once anything else changes your tasks, so it can no longer take back a different change than the one the notice names.
 - ⌘Z pressed while a completed or trashed task is still fading out cancels that change; before, it undid the change before it and the task was completed anyway.
 - A monthly or yearly task checked off weeks late keeps its day of the month: a task due on the 31st no longer moves to the 28th after catching up over February.
+- A refresh that read the file just before one of this window's saves no longer puts the older file back over the change you just made. Requests to the NAS server give up after 20 seconds, so a server that stops answering shows "Couldn't save your tasks." instead of saving forever.
 
 ## 2.0.0
 

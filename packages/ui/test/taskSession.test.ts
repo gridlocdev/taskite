@@ -108,6 +108,20 @@ describe('a task session', () => {
     expect(session.status.value).toBe('conflict');
   });
 
+  it('refresh drops a read that a save from this window finished during', async () => {
+    const store = new MemoryStore(serialize(withTask('a')));
+    const { session } = await TaskSession.open(store, opts());
+    const stale = await store.load();
+    let release = () => {};
+    store.load = () => new Promise((r) => (release = () => r(stale)));
+    const refreshing = session.refresh();
+    session.list.addTask({ title: 'mine' });
+    await session.flush();
+    release();
+    expect(await refreshing).toBeNull();
+    expect(session.list.data.tasks.map((t) => t.title)).toEqual(['a', 'mine']);
+  });
+
   it('refuses to open a file from a newer Taskite', async () => {
     const store = new MemoryStore('{"version": 99, "tasks": []}');
     await expect(TaskSession.open(store, opts())).rejects.toThrow(/newer version/);

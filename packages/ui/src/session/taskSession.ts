@@ -95,6 +95,8 @@ export class TaskSession {
   readonly #wait: (ms: number) => Promise<void>;
   readonly #now: () => number;
   #dirty = false;
+  /** Finished saves, so a refresh can tell its read is older than a save made while it waited. */
+  #saves = 0;
   #running: Promise<void> | null = null;
 
   private constructor(store: TaskStore, data: AppData, version: string | null, opts: SessionOptions) {
@@ -175,6 +177,7 @@ export class TaskSession {
       this.status.value = 'saving';
       try {
         this.#version = await this.#saveWithRetry(text);
+        this.#saves++;
         if (!this.#dirty && keepsSlot && this.recoverable.value === null) this.#recovery.clear();
         this.status.value = 'saved';
       } catch (e) {
@@ -220,6 +223,7 @@ export class TaskSession {
    */
   async refresh(): Promise<number | null> {
     if (this.#running || this.#dirty || this.conflict.value || this.status.value !== 'saved') return null;
+    const saves = this.#saves;
     let file;
     try {
       file = await this.store.load();
@@ -227,7 +231,9 @@ export class TaskSession {
       return null;
     }
     // A change made here while the file was being read wins; its save will see the conflict.
-    if (this.#running || this.#dirty || file.version === this.#version || file.text === null) return null;
+    // So does one that finished meanwhile: the file read may be from before it.
+    if (this.#running || this.#dirty || saves !== this.#saves) return null;
+    if (file.version === this.#version || file.text === null) return null;
     const parsed = parseDataFile(file.text, this.#now());
     if (!parsed.ok) return null;
     const changed = countChanged(this.list.data, parsed.data);

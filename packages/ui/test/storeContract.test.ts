@@ -102,3 +102,16 @@ describe('the native store', () => {
     expect((await oldStore.load()).text).toBe('{"old":true}');
   });
 });
+
+describe('the NAS client', () => {
+  it('gives up on a server that never answers, so saving can report the failure', async () => {
+    const { createServer: createHttp } = await import('node:http');
+    const hung = createHttp(() => undefined);
+    await new Promise<void>((r) => hung.listen(0, '127.0.0.1', r));
+    const url = `http://127.0.0.1:${(hung.address() as AddressInfo).port}`;
+    const store = new NasStore(new NasClient(url, { get: () => null, set: () => undefined }, 50));
+    await expect(store.load()).rejects.toThrow();
+    hung.closeAllConnections();
+    await new Promise((r) => hung.close(r));
+  });
+});
