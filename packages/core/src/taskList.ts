@@ -19,7 +19,8 @@ import {
 export const MAX_HISTORY = 100;
 
 /** `edit`: an undo step, an undo or a redo. `settings`: saved but not an undo step. `load`: new data replaced it all. */
-export type ChangeKind = 'edit' | 'settings' | 'load';
+/** `load` and `outside` came from the file, so there is nothing to save. */
+export type ChangeKind = 'edit' | 'settings' | 'load' | 'outside';
 
 export interface CompleteResult {
   id: string;
@@ -94,6 +95,18 @@ export class TaskList {
     this.#undo = [];
     this.#redo = [];
     this.#emit('load');
+  }
+
+  /**
+   * Takes the file's data after it changed somewhere else (PRD §3.4), as one undo step: Undo puts back
+   * what this window showed. Older steps are dropped, so Undo can't quietly take back the other change
+   * along with one of this window's. Settings stay this window's.
+   */
+  takeOutside(data: AppData): void {
+    this.#undo = [structuredClone(this.#data)];
+    this.#redo = [];
+    this.#data = { ...data, settings: this.#data.settings };
+    this.#emit('outside');
   }
 
   /** Runs `change` on the data as one undo step. Nothing is recorded if it returns false. */

@@ -20,6 +20,29 @@ describe('the data file', () => {
     expect(serialize(list.data)).toBe(v1);
   });
 
+  it('keeps fields it does not know through a load, an edit and a save', () => {
+    const text = JSON.stringify({
+      version: 1,
+      future: { a: 1 },
+      projects: [{ id: 'inbox', name: 'Inbox', color: 'gray', emoji: '📥' }],
+      tasks: [{ id: 't', title: 'Milk', projectId: 'inbox', estimate: 15 }],
+      settings: { theme: 'dark', density: 'compact' },
+    });
+    const parsed = parseDataFile(text);
+    if (!parsed.ok) throw new Error('did not parse');
+    const list = new TaskList(parsed.data);
+    list.updateTasks(['t'], { title: 'Oat milk' });
+    const saved = JSON.parse(serialize(list.data));
+    expect(saved.future).toEqual({ a: 1 });
+    expect(saved.projects[0].emoji).toBe('📥');
+    expect(saved.tasks[0]).toMatchObject({ title: 'Oat milk', estimate: 15 });
+    expect(saved.settings).toMatchObject({ theme: 'dark', density: 'compact' });
+  });
+
+  it('refuses a file from a newer Taskite instead of reading half of it', () => {
+    expect(parseDataFile('{"version": 2, "tasks": []}')).toEqual({ ok: false, reason: 'newer', version: 2 });
+  });
+
   it('reports text that is not JSON instead of throwing', () => {
     expect(parseDataFile('{ nope')).toEqual({ ok: false, reason: 'corrupt' });
   });

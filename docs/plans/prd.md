@@ -32,7 +32,9 @@ All data is one JSON file, `tasks.json`, written pretty-printed (two-space inden
 
 ### §3.2 Reading
 
-- Missing or wrong fields are filled with defaults (`normalize`), so older or hand-edited files load. A task whose project doesn't exist goes to the Inbox. A missing Inbox is added.
+- Missing or wrong fields are filled with defaults (`normalize`), so older or hand-edited files load. Fields Taskite doesn't know are kept and written back unchanged, so a file from a newer Taskite loses nothing when an older one saves it.
+- A file whose `version` is higher than this Taskite's is refused, never read or saved: the app says to update Taskite, and the CLI exits 1. `version` goes up only for a change an older Taskite would misread; new fields alone don't raise it.
+- A task whose project doesn't exist goes to the Inbox. A missing Inbox is added.
 - A file that isn't valid JSON is copied to `tasks.corrupt-<epoch ms>.json` next to it (never deleted), then replaced with an empty file, and the app starts empty with a notice naming the copy.
 - Desktop only: if there is no `tasks.json` but the old app's file exists (`<appData>/Tasks/tasks.json`, from when the app was called "Tasks"), it is read instead. The old file is left alone. The first save writes Taskite's own file.
 - Tasks in the Trash for more than 30 days are removed for good when the file is loaded.
@@ -52,6 +54,7 @@ All data is one JSON file, `tasks.json`, written pretty-printed (two-space inden
   - **Keep Mine**: overwrite the file with this window's data.
   - **Use Theirs**: load the file on disk; this window's unsaved changes are lost.
 - Nothing merges, and nothing overwrites without the user choosing it.
+- **Changes made elsewhere** (the CLI, another window or device): the app reads the file again when its window comes to the front and every 15 s while it is in front. If the file changed and this window has nothing unsaved, it takes the file's tasks as one undo step, with the notice "Updated with N changes made elsewhere." and Undo. Undo puts back what the window showed (and saves it); earlier undo steps are dropped, so Undo can't take back the other change along with one of this window's. With unsaved changes, it leaves the file alone and the save's conflict check asks, as above.
 - The browser store has no other writers, so it never conflicts, but runs the same code.
 
 ### §3.5 Recovery

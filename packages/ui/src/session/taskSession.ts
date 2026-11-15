@@ -5,6 +5,7 @@
  */
 import { signal } from '@preact/signals';
 import {
+  NEWER_FILE_MESSAGE,
   TaskList,
   emptyData,
   parseDataFile,
@@ -104,7 +105,7 @@ export class TaskSession {
     this.#wait = opts.wait ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
     this.#now = opts.now ?? Date.now;
     this.list.onChange((kind) => {
-      if (kind !== 'load') this.#kick();
+      if (kind !== 'load' && kind !== 'outside') this.#kick();
     });
   }
 
@@ -118,6 +119,7 @@ export class TaskSession {
     if (file.text !== null) {
       const parsed = parseDataFile(file.text, now());
       if (parsed.ok) data = parsed.data;
+      else if (parsed.reason === 'newer') throw new Error(NEWER_FILE_MESSAGE);
       else {
         const name = await store.saveCopy(file.text, 'corrupt');
         notice = `Your tasks file couldn't be read. It was kept as ${name}, and Taskite started empty.`;
@@ -206,6 +208,29 @@ export class TaskSession {
     }
   }
 
+  /**
+   * Looks for a change made somewhere else (the CLI, another window, another device) and takes it when this
+   * window has nothing unsaved (PRD §3.4). Returns how many tasks it changed, or null when it took nothing.
+   * With unsaved changes it leaves the file alone: the next save finds the conflict and asks.
+   */
+  async refresh(): Promise<number | null> {
+    if (this.#running || this.#dirty || this.conflict.value || this.status.value !== 'saved') return null;
+    let file;
+    try {
+      file = await this.store.load();
+    } catch {
+      return null;
+    }
+    // A change made here while the file was being read wins; its save will see the conflict.
+    if (this.#running || this.#dirty || file.version === this.#version || file.text === null) return null;
+    const parsed = parseDataFile(file.text, this.#now());
+    if (!parsed.ok) return null;
+    const changed = countChanged(this.list.data, parsed.data);
+    this.#version = file.version;
+    this.list.takeOutside(parsed.data);
+    return changed;
+  }
+
   /** Conflict → Reload: take the file on disk; this window's unsaved changes are dropped. */
   async reload(): Promise<string | null> {
     const file = await this.store.load();
@@ -214,6 +239,7 @@ export class TaskSession {
     if (file.text !== null) {
       const parsed = parseDataFile(file.text, this.#now());
       if (parsed.ok) data = parsed.data;
+      else if (parsed.reason === 'newer') throw new Error(NEWER_FILE_MESSAGE);
       else {
         const name = await this.store.saveCopy(file.text, 'corrupt');
         notice = `Your tasks file couldn't be read. It was kept as ${name}.`;

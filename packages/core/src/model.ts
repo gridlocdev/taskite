@@ -111,7 +111,10 @@ function normalizeView(raw: unknown): SavedView | null {
   return null;
 }
 
-/** Fills in anything missing so older or hand-edited files load (PRD §3.2). */
+/**
+ * Fills in anything missing so older or hand-edited files load (PRD §3.2). Fields this version doesn't
+ * know are kept as they are, so a file from a newer Taskite loses nothing when this one saves it.
+ */
 export function normalize(raw: unknown, now: number = Date.now()): AppData {
   const base = emptyData();
   if (!isObject(raw)) return base;
@@ -119,6 +122,7 @@ export function normalize(raw: unknown, now: number = Date.now()): AppData {
   const projects: Project[] = rawProjects
     .filter((p): p is Loose => isObject(p) && Boolean(p['id']) && Boolean(p['name']))
     .map((p) => ({
+      ...p,
       id: String(p['id']),
       name: String(p['name']),
       color: isColor(p['color']) ? p['color'] : 'gray',
@@ -129,6 +133,7 @@ export function normalize(raw: unknown, now: number = Date.now()): AppData {
   const tasks: Task[] = rawTasks
     .filter((t): t is Loose => isObject(t) && Boolean(t['id']) && typeof t['title'] === 'string')
     .map((t, i) => ({
+      ...t,
       id: String(t['id']),
       title: t['title'] as string,
       description: typeof t['description'] === 'string' ? t['description'] : '',
@@ -151,24 +156,37 @@ export function normalize(raw: unknown, now: number = Date.now()): AppData {
   const settings = isObject(raw['settings']) ? raw['settings'] : {};
   const theme = settings['theme'];
   return {
+    ...raw,
     version: FORMAT_VERSION,
     projects,
     tasks,
     settings: {
+      ...settings,
       theme: theme === 'light' || theme === 'dark' ? theme : 'auto',
       lastView: normalizeView(settings['lastView']),
     },
   };
 }
 
+/** The message for a file from a newer Taskite. */
+export const NEWER_FILE_MESSAGE =
+  'Your tasks file was saved by a newer version of Taskite. Update Taskite to open it; the file was left as it is.';
+
 /** The exact text written to tasks.json: two-space JSON, no trailing newline, as 1.x wrote it (PRD §3.1). */
 export function serialize(data: AppData): string {
   return JSON.stringify(data, null, 2);
 }
 
-export type ParseResult = { ok: true; data: AppData } | { ok: false; reason: 'corrupt' };
+export type ParseResult =
+  | { ok: true; data: AppData }
+  | { ok: false; reason: 'corrupt' }
+  | { ok: false; reason: 'newer'; version: number };
 
-/** Reads tasks.json text. Text that isn't JSON is reported, never thrown (PRD §3.2). */
+/**
+ * Reads tasks.json text. Text that isn't JSON is reported, never thrown (PRD §3.2). So is a file whose
+ * `version` is ahead of this Taskite's: reading half of a format it doesn't know and saving it back is how
+ * a file gets quietly damaged.
+ */
 export function parseDataFile(text: string, now: number = Date.now()): ParseResult {
   let raw: unknown;
   try {
@@ -176,6 +194,8 @@ export function parseDataFile(text: string, now: number = Date.now()): ParseResu
   } catch {
     return { ok: false, reason: 'corrupt' };
   }
+  const version = isObject(raw) ? raw['version'] : undefined;
+  if (typeof version === 'number' && version > FORMAT_VERSION) return { ok: false, reason: 'newer', version };
   return { ok: true, data: normalize(raw, now) };
 }
 

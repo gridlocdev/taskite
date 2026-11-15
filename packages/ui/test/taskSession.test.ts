@@ -85,6 +85,35 @@ describe('a task session', () => {
     expect(store.text).toContain('changed elsewhere');
   });
 
+  it('takes a change made elsewhere when nothing is unsaved, as one undo step', async () => {
+    const store = new MemoryStore(serialize(withTask('a')));
+    const { session } = await TaskSession.open(store, opts());
+    expect(await session.refresh()).toBeNull();
+    store.text = serialize(withTask('from the CLI'));
+    expect(await session.refresh()).toBe(2);
+    expect(session.list.data.tasks.map((t) => t.title)).toEqual(['from the CLI']);
+    expect(session.status.value).toBe('saved');
+    session.list.undo();
+    await session.flush();
+    expect(store.text).toContain('"a"');
+  });
+
+  it('leaves a change made elsewhere for the conflict dialog while this window has unsaved changes', async () => {
+    const store = new MemoryStore(serialize(withTask('a')));
+    const { session } = await TaskSession.open(store, opts());
+    store.text = serialize(withTask('theirs'));
+    session.list.addTask({ title: 'mine' });
+    expect(await session.refresh()).toBeNull();
+    await session.flush();
+    expect(session.status.value).toBe('conflict');
+  });
+
+  it('refuses to open a file from a newer Taskite', async () => {
+    const store = new MemoryStore('{"version": 99, "tasks": []}');
+    await expect(TaskSession.open(store, opts())).rejects.toThrow(/newer version/);
+    expect(store.text).toBe('{"version": 99, "tasks": []}');
+  });
+
   it('Reload takes the file; Keep mine overwrites it; Save a copy keeps mine beside it', async () => {
     const store = new MemoryStore(serialize(withTask('a')));
     const { session } = await TaskSession.open(store, opts());

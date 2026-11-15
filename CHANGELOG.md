@@ -4,11 +4,13 @@
 
 ### What's new
 
+- **Changes from elsewhere show up on their own.** A task added with the `taskite` command, or in another window or on another device, appears when you come back to the window (and every 15 seconds while it's in front), with Undo. Before, you only found out when your next change ran into it.
 - **Move tasks up and down** with `⌥↑` and `⌥↓` (`Alt+Up` / `Alt+Down` on Windows and Linux). Choose one or several tasks; subtasks come along with their task.
 - **More right-click menus.** The empty part of a list, sidebar projects and labels, Completed, the Trash and the Projects heading now have menus with the actions that fit them, such as **Add Task Here**, **Edit Project…** and **Empty Trash…**.
 
 ### Improvements
 
+- **Safe with newer versions.** Taskite keeps parts of the tasks file it doesn't understand, and won't open a file saved by a newer Taskite, so running an older copy (an old Docker image, say) can't damage it.
 - **On macOS the title bar is gone.** The window buttons sit in the sidebar, and the top of the window still drags it.
 - **The command menu (`⌘K`) finds more.** Spaces don't matter (`newtask` finds **New Task**), the closest matches come first, and commands answer to other words for them, such as `preferences`, `deadline` or `reorder`.
 - **Text fields have a right-click menu** in the desktop app: Cut, Copy, Paste, Select All, and spelling suggestions.

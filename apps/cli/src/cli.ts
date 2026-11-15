@@ -44,6 +44,10 @@ async function load(args: Args, io: CliIo): Promise<Loaded> {
   let data = emptyData();
   if (read.text !== null) {
     const parsed = parseDataFile(read.text, io.now());
+    if (!parsed.ok && parsed.reason === 'newer')
+      throw new ProblemError(
+        `${file} was saved by a newer Taskite (format ${parsed.version}); update taskite`,
+      );
     if (!parsed.ok)
       throw new ProblemError(
         `${file} isn't valid JSON; open it in Taskite, which keeps a copy and starts over`,
