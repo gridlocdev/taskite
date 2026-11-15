@@ -1,0 +1,19 @@
+{
+  "name": "@taskite/server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "description": "Serves the Taskite web client and the tasks file on a NAS.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "node src/main.ts",
+    "dev": "TASKITE_DATA=../../.nas-data TASKITE_STATIC= node --watch src/main.ts",
+    "build": "echo 'server runs from source (node type stripping)'"
+  },
+  "dependencies": {
+    "@taskite/node-files": "workspace:*"
+  }
+}

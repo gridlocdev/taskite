@@ -33,7 +33,7 @@ All data is one JSON file, `tasks.json`, written pretty-printed (two-space inden
 ### §3.2 Reading
 
 - Missing or wrong fields are filled with defaults (`normalize`), so older or hand-edited files load. A task whose project doesn't exist goes to the Inbox. A missing Inbox is added.
-- A file that isn't valid JSON is renamed to `tasks.corrupt-<epoch ms>.json` next to it (never deleted) and the app starts empty, with a notice naming the renamed file.
+- A file that isn't valid JSON is copied to `tasks.corrupt-<epoch ms>.json` next to it (never deleted), then replaced with an empty file, and the app starts empty with a notice naming the copy.
 - Desktop only: if there is no `tasks.json` but the old app's file exists (`<appData>/Tasks/tasks.json`, from when the app was called "Tasks"), it is read instead. The old file is left alone. The first save writes Taskite's own file.
 - Tasks in the Trash for more than 30 days are removed for good when the file is loaded.
 
@@ -198,7 +198,9 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
 - `node:http`, no framework. Serves the web client and:
   - `GET /api/info` → `{ "name": "Taskite", "version": "x.y.z" }`
   - `GET /api/data` → the file (200, `ETag: "<sha256>"`), or 404 when there's none yet.
-  - `PUT /api/data` with `If-Match` (or `If-None-Match: *` for a new file) → 204 with the new `ETag`; 412 on a version mismatch; 400 for invalid JSON; body limit 10 MB.
+  - `PUT /api/data` with `If-Match` (or `If-None-Match: *` for a new file) → 204 with the new `ETag`; 412 on a version mismatch; 428 with neither header; 400 for invalid JSON; body limit 10 MB.
+  - `POST /api/copies?label=copy|corrupt` → 201 `{ "name": "tasks.copy-….json" }`: keeps the body as a dated copy next to the file (§3.2, §3.4).
+  - `GET /api/info` also says whether a token is needed (`"auth": true`).
 - Env vars: `TASKITE_DATA` (folder holding `tasks.json`, required), `TASKITE_STATIC` (the web build), `TASKITE_HOST` (default `127.0.0.1`), `TASKITE_PORT` (default `8788`), `TASKITE_TOKEN` (bearer token), `TASKITE_NO_AUTH=1` (allow no token on a non-loopback bind), `TASKITE_HOSTS` (extra allowed Host names).
 - Without a token, a non-loopback bind is refused unless `TASKITE_NO_AUTH=1`, and requests whose `Host` isn't loopback or listed get 421.
 - With a token, `/api` needs `Authorization: Bearer <token>`; the client asks for the token once and keeps it in `localStorage`.

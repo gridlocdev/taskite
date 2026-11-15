@@ -1,4 +1,23 @@
 {
   "files": [],
-  "references": [{ "path": "packages/core" }, { "path": "packages/core/test" }]
+  "references": [
+    {
+      "path": "packages/core"
+    },
+    {
+      "path": "packages/core/test"
+    },
+    {
+      "path": "packages/node-files"
+    },
+    {
+      "path": "packages/ui"
+    },
+    {
+      "path": "packages/ui/test"
+    },
+    {
+      "path": "apps/server"
+    }
+  ]
 }

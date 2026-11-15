@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { INBOX_ID, TaskList, normalize, parseDataFile, serialize } from '../src/index.ts';
+import { INBOX_ID, TaskList, copyFileName, normalize, parseDataFile, serialize } from '../src/index.ts';
 
 const v1 = readFileSync(new URL('./fixtures/v1-tasks.json', import.meta.url), 'utf8');
 
@@ -59,5 +59,14 @@ describe('the data file', () => {
     expect(view({ type: 'label', name: 'x' })).toEqual({ type: 'label', name: 'x' });
     expect(view({ type: 'nope' })).toBeNull();
     expect(view({ type: 'project' })).toBeNull();
+  });
+});
+
+describe('copy names', () => {
+  it('dates copies and numbers clashes', () => {
+    const now = new Date(2026, 10, 15, 9, 5, 7);
+    expect(copyFileName('copy', now)).toBe('tasks.copy-2026-11-15-090507.json');
+    expect(copyFileName('copy', now, 2)).toBe('tasks.copy-2026-11-15-090507-2.json');
+    expect(copyFileName('corrupt', now)).toBe(`tasks.corrupt-${now.getTime()}.json`);
   });
 });

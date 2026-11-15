@@ -76,3 +76,4 @@ export {
   type View,
   type ViewContent,
 } from './views.ts';
+export { DATA_FILE, copyFileName, type CopyLabel } from './files.ts';

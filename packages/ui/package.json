@@ -1,0 +1,22 @@
+{
+  "name": "@taskite/ui",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "dependencies": {
+    "@preact/signals": "2.11.4",
+    "@taskite/core": "workspace:*",
+    "preact": "11.1.1"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "2.10.6",
+    "@taskite/node-files": "workspace:*",
+    "@taskite/server": "workspace:*",
+    "vite": "8.3.5"
+  }
+}
