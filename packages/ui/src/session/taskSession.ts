@@ -20,7 +20,8 @@ export type SaveStatus = 'saved' | 'saving' | 'failed' | 'conflict';
 /** Keeps the data being saved until the save lands (`taskite.unsaved` in localStorage). */
 export interface RecoveryStorage {
   get(): string | null;
-  set(text: string): void;
+  /** False when it couldn't keep the text (the browser's storage is full or turned off). */
+  set(text: string): boolean;
   clear(): void;
 }
 
@@ -34,7 +35,11 @@ export function localRecovery(key = 'taskite.unsaved'): RecoveryStorage {
   };
   return {
     get: () => guard(() => localStorage.getItem(key), null),
-    set: (text) => guard(() => localStorage.setItem(key, text), undefined),
+    set: (text) =>
+      guard(() => {
+        localStorage.setItem(key, text);
+        return true;
+      }, false),
     clear: () => guard(() => localStorage.removeItem(key), undefined),
   };
 }
@@ -47,6 +52,7 @@ export function memoryRecovery(): RecoveryStorage & { text: string | null } {
     },
     set(text) {
       this.text = text;
+      return true;
     },
     clear() {
       this.text = null;
@@ -89,6 +95,8 @@ export class TaskSession {
   readonly conflict = signal<Conflict | null>(null);
   /** Unsaved data from last time that differs from the file; the UI offers Restore or Discard (PRD §3.5). */
   readonly recoverable = signal<string | null>(null);
+  /** False when the last save's data couldn't be kept in the recovery slot (PRD §3.5). */
+  readonly backedUp = signal(true);
 
   #version: string | null;
   readonly #recovery: RecoveryStorage;
@@ -173,7 +181,12 @@ export class TaskSession {
       const text = serialize(this.list.data);
       // While last time's unsaved data waits for Restore or Discard, it keeps the recovery slot.
       const keepsSlot = this.recoverable.value === null;
-      if (keepsSlot) this.#recovery.set(text);
+      if (keepsSlot) {
+        const kept = this.#recovery.set(text);
+        // An older backup left in the slot would offer to restore stale data next time.
+        if (!kept) this.#recovery.clear();
+        this.backedUp.value = kept;
+      }
       this.status.value = 'saving';
       try {
         this.#version = await this.#saveWithRetry(text);

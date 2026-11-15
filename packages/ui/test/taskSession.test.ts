@@ -71,6 +71,29 @@ describe('a task session', () => {
     expect(recovery.text).toBeNull();
   });
 
+  it('drops an older backup and says so when the browser has no room for the new one', async () => {
+    const store = new MemoryStore();
+    const recovery = memoryRecovery();
+    let full = false;
+    const set = recovery.set.bind(recovery);
+    recovery.set = (text) => (full ? false : set(text));
+    const { session } = await TaskSession.open(store, opts({ recovery }));
+    store.failSaves = 3;
+    session.list.addTask({ title: 'kept in the backup' });
+    await session.flush();
+    expect(recovery.text).toContain('kept in the backup');
+    expect(session.backedUp.value).toBe(true);
+
+    full = true;
+    store.failSaves = 3;
+    session.list.addTask({ title: 'no room for this one' });
+    await session.flush();
+    expect(session.status.value).toBe('failed');
+    // The older backup would offer to restore stale data next time, so it goes.
+    expect(recovery.text).toBeNull();
+    expect(session.backedUp.value).toBe(false);
+  });
+
   it('stops on a conflict and counts the tasks that differ', async () => {
     const store = new MemoryStore(serialize(withTask('a')));
     const { session } = await TaskSession.open(store, opts());

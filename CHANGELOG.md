@@ -54,6 +54,7 @@
 - A task dropped on the lower half of a row lands below it, and the drop line no longer flickers as the pointer crosses the row's title.
 - On a phone-width screen the sidebar sits above the list instead of squeezing it, and a long section name no longer hides its ⋯ button.
 - Completed shows each day's heading once, and the Trash lists a subtask whose parent no longer exists instead of hiding it.
+- When the browser's storage is full, a failed save says there is no backup copy, and an older backup is removed instead of offering stale tasks to restore next time.
 
 ## 2.0.0
 

@@ -922,11 +922,16 @@ export class AppController {
   /** Shows the save state in the status bar: failures stay with Try again (PRD §3.3). */
   saveStatusChanged(status: string): void {
     if (status === 'failed')
-      this.say("Couldn't save your tasks.", {
-        sticky: true,
-        tone: 'error',
-        action: { label: 'Try Again', run: () => this.session.retry() },
-      });
+      this.say(
+        this.session.backedUp.peek()
+          ? "Couldn't save your tasks."
+          : "Couldn't save your tasks, and this browser has no room to keep a copy. Keep this window open.",
+        {
+          sticky: true,
+          tone: 'error',
+          action: { label: 'Try Again', run: () => this.session.retry() },
+        },
+      );
     else if (status === 'saved' && this.notice.peek()?.tone === 'error') this.say('Saved.');
   }
 
