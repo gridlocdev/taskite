@@ -7,6 +7,8 @@ import {
   emptyData,
   formatDue,
   parseDataFile,
+  parseDueText,
+  projectNameFromTag,
   resolveDraft,
   serialize,
   sidebarCounts,
@@ -64,14 +66,49 @@ async function save(l: Loaded): Promise<void> {
     throw new ProblemError('the tasks file changed while this ran; nothing was saved, so run it again');
 }
 
-/** The one task whose id starts with `prefix` (PRD §11). */
-function findTask(list: TaskList, prefix: string | undefined): Task {
-  if (!prefix) throw new UsageError('give the id of a task (from taskite list)');
-  const matches = list.data.tasks.filter((t) => t.id.startsWith(prefix));
-  if (matches.length === 0) throw new ProblemError(`no task has an id starting with "${prefix}"`);
-  if (matches.length > 1)
-    throw new ProblemError(`${matches.length} tasks have ids starting with "${prefix}"; give more of the id`);
-  return matches[0]!;
+/** Which tasks a command can name: `done` looks among open tasks, `restore` in the Trash. */
+type Scope = 'open' | 'completed' | 'live' | 'trash';
+
+const inScope: Record<Scope, (t: Task) => boolean> = {
+  open: (t) => t.deletedAt === null && !t.completed,
+  completed: (t) => t.deletedAt === null && t.completed,
+  live: (t) => t.deletedAt === null,
+  trash: (t) => t.deletedAt !== null,
+};
+
+/**
+ * The one task `ref` names (PRD §11): an id start that only one task has, else a title that contains
+ * `ref` (ignoring case) among the tasks the command can act on. A title that equals `ref` wins over ones
+ * that only contain it. Several matches are listed, never guessed between.
+ */
+function findTask(l: Loaded, ref: string, scope: Scope): Task {
+  const { list, today } = l;
+  const byId = list.data.tasks.filter((t) => t.id.startsWith(ref));
+  if (byId.length === 1) return byId[0]!;
+  const needle = ref.toLowerCase();
+  const pool = list.data.tasks.filter(inScope[scope]);
+  const byTitle = pool.filter((t) => t.title.toLowerCase().includes(needle));
+  const exact = byTitle.filter((t) => t.title.toLowerCase() === needle);
+  const matches = exact.length ? exact : byTitle;
+  if (matches.length === 1) return matches[0]!;
+  if (matches.length === 0) {
+    if (byId.length > 1)
+      throw new ProblemError(`${byId.length} tasks have ids starting with "${ref}"; give more of the id`);
+    throw new ProblemError(`no task matches "${ref}"`);
+  }
+  const lines = matches.slice(0, 10).map((t) => `  ${taskLine(list, t, today)}`);
+  if (matches.length > 10) lines.push(`  …and ${matches.length - 10} more`);
+  throw new ProblemError(
+    `${matches.length} tasks match "${ref}"; give more of the title, or the id:\n${lines.join('\n')}`,
+  );
+}
+
+/** The task a command names: all its words (`done call mum`), or the first one when more follow. */
+function taskRef(args: Args, rest: boolean): string {
+  const words = rest ? args.words.slice(0, 1) : args.words;
+  const ref = words.join(' ').trim();
+  if (!ref) throw new UsageError(`give a task's title or id (from taskite list) to ${args.command}`);
+  return ref;
 }
 
 function listView(args: Args, list: TaskList): View {
@@ -163,7 +200,7 @@ async function run(args: Args, io: CliIo, out: Out): Promise<void> {
       );
     }
     case 'done': {
-      const t = findTask(list, one(args));
+      const t = findTask(l, taskRef(args, false), 'open');
       if (t.deletedAt !== null) throw new ProblemError(`"${t.title}" is in the Trash; restore it first`);
       if (t.completed) throw new ProblemError(`"${t.title}" is already done`);
       const [r] = list.completeTasks([t.id], today);
@@ -177,34 +214,63 @@ async function run(args: Args, io: CliIo, out: Out): Promise<void> {
       );
     }
     case 'reopen': {
-      const t = findTask(list, one(args));
+      const t = findTask(l, taskRef(args, false), 'completed');
       if (!t.completed) throw new ProblemError(`"${t.title}" isn't done`);
       list.reopenTasks([t.id]);
       await save(l);
       return out({ ok: true, task: taskJson(list, list.getTask(t.id)!) }, `Reopened "${t.title}".`);
     }
     case 'trash': {
-      const t = findTask(list, one(args));
+      const t = findTask(l, taskRef(args, false), 'live');
       if (t.deletedAt !== null) throw new ProblemError(`"${t.title}" is already in the Trash`);
       list.deleteTasks([t.id]);
       await save(l);
       return out({ ok: true, task: taskJson(list, list.getTask(t.id)!) }, `Moved "${t.title}" to the Trash.`);
     }
     case 'restore': {
-      const t = findTask(list, one(args));
+      const t = findTask(l, taskRef(args, false), 'trash');
       if (t.deletedAt === null) throw new ProblemError(`"${t.title}" isn't in the Trash`);
       list.restoreTasks([t.id]);
       await save(l);
       return out({ ok: true, task: taskJson(list, list.getTask(t.id)!) }, `Restored "${t.title}".`);
     }
+    case 'move': {
+      const t = findTask(l, taskRef(args, true), 'live');
+      const name = args.words.slice(1).join(' ').trim().replace(/^#/, '');
+      if (!name) throw new UsageError('give the project to move to, e.g. taskite move "Call mum" Family');
+      // "#Home_Repairs" names "Home Repairs", as in Quick Add.
+      const project = list.findProjectByName(name) ?? list.findProjectByName(projectNameFromTag(name));
+      if (!project) throw new ProblemError(`no project is called "${name}" (see taskite projects)`);
+      if (t.projectId === project.id && !t.parentId)
+        throw new ProblemError(`"${t.title}" is already in ${project.name}`);
+      // A subtask moved on its own leaves its parent, as in the app.
+      list.updateTasks(
+        t.id,
+        t.parentId ? { projectId: project.id, parentId: null } : { projectId: project.id },
+      );
+      await save(l);
+      return out(
+        { ok: true, task: taskJson(list, list.getTask(t.id)!) },
+        `Moved "${t.title}" to ${project.name}.`,
+      );
+    }
+    case 'due': {
+      const t = findTask(l, taskRef(args, true), 'live');
+      const text = args.words.slice(1).join(' ');
+      if (!text.trim()) throw new UsageError('give a date, e.g. taskite due "Call mum" fri, or none');
+      const { due, ok } = parseDueText(text, today);
+      if (!ok)
+        throw new UsageError(`"${text}" isn't a date taskite knows (try tomorrow, fri, jan 5, 2026-12-01)`);
+      list.updateTasks(t.id, { due });
+      await save(l);
+      return out(
+        { ok: true, task: taskJson(list, list.getTask(t.id)!) },
+        due ? `"${t.title}" is due ${formatDue(due, today).toLowerCase()}.` : `"${t.title}" has no due date.`,
+      );
+    }
     case 'help':
       return;
   }
-}
-
-function one(args: Args): string | undefined {
-  if (args.words.length > 1) throw new UsageError(`${args.command} takes one id`);
-  return args.words[0];
 }
 
 /** Runs one command line; returns the exit code. A bug (not the user's mistake) is rethrown. */

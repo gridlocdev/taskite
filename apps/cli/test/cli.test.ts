@@ -82,6 +82,41 @@ describe('taskite', () => {
     expect((await cli('restore', id)).out).toBe('Restored "Old idea".\n');
   });
 
+  it('names a task by part of its title, and lists the choices when several match', async () => {
+    await cli('add', 'Call mum');
+    await cli('add', 'Call the bank');
+    await cli('add', 'Call');
+    expect((await cli('done', 'call', 'MUM')).out).toBe('Completed "Call mum".\n');
+    // "call" equals one title exactly, so that one wins over the titles that only contain it.
+    expect((await cli('done', 'call')).out).toBe('Completed "Call".\n');
+    expect((await cli('reopen', 'call')).out).toBe('Reopened "Call".\n');
+    const both = await cli('trash', 'cal');
+    expect(both.code).toBe(1);
+    expect(both.err).toContain('3 tasks match "cal"; give more of the title, or the id:');
+    expect(both.err).toContain('Call the bank  (Inbox)');
+    expect(saved().tasks.every((t) => !('deletedAt' in t) || t.deletedAt === null)).toBe(true);
+  });
+
+  it('moves a task to a project and sets its due date', async () => {
+    await cli('add', 'Fix the gate #Home_Repairs');
+    await cli('add', 'Water plants');
+    expect((await cli('move', 'water', '#home', 'repairs')).out).toBe(
+      'Moved "Water plants" to Home Repairs.\n',
+    );
+    expect((await cli('move', 'water', 'Nowhere')).err).toBe(
+      'taskite: no project is called "Nowhere" (see taskite projects)\n',
+    );
+    expect((await cli('due', 'water', 'tomorrow')).out).toBe('"Water plants" is due tomorrow.\n');
+    expect(JSON.parse((await cli('list', 'upcoming', '--json')).out).tasks[0]).toMatchObject({
+      title: 'Water plants',
+      project: 'Home Repairs',
+      due: '2026-03-11',
+    });
+    expect((await cli('due', 'water', 'none')).out).toBe('"Water plants" has no due date.\n');
+    expect(await cli('due', 'water', 'someday', 'soon')).toMatchObject({ code: 2 });
+    expect(await cli('due', 'water')).toMatchObject({ code: 2 });
+  });
+
   it('lists by project and label, and counts projects', async () => {
     await cli('add', 'Report #Work @deep');
     await cli('add', 'Email #Work');
@@ -93,7 +128,7 @@ describe('taskite', () => {
   it('says what went wrong, with exit 1 for problems and 2 for mistakes', async () => {
     expect(await cli('done', 'nope')).toMatchObject({
       code: 1,
-      err: 'taskite: no task has an id starting with "nope"\n',
+      err: 'taskite: no task matches "nope"\n',
     });
     expect(await cli('frobnicate')).toMatchObject({
       code: 2,
@@ -103,7 +138,7 @@ describe('taskite', () => {
     expect(await cli('add')).toMatchObject({ code: 2 });
     expect(await cli('list', '--file')).toMatchObject({ code: 2, err: 'taskite: --file needs a value\n' });
     const json = await cli('done', 'nope', '--json');
-    expect(JSON.parse(json.out)).toEqual({ ok: false, error: 'no task has an id starting with "nope"' });
+    expect(JSON.parse(json.out)).toEqual({ ok: false, error: 'no task matches "nope"' });
   });
 
   it('refuses a file that changed while it ran', async () => {

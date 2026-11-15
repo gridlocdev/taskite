@@ -225,15 +225,18 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
 |---|---|
 | `list [today\|upcoming\|inbox\|completed\|trash]`, `list --project <name>`, `list --label <name>` | prints tasks: short id (first 8 characters), due, priority, title, project. Default `today` |
 | `add <quick add text...>` | adds a task like the composer in the Inbox; prints its short id |
-| `done <id>` | completes a task (repeating ones move on) |
-| `reopen <id>` | |
-| `trash <id>`, `restore <id>` | |
+| `done <task>` | completes a task (repeating ones move on) |
+| `reopen <task>` | |
+| `trash <task>`, `restore <task>` | |
+| `move <task> <project>` | moves a task to a project (`#Name` or the name, ignoring case); a subtask leaves its parent, as in the app |
+| `due <task> <date>` | sets the due date from the words the Set Due Date dialog takes; `none` clears it |
 | `projects` | lists projects with open counts |
 | `path` | prints the data file path |
 
-- An id may be any unique prefix of a task id.
+- A `<task>` is an id start that only one task has, else part of a title, ignoring case, among the tasks the command can act on (`done` looks at open tasks, `reopen` at completed ones, `restore` in the Trash). A title equal to the words wins over titles that only contain them. When several match, the CLI lists them (up to 10) and changes nothing.
+- `done`, `reopen`, `trash` and `restore` take all their words as the task (`taskite done call mum`); `move` and `due` take the first word, so a title of several words is quoted.
 - Saves are atomic and check the version (the file mustn't have changed since it was read).
-- A mistake the user can fix prints `taskite: <message>` and exits 2 for usage errors, 1 for others (unknown id, conflict). Success exits 0.
+- A mistake the user can fix prints `taskite: <message>` and exits 2 for usage errors, 1 for others (no match, several matches, conflict). Success exits 0.
 
 ## §12 Desktop
 

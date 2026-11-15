@@ -39,7 +39,7 @@ export {
   type Task,
   type Theme,
 } from './model.ts';
-export { parseQuickAdd, type ParsedTask, type Priority } from './parser.ts';
+export { parseDueText, parseQuickAdd, type DueText, type ParsedTask, type Priority } from './parser.ts';
 export { fallbackAfter, rangeIds, stepId } from './selection.ts';
 export {
   MAX_HISTORY,

@@ -1,19 +1,7 @@
 /** The rules behind the dialogs' fields, kept out of the components so they can be tested. */
-import { formatDue, parseQuickAdd } from '@taskite/core';
+import { formatDue, parseDueText } from '@taskite/core';
 
-export interface DueText {
-  readonly due: string | null;
-  /** False when the text isn't a date the parser knows. */
-  readonly ok: boolean;
-}
-
-/** What the due date field means: "tomorrow", "fri", "jan 5", "2026-12-01", or nothing / "none" for no date. */
-export function parseDueText(text: string, today: string): DueText {
-  const trimmed = text.trim().toLowerCase();
-  if (!trimmed || trimmed === 'no date' || trimmed === 'none') return { due: null, ok: true };
-  const parsed = parseQuickAdd(trimmed, today);
-  return parsed.due && !parsed.title ? { due: parsed.due, ok: true } : { due: null, ok: false };
-}
+export { parseDueText };
 
 /** The line under the due date field. */
 export function duePreview(text: string, today: string): string {

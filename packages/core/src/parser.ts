@@ -160,3 +160,17 @@ export function parseQuickAdd(input: string, today: string = todayISO()): Parsed
   result.title = text.replace(/\s+/g, ' ').trim();
   return result;
 }
+
+export interface DueText {
+  readonly due: string | null;
+  /** False when the text isn't a date the parser knows. */
+  readonly ok: boolean;
+}
+
+/** A due date typed on its own: "tomorrow", "fri", "jan 5", "2026-12-01", or nothing / "none" for no date. */
+export function parseDueText(text: string, today: string = todayISO()): DueText {
+  const trimmed = text.trim().toLowerCase();
+  if (!trimmed || trimmed === 'no date' || trimmed === 'none') return { due: null, ok: true };
+  const parsed = parseQuickAdd(trimmed, today);
+  return parsed.due && !parsed.title ? { due: parsed.due, ok: true } : { due: null, ok: false };
+}

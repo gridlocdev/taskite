@@ -3,9 +3,9 @@ name: taskite
 description: >-
   Read and change someone's Taskite tasks from the terminal with the `taskite` command: list what is
   due today, upcoming, in the Inbox, in a project or with a label; add tasks with Quick Add text
-  ("Call mum tomorrow p1 #Family @phone"); complete, reopen, trash and restore them; list projects.
+  ("Call mum tomorrow p1 #Family @phone"); complete, reopen, trash and restore them, move them to a project or set their due date; list projects.
   Use it when a task involves their to-do list, Taskite, or "my tasks", or when a script needs to add
-  or check tasks. Covers ids, `--json` output, which file it uses, and the exit codes.
+  or check tasks. Covers naming tasks by title or id, `--json` output, which file it uses, and the exit codes.
 ---
 
 # Working with Taskite through `taskite`
@@ -21,9 +21,11 @@ hasn't changed since the command read it.
 | `taskite list [today\|upcoming\|inbox\|completed\|trash]` | Prints tasks. Default `today` (overdue and due today).             |
 | `taskite list --project <name>` / `--label <name>`        | A project's or a label's open tasks. Names ignore case.            |
 | `taskite add <text...>`                                   | Adds a task to the Inbox. Prints its short id.                     |
-| `taskite done <id>`                                       | Completes a task. A repeating task moves to its next date instead. |
-| `taskite reopen <id>`                                     | Marks a completed task not done.                                   |
-| `taskite trash <id>` / `taskite restore <id>`             | Moves a task to the Trash, or back.                                |
+| `taskite done <task>`                                     | Completes a task. A repeating task moves to its next date instead. |
+| `taskite reopen <task>`                                   | Marks a completed task not done.                                   |
+| `taskite trash <task>` / `taskite restore <task>`         | Moves a task to the Trash, or back.                                |
+| `taskite move <task> <project>`                           | Moves a task to a project (`#Name` or the name, ignoring case).    |
+| `taskite due <task> <date>`                               | Sets the due date (`tomorrow`, `fri`, `jan 5`); `none` clears it.  |
 | `taskite projects`                                        | Projects with their open task counts.                              |
 | `taskite path`                                            | The tasks file it uses.                                            |
 
@@ -34,10 +36,15 @@ hasn't changed since the command read it.
 a priority (`p1` urgent to `p4` normal), `#Project` (made if it doesn't exist; `#Big-Plans` means
 "Big Plans") and `@labels`. What is left is the task's name. Quote the text if it has shell characters.
 
-## Ids
+## Naming a task
+
+A `<task>` is part of its title, ignoring case: `taskite done call mum`. `move` and `due` take only the
+first word as the task, so quote a longer title there: `taskite due "call mum" fri`. A title that equals
+the words wins over titles that only contain them. When several tasks still match, taskite lists them
+with their short ids, exits 1 and changes nothing; run it again with more of the title or the id.
 
 `list` prints each task's short id (the first 8 characters). Any start of an id that only one task has
-works: `taskite done 9ac7`. Take ids from `list --json` when scripting.
+also works: `taskite done 9ac7`. Use ids from `list --json` when scripting, since titles can change.
 
 ## JSON
 
@@ -54,6 +61,6 @@ each task has `id`, `shortId`, `title`, `project`, `parentId`, `labels`, `priori
 
 ## Exit codes
 
-`0` done. `1` a problem: unknown or ambiguous id, the file changed during the run (run it again), a file
+`0` done. `1` a problem: no task or several tasks match, the file changed during the run (run it again), a file
 that isn't valid JSON (it is left alone), or a desktop app that hasn't brought over the old Tasks app's
 file yet. `2` a command-line mistake. Errors print one line, `taskite: <message>`, to stderr.

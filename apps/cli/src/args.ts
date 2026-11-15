@@ -7,6 +7,8 @@ export const COMMANDS = [
   'reopen',
   'trash',
   'restore',
+  'move',
+  'due',
   'projects',
   'path',
   'help',
@@ -88,14 +90,17 @@ Commands:
   list --project <name>                          Print a project's open tasks
   list --label <name>                            Print open tasks with a label
   add <text...>                                  Add a task with Quick Add ("Call mum tomorrow p1 #Home @phone")
-  done <id>                                      Complete a task (a repeating one moves to its next date)
-  reopen <id>                                    Mark a completed task not done
-  trash <id>                                     Move a task to the Trash
-  restore <id>                                   Bring a task back from the Trash
+  done <task>                                    Complete a task (a repeating one moves to its next date)
+  reopen <task>                                  Mark a completed task not done
+  trash <task>                                   Move a task to the Trash
+  restore <task>                                 Bring a task back from the Trash
+  move <task> <project>                          Move a task to another project
+  due <task> <date>                              Set the due date ("tomorrow", "fri", "jan 5", "none")
   projects                                       List projects with their open task counts
   path                                           Print the tasks file's path
 
-An <id> is the short id that list prints, or any part of the start of a task's id that only one task has.
+A <task> is part of its title ("call mum", quoted when a date or project follows) or the short id that
+list prints. When several titles match, taskite lists them and changes nothing.
 
 Options:
   --file <path>   The tasks file (else $TASKITE_FILE, else the desktop app's file)
