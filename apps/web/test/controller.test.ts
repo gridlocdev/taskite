@@ -284,4 +284,37 @@ describe('AppController', () => {
     const [sub] = app.list.getSubtasks(parent.id);
     expect(sub).toMatchObject({ title: 'Call mom', due: '2026-03-11', priority: 1, labels: ['phone'] });
   });
+
+  it('starts a new ⇧ range after the view changes', async () => {
+    const { app } = await makeApp();
+    app.addTask('A', 'end');
+    app.click(app.ids.value[0]!);
+    const work = app.list.addProject('Work');
+    for (const t of ['X', 'Y', 'Z']) app.list.addTask({ title: t, projectId: work.id });
+    app.go({ type: 'project', id: work.id });
+    app.step(1, true);
+    app.step(1, true);
+    expect(app.selected.value.size).toBe(2);
+  });
+
+  it('moves the cursor to the next row when its row goes away', async () => {
+    const { app } = await makeApp();
+    for (const t of ['A', 'B', 'C']) app.addTask(t, 'end');
+    const [, b, c] = app.ids.value;
+    app.click(b!);
+    app.list.deleteTasks([b!]);
+    expect(app.cursor.value).toBe(c);
+    expect([...app.selected.value]).toEqual([c]);
+  });
+
+  it('checking off a row outside the choice keeps the choice', async () => {
+    const { app } = await makeApp();
+    for (const t of ['A', 'B', 'C', 'D']) app.addTask(t, 'end');
+    const [a, b, c, d] = app.ids.value;
+    app.click(a!);
+    app.click(c!, { range: true });
+    await app.toggleComplete([d!]);
+    expect([...app.selected.value]).toEqual([a, b, c]);
+    expect(app.cursor.value).toBe(c);
+  });
 });

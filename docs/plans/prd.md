@@ -179,7 +179,7 @@ Typing in the search box (`/`, ⌘F) shows Search results; clearing it, or Esc, 
 
 ## §7 Choosing tasks
 
-- Arrow keys (and J/K) move the choice; Shift extends it; ⌘-click toggles one; Shift-click chooses a range; ⌘A chooses every task in the list; Esc clears the choice.
+- Arrow keys (and J/K) move the choice; Shift extends it; ⌘-click toggles one; Shift-click chooses a range; ⌘A chooses every task in the list; Esc clears the choice. A range starts again in each view. When the row under the cursor goes away, the cursor moves to the next row below, else above. Checking off a task outside the choice leaves the choice as it was.
 - Commands act on the chosen tasks. When chosen tasks leave the list, the next task below (else above) becomes chosen.
 - The list is a `listbox` with `aria-multiselectable`; rows are `option`s with `aria-selected`; one row is in the tab order.
 

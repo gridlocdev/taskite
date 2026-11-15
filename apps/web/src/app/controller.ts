@@ -183,8 +183,10 @@ export class AppController {
       const notice = this.notice.peek();
       if (notice?.action?.step !== undefined && notice.action.step !== this.list.step)
         this.notice.value = { ...notice, action: null };
+      // `ids` is computed from `rev`, so read before bumping it, it is still the rows shown before the change.
+      const before = this.ids.peek();
       this.rev.value++;
-      this.#pruneSelection();
+      this.#pruneSelection(before);
     });
   }
 
@@ -245,6 +247,7 @@ export class AppController {
         this.view.value = view;
         this.#select([]);
         this.cursor.value = null;
+        this.#anchor = null;
       }
     });
     this.list.rememberView(view);
@@ -256,6 +259,7 @@ export class AppController {
       this.search.value = query;
       this.composer.value = null;
       this.cursor.value = null;
+      this.#anchor = null;
       this.#select([]);
     });
   }
@@ -312,7 +316,7 @@ export class AppController {
   /** A click on a row: alone, ⌘/Ctrl adds or removes it, Shift takes the range from the anchor (PRD §5.3). */
   click(id: string, how: { toggle?: boolean; range?: boolean } = {}): void {
     batch(() => {
-      if (how.range && this.#anchor) {
+      if (how.range && this.#anchor && this.ids.value.includes(this.#anchor)) {
         this.#select(rangeIds(this.ids.value, this.#anchor, id));
       } else if (how.toggle) {
         const next = new Set(this.selected.value);
@@ -371,20 +375,43 @@ export class AppController {
   }
 
   /** Drops ids that are no longer on screen after a change. */
-  #pruneSelection(): void {
+  /**
+   * After any change, keeps the choice, the cursor and the range's start on rows that are still shown. A
+   * cursor whose row went (Clear Completed, an undone add, a change made elsewhere) moves to the nearest
+   * row that was below it, else above.
+   */
+  #pruneSelection(before: readonly string[]): void {
     const ids = new Set(this.ids.peek());
     const chosen = this.selected.peek();
-    if ([...chosen].some((id) => !ids.has(id)))
-      this.selected.value = new Set([...chosen].filter((id) => ids.has(id)));
+    batch(() => {
+      if ([...chosen].some((id) => !ids.has(id)))
+        this.selected.value = new Set([...chosen].filter((id) => ids.has(id)));
+      if (this.#anchor && !ids.has(this.#anchor)) this.#anchor = null;
+      const cursor = this.cursor.peek();
+      if (cursor === null || ids.has(cursor)) return;
+      const at = before.indexOf(cursor);
+      const near = [...before.slice(at + 1), ...before.slice(0, Math.max(at, 0)).reverse()];
+      const next = near.find((id) => ids.has(id)) ?? null;
+      this.cursor.value = next;
+      if (next && this.selected.peek().size === 0) this.#select([next]);
+    });
   }
 
   /** Before rows leave the view, puts the cursor on the row that will take their place (PRD §5.3). */
   #fallBack(gone: readonly string[]): void {
-    const next = fallbackAfter(this.ids.peek(), new Set(gone));
+    const goneSet = new Set(gone);
+    const cursor = this.cursor.peek();
+    const rest = [...this.selected.peek()].filter((id) => !goneSet.has(id));
+    // Checking off a row outside the choice leaves the choice and the cursor alone.
+    if (rest.length && cursor !== null && !goneSet.has(cursor)) {
+      this.#select(rest);
+      return;
+    }
+    const next = fallbackAfter(this.ids.peek(), goneSet);
     batch(() => {
       this.cursor.value = next;
       this.#anchor = next;
-      this.#select(next ? [next] : []);
+      this.#select(rest.length ? rest : next ? [next] : []);
     });
   }
 
