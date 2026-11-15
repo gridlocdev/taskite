@@ -387,11 +387,17 @@ export class AppController {
     });
   }
 
-  async #leave(ids: readonly string[], mark: 'completing' | 'leaving', ms: number): Promise<void> {
+  /**
+   * Plays a row's way out before the change is made. Returns the ids still waiting afterwards: Undo during
+   * the animation cancels it (the change it would undo hasn't happened yet).
+   */
+  async #leave(ids: readonly string[], mark: 'completing' | 'leaving', ms: number): Promise<string[]> {
     const sig = mark === 'completing' ? this.completing : this.leaving;
     sig.value = new Set([...sig.value, ...ids]);
     await this.#wait(ms);
+    const still = ids.filter((id) => sig.peek().has(id));
     sig.value = new Set([...sig.value].filter((id) => !ids.includes(id)));
+    return still;
   }
 
   // ---------- Adding ----------
@@ -440,8 +446,9 @@ export class AppController {
     const open = live.filter((id) => !this.list.getTask(id)?.completed);
     const type = this.shown.peek().type;
     if (type !== 'search' && type !== 'completed') this.#fallBack(open);
-    await this.#leave(open, 'completing', COMPLETE_MS);
-    const results = this.list.completeTasks(open, this.today.peek());
+    const still = await this.#leave(open, 'completing', COMPLETE_MS);
+    if (!still.length) return;
+    const results = this.list.completeTasks(still, this.today.peek());
     const [first] = results;
     if (results.length === 1 && first) {
       const title = this.list.getTask(first.id)?.title ?? '';
@@ -535,12 +542,13 @@ export class AppController {
     if (!ids.length) return;
     const first = this.list.getTask(ids[0]!);
     this.#fallBack(ids);
-    await this.#leave(ids, 'leaving', LEAVE_MS);
-    this.list.deleteTasks(ids, this.#now());
+    const still = await this.#leave(ids, 'leaving', LEAVE_MS);
+    if (!still.length) return;
+    this.list.deleteTasks(still, this.#now());
     this.sayUndoable(
-      ids.length === 1 && first
+      still.length === 1 && first
         ? `Moved "${first.title}" to the Trash.`
-        : `Moved ${plural(ids.length, 'task')} to the Trash.`,
+        : `Moved ${plural(still.length, 'task')} to the Trash.`,
     );
   }
 
@@ -613,6 +621,13 @@ export class AppController {
   }
 
   undo(): void {
+    // A completion or trash still animating hasn't been made yet: Undo cancels it.
+    if (this.completing.peek().size || this.leaving.peek().size) {
+      this.completing.value = new Set();
+      this.leaving.value = new Set();
+      this.say('Undone.');
+      return;
+    }
     if (!this.list.canUndo) return;
     this.list.undo();
     this.say('Undone.');

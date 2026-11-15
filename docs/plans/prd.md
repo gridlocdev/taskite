@@ -132,6 +132,7 @@ Everything else, with spaces collapsed, is the title.
 
 - Every change to tasks, projects and labels is one undo step, including multi-task changes. 100 steps. **Undo** ⌘Z, **Redo** ⇧⌘Z / ⌘Y. A new change clears redo. Undo never changes settings or the current view.
 - While typing in a text field, ⌘Z belongs to the field.
+- Completing or trashing a task plays a short animation before the change is made; Undo during it cancels the change. A notice's **Undo** goes away once anything else changes the tasks.
 
 ## §5 Views
 

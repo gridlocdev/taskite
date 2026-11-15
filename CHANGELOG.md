@@ -31,6 +31,7 @@
 - Keep Mine in a save conflict no longer overwrites a tasks file that a newer Taskite saved in the meantime; it says to update Taskite instead. An error from Keep Mine now shows as a notice.
 - A tasks file saved with a byte-order mark opens instead of being treated as unreadable, and a file holding JSON that isn't an object (`[]`, `null`) is kept as a copy instead of being replaced by an empty list.
 - A notice's **Undo** goes away once anything else changes your tasks, so it can no longer take back a different change than the one the notice names.
+- ⌘Z pressed while a completed or trashed task is still fading out cancels that change; before, it undid the change before it and the task was completed anyway.
 
 ## 2.0.0
 

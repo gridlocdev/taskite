@@ -255,4 +255,25 @@ describe('AppController', () => {
     stale?.run();
     expect(app.list.liveTasks().map((t) => t.title)).toContain('C');
   });
+
+  it('Undo while a task is still animating out cancels that change, not the one before it', async () => {
+    let finish = () => {};
+    const { app } = await makeApp(null, () => new Promise<void>((r) => (finish = r)));
+    for (const t of ['A', 'B']) app.addTask(t, 'end');
+    const [a, b] = app.ids.value;
+    app.click(a!);
+    const completing = app.toggleComplete();
+    app.undo();
+    finish();
+    await completing;
+    expect(app.list.getTask(a!)?.completed).toBe(false);
+    expect(app.list.getTask(b!)).toBeDefined();
+    app.click(b!);
+    const trashing = app.trash();
+    app.undo();
+    finish();
+    await trashing;
+    expect(app.list.getTask(b!)?.deletedAt).toBeNull();
+    expect(app.list.liveTasks().map((t) => t.title)).toEqual(['A', 'B']);
+  });
 });
