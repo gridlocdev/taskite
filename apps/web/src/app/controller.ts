@@ -733,8 +733,10 @@ export class AppController {
       message: n ? `Its ${plural(n, 'task')} will move to the Trash.` : 'It has no tasks.',
       confirm: 'Delete Project',
       run: () => {
+        // Only the view of the project itself has to go; one deleted from the sidebar elsewhere stays put.
+        const view = this.shown.peek();
         this.list.deleteProject(id, this.#now());
-        this.go({ type: 'project', id: INBOX_ID });
+        if (view.type === 'project' && view.id === id) this.go({ type: 'project', id: INBOX_ID });
         this.sayUndoable(`Deleted project "${project.name}".`);
       },
     });
@@ -759,8 +761,10 @@ export class AppController {
       message: 'The label comes off every task. The tasks stay.',
       confirm: 'Remove Label',
       run: () => {
+        const view = this.shown.peek();
         this.list.deleteLabel(name);
-        this.go({ type: 'project', id: INBOX_ID });
+        if (view.type === 'label' && view.name.toLowerCase() === name.toLowerCase())
+          this.go({ type: 'project', id: INBOX_ID });
         this.sayUndoable(`Removed @${name}.`);
       },
     });

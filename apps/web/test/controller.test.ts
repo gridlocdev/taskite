@@ -3,6 +3,29 @@ import { INBOX_ID } from '@taskite/core';
 import { makeApp } from './helpers.ts';
 
 describe('AppController', () => {
+  it('deleting a project or label from another view stays on that view', async () => {
+    const { app } = await makeApp();
+    const work = app.list.addProject('Work');
+    app.addTask('Call mum @phone', 'end');
+    app.go({ type: 'today' });
+    const confirmed = () => {
+      const d = app.dialog.value;
+      if (d?.kind === 'confirm') d.run();
+    };
+    app.deleteProject(work.id);
+    confirmed();
+    expect(app.view.value).toEqual({ type: 'today' });
+    app.removeLabel('phone');
+    confirmed();
+    expect(app.view.value).toEqual({ type: 'today' });
+    // From its own view, it goes to the Inbox.
+    const home = app.list.addProject('Home');
+    app.go({ type: 'project', id: home.id });
+    app.deleteProject(home.id);
+    confirmed();
+    expect(app.view.value).toEqual({ type: 'project', id: INBOX_ID });
+  });
+
   it('opens on Today when the file has no saved view', async () => {
     const { app } = await makeApp();
     expect(app.view.value).toEqual({ type: 'today' });
