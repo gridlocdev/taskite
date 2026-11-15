@@ -262,7 +262,13 @@ export class TaskSession {
 
   /** Conflict → Keep mine: save this window's data over the file. */
   async keepMine(): Promise<void> {
-    this.#version = (await this.store.load()).version;
+    const file = await this.store.load();
+    // A file from a newer Taskite stays as it is (PRD §3.2); the conflict waits for another choice.
+    if (file.text !== null) {
+      const parsed = parseDataFile(file.text, this.#now());
+      if (!parsed.ok && parsed.reason === 'newer') throw new Error(NEWER_FILE_MESSAGE);
+    }
+    this.#version = file.version;
     this.conflict.value = null;
     this.#kick();
     await this.flush();

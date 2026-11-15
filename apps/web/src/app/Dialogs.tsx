@@ -801,7 +801,12 @@ function ConflictDialog({ app, changed }: { readonly app: AppController; readonl
           <button
             type="button"
             class="tk-button"
-            onClick={() => void s.keepMine().then(() => app.say('Kept your tasks.'))}
+            onClick={() =>
+              void s
+                .keepMine()
+                .then(() => app.say('Kept your tasks.'))
+                .catch(failed)
+            }
           >
             Keep Mine
           </button>

@@ -139,6 +139,21 @@ describe('a task session', () => {
     expect(session.list.data.tasks.map((t) => t.title)).toEqual(['theirs']);
   });
 
+  it('Keep mine never overwrites a file a newer Taskite saved meanwhile', async () => {
+    const store = new MemoryStore(serialize(withTask('a')));
+    const { session } = await TaskSession.open(store, opts());
+    const newer = '{"version": 99, "tasks": [], "more": "from the future"}';
+    store.text = newer;
+    session.list.addTask({ title: 'mine' });
+    await session.flush();
+    expect(session.status.value).toBe('conflict');
+    await expect(session.keepMine()).rejects.toThrow(/newer version/);
+    expect(store.text).toBe(newer);
+    expect(session.conflict.value).not.toBeNull();
+    await expect(session.reload()).rejects.toThrow(/newer version/);
+    expect(store.text).toBe(newer);
+  });
+
   it('keeps an unreadable file as a copy and starts empty', async () => {
     const store = new MemoryStore('{ not json');
     const { session, notice } = await TaskSession.open(store, opts());
