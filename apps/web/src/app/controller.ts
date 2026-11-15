@@ -29,6 +29,7 @@ import {
   type View,
 } from '@taskite/core';
 import type { TaskSession } from '@taskite/ui';
+import { stepOrder } from './forms.ts';
 
 /** How long a checked-off row shows its tick before it leaves, and how long a leaving row fades (PRD §5.3). */
 export const COMPLETE_MS = 350;
@@ -68,9 +69,18 @@ export type DialogState =
   | { readonly kind: 'about' }
   | { readonly kind: 'shortcuts' };
 
+/** Which right-click menu is open (PRD §8). Its items are listed in `MENUS` in commands.ts. */
+export type MenuKind = 'task' | 'list' | 'project' | 'label' | 'completed' | 'trash' | 'projects';
+
+/** What a sidebar menu acts on, when it isn't the view on screen. */
+export type MenuTarget =
+  { readonly kind: 'project'; readonly id: string } | { readonly kind: 'label'; readonly name: string };
+
 export interface ContextMenuState {
   readonly x: number;
   readonly y: number;
+  readonly kind: MenuKind;
+  readonly target?: MenuTarget;
 }
 
 export interface ControllerOptions {
@@ -536,6 +546,21 @@ export class AppController {
     this.list.reorderTasks(ids);
   }
 
+  /** Whether the chosen tasks can move up and down: only where the order is yours (PRD §4.5). */
+  canMove(): boolean {
+    return this.shown.value.type === 'project' && this.hasTargets();
+  }
+
+  /** Move Up / Move Down (⌥↑ / ⌥↓): the chosen tasks pass one neighbour (PRD §4.5). */
+  moveChosen(delta: 1 | -1): void {
+    if (!this.canMove()) return;
+    const parentOf = (id: string) => this.list.getTask(id)?.parentId ?? null;
+    const order = stepOrder(this.ids.value, parentOf, this.targetIds(), delta);
+    if (!order) return;
+    this.list.reorderTasks(order);
+    this.announcement.value = delta < 0 ? 'Moved up.' : 'Moved down.';
+  }
+
   /** Schedules tasks for today (dropping them on Today). */
   scheduleToday(ids: readonly string[]): void {
     if (!ids.length) return;
@@ -579,6 +604,20 @@ export class AppController {
   currentLabel(): string | undefined {
     const view = this.shown.value;
     return view.type === 'label' ? view.name : undefined;
+  }
+
+  /** The project a project command acts on: the one right-clicked in the sidebar, else the one on screen. */
+  projectTarget(): Project | undefined {
+    const target = this.menu.value?.target;
+    if (target?.kind === 'project')
+      return target.id === INBOX_ID ? undefined : this.list.getProject(target.id);
+    return this.currentProject();
+  }
+
+  /** The label a label command acts on: the one right-clicked in the sidebar, else the one on screen. */
+  labelTarget(): string | undefined {
+    const target = this.menu.value?.target;
+    return target?.kind === 'label' ? target.name : this.currentLabel();
   }
 
   deleteProject(id: string): void {

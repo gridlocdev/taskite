@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### What's new
+
+- **Move tasks up and down** with `⌥↑` and `⌥↓` (`Alt+Up` / `Alt+Down` on Windows and Linux). Choose one or several tasks; subtasks come along with their task.
+- **More right-click menus.** The empty part of a list, sidebar projects and labels, Completed, the Trash and the Projects heading now have menus with the actions that fit them, such as **Add Task Here**, **Edit Project…** and **Empty Trash…**.
+
+### Improvements
+
+- **On macOS the title bar is gone.** The window buttons sit in the sidebar, and the top of the window still drags it.
+- **Text fields have a right-click menu** in the desktop app: Cut, Copy, Paste, Select All, and spelling suggestions.
+
 ## 2.0.0
 
 ### Before you update

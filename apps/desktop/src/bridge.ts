@@ -10,6 +10,7 @@ export const Channels = {
   closeReady: 'taskite:close-ready',
   command: 'taskite:command',
   closeRequested: 'taskite:close-requested',
+  fullScreen: 'taskite:full-screen',
 } as const;
 
 /** One item of the menu bar the page sends, as `NativeMenuItem` in @taskite/ui. */

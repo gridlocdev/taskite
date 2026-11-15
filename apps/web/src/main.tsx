@@ -52,6 +52,9 @@ async function start(): Promise<void> {
   if (import.meta.env.DEV) Object.assign(globalThis, { taskite: { app, catalog } });
 
   if (native) {
+    const html = document.documentElement.classList;
+    html.toggle('tk-unified', native.chrome === 'unified');
+    native.onFullScreen((full) => html.toggle('tk-fullscreen', full));
     native.onCommand((id) => {
       // Menu accelerators reach the app before the page; in a text field ⌘Z and ⌘A stay the field's.
       const inText = !!document.activeElement?.closest('input, textarea, select');

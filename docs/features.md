@@ -35,7 +35,8 @@ Drop a task on a project, a label, Today or the Trash in the sidebar to move it 
 - **Edit** a task (click it, or Enter) to change its name, description, date, repeat, priority, project, labels and subtasks.
 - **Subtasks** are one level deep. Completing a task completes its subtasks; reopening a subtask reopens its parent.
 - **Choose several tasks** with Shift and the arrow keys, ⌘-click or Shift-click, then complete, date, prioritise, move or delete them all at once.
-- **Right-click** a task for its menu.
+- **Reorder** the chosen tasks with `⌥↑` and `⌥↓` in the Inbox and projects. A task moves with its subtasks.
+- **Right-click** a task, the empty part of a list, or a project, label, Completed or the Trash in the sidebar for the actions that fit it. Text fields get Cut, Copy, Paste and spelling suggestions.
 
 ## Never losing a task
 

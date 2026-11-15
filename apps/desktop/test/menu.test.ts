@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { toTemplate, withStandardMenus } from '../src/menu.ts';
+import { editMenuTemplate, toTemplate, withStandardMenus } from '../src/menu.ts';
 
 const page = [
   { label: 'File', submenu: [{ label: 'New Task', command: 'task.new', accelerator: 'CmdOrCtrl+N' }] },
@@ -54,5 +54,40 @@ describe('menu', () => {
         .filter(Boolean);
     expect(roles(false)).toEqual(['resetZoom', 'zoomIn', 'zoomOut', 'togglefullscreen']);
     expect(roles(true)).toContain('toggleDevTools');
+  });
+});
+
+describe('editMenuTemplate', () => {
+  const flags = { canCut: true, canCopy: true, canPaste: true, canSelectAll: true };
+  const base = {
+    isEditable: true,
+    selectionText: '',
+    misspelledWord: '',
+    dictionarySuggestions: [],
+    editFlags: flags,
+  };
+  const noop = { replace: () => undefined, learn: () => undefined };
+
+  it('gives a text field the edit roles', () => {
+    const roles = editMenuTemplate(base, noop)!.map((i) => i.role ?? i.type);
+    expect(roles).toEqual(['cut', 'copy', 'paste', 'separator', 'selectAll']);
+  });
+
+  it('puts spelling suggestions first and replaces the word with the chosen one', () => {
+    const fixed: string[] = [];
+    const t = editMenuTemplate(
+      { ...base, misspelledWord: 'mlik', dictionarySuggestions: ['milk', 'mink'] },
+      { replace: (w) => fixed.push(w), learn: () => undefined },
+    )!;
+    expect(t.slice(0, 3).map((i) => i.label)).toEqual(['milk', 'mink', 'Learn Spelling']);
+    t[0]!.click?.({} as never, undefined, {} as never);
+    expect(fixed).toEqual(['milk']);
+  });
+
+  it('offers Copy for selected page text and nothing elsewhere', () => {
+    expect(editMenuTemplate({ ...base, isEditable: false, selectionText: 'Buy milk' }, noop)).toEqual([
+      { role: 'copy', enabled: true },
+    ]);
+    expect(editMenuTemplate({ ...base, isEditable: false }, noop)).toBeNull();
   });
 });

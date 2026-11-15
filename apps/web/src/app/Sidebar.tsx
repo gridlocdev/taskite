@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { INBOX_ID, PROJECT_COLORS, sameView, sidebarCounts, type SavedView } from '@taskite/core';
 import { Icon, type CommandCatalog } from '@taskite/ui';
-import type { AppController } from './controller.ts';
+import { openMenu } from './ContextMenu.tsx';
+import type { AppController, ContextMenuState } from './controller.ts';
 import { DRAG_TYPE } from './TaskView.tsx';
 
 type DropKind = 'project' | 'today' | 'trash' | 'label';
@@ -29,6 +30,7 @@ export function Sidebar({ app, catalog }: { readonly app: AppController; readonl
     <NavItem
       key={JSON.stringify(view)}
       app={app}
+      catalog={catalog}
       view={view}
       name={name}
       icon={icon}
@@ -100,7 +102,7 @@ export function Sidebar({ app, catalog }: { readonly app: AppController; readonl
           {item({ type: 'completed' }, 'Completed', 'done', null, null)}
           {item({ type: 'trash' }, 'Trash', 'trash', counts.trash || null, 'trash')}
         </ul>
-        <div class="tk-sidebar-heading">
+        <div class="tk-sidebar-heading" onContextMenu={(e) => openMenu(app, catalog, e, 'projects')}>
           <span>Projects</span>
           <button
             type="button"
@@ -141,8 +143,25 @@ export function Sidebar({ app, catalog }: { readonly app: AppController; readonl
   );
 }
 
+/** The right-click menu of a sidebar item, if it has one (PRD §8). */
+function navMenu(view: SavedView): Pick<ContextMenuState, 'kind' | 'target'> | null {
+  switch (view.type) {
+    case 'project':
+      return { kind: 'project', target: { kind: 'project', id: view.id } };
+    case 'label':
+      return { kind: 'label', target: { kind: 'label', name: view.name } };
+    case 'completed':
+      return { kind: 'completed' };
+    case 'trash':
+      return { kind: 'trash' };
+    default:
+      return null;
+  }
+}
+
 function NavItem(props: {
   readonly app: AppController;
+  readonly catalog: CommandCatalog;
   readonly view: SavedView;
   readonly name: string;
   readonly icon: string | null;
@@ -166,6 +185,16 @@ function NavItem(props: {
         class={`tk-nav${props.active ? ' tk-active' : ''}${over ? ' tk-drop-target' : ''}`}
         aria-current={props.active ? 'page' : undefined}
         onClick={() => app.go(view)}
+        onContextMenu={(e) => {
+          const menu = navMenu(view);
+          if (menu) openMenu(app, props.catalog, e, menu.kind, menu.target);
+        }}
+        onKeyDown={(e) => {
+          const menu = navMenu(view);
+          if (!menu || !(e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10'))) return;
+          const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+          openMenu(app, props.catalog, e, menu.kind, menu.target, { x: r.left + 24, y: r.bottom });
+        }}
         onDragOver={(e) => {
           if (!props.drop || !e.dataTransfer?.types.includes(DRAG_TYPE)) return;
           e.preventDefault();

@@ -1,8 +1,9 @@
+import { batch } from '@preact/signals';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { plural } from '@taskite/core';
 import { Icon, type CommandCatalog } from '@taskite/ui';
-import { TASK_MENU } from './commands.ts';
-import type { AppController } from './controller.ts';
+import { MENUS } from './commands.ts';
+import type { AppController, ContextMenuState } from './controller.ts';
 import { menuArrows } from './TaskView.tsx';
 
 const ICONS: Record<string, string> = {
@@ -14,12 +15,58 @@ const ICONS: Record<string, string> = {
   'task.priority3': 'flag',
   'task.priority4': 'flag',
   'task.move': 'move',
+  'task.moveUp': 'arrow-up',
+  'task.moveDown': 'arrow-down',
+  'task.new': 'plus',
+  'task.newIn': 'plus',
+  'project.new': 'plus',
+  'project.edit': 'edit',
+  'project.delete': 'trash',
+  'select.all': 'check',
+  'task.clearCompleted': 'done',
+  'trash.empty': 'trash',
+  'label.remove': 'tag',
   'task.restore': 'restore',
   'task.delete': 'trash',
   'task.purge': 'trash',
 };
 
-/** The right-click menu on tasks: catalog commands, so titles and keys match everywhere else. */
+/** A menu's enabled items, with no separator first, last or twice in a row. */
+export function menuItems(app: AppController, catalog: CommandCatalog, state: ContextMenuState): string[] {
+  // Enabled is read with this menu open, since sidebar menus' commands act on the menu's target.
+  return batch(() => {
+    const held = app.menu.peek();
+    app.menu.value = state;
+    const shown = MENUS[state.kind].filter((id) => id === '|' || catalog.isEnabled(catalog.get(id)!));
+    app.menu.value = held;
+    return shown.filter(
+      (id, i) =>
+        id !== '|' || (i > 0 && shown[i - 1] !== '|' && shown.slice(i + 1).some((next) => next !== '|')),
+    );
+  });
+}
+
+/**
+ * Opens a right-click menu at the pointer (or at `at`, for the context-menu key). With nothing to offer it leaves the event alone, so a text field
+ * or the browser still gets its own menu.
+ */
+export function openMenu(
+  app: AppController,
+  catalog: CommandCatalog,
+  e: MouseEvent | KeyboardEvent,
+  kind: ContextMenuState['kind'],
+  target?: ContextMenuState['target'],
+  at?: { readonly x: number; readonly y: number },
+): void {
+  const where = at ?? ('clientX' in e ? { x: e.clientX, y: e.clientY } : { x: 0, y: 0 });
+  const state: ContextMenuState = { ...where, kind, ...(target ? { target } : {}) };
+  if (!menuItems(app, catalog, state).some((id) => id !== '|')) return;
+  e.preventDefault();
+  e.stopPropagation();
+  app.menu.value = state;
+}
+
+/** The right-click menus: catalog commands, so titles and keys match everywhere else (PRD §8). */
 export function ContextMenu({
   app,
   catalog,
@@ -61,19 +108,16 @@ export function ContextMenu({
   }, [menu]);
 
   if (!menu) return null;
-  const ids = app.targetIds();
+  const onTasks = menu.kind === 'task';
+  const ids = onTasks ? app.targetIds() : [];
   const allDone = ids.length > 0 && ids.every((id) => app.list.getTask(id)?.completed);
-  const shown = TASK_MENU.filter((id) => id === '|' || catalog.isEnabled(catalog.get(id)!));
-  // No separator first, last or twice in a row.
-  const items = shown.filter(
-    (id, i) => id !== '|' || (i > 0 && i < shown.length - 1 && shown[i - 1] !== '|'),
-  );
+  const items = menuItems(app, catalog, menu);
   return (
     <div
       ref={ref}
       class="tk-menu tk-context-menu"
       role="menu"
-      aria-label="Task actions"
+      aria-label={onTasks ? 'Task actions' : 'Actions'}
       style={{
         left: `${(at ?? menu).x}px`,
         top: `${(at ?? menu).y}px`,
@@ -102,8 +146,10 @@ export function ContextMenu({
             class={`tk-menu-item${c.danger ? ' tk-danger' : ''}${p ? ` tk-p${p}` : ''}`}
             onPointerDown={(e) => e.preventDefault()}
             onClick={() => {
-              close();
+              // Run first: a sidebar menu's command reads its target from the open menu.
               catalog.run(id);
+              app.menu.value = null;
+              if (!app.dialog.value && app.composer.value === null) app.focusList.value++;
             }}
           >
             <Icon name={ICONS[id] ?? 'square'} />

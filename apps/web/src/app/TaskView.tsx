@@ -11,6 +11,7 @@ import {
 } from '@taskite/core';
 import { Icon, type CommandCatalog } from '@taskite/ui';
 import type { AppController } from './controller.ts';
+import { openMenu } from './ContextMenu.tsx';
 import { dropOrder } from './forms.ts';
 
 /** The drag payload type: the dragged task ids as JSON. */
@@ -48,7 +49,14 @@ export function TaskView({
     .filter((c) => c && catalog.isEnabled(c));
 
   return (
-    <main class="tk-main">
+    <main
+      class="tk-main"
+      onContextMenu={(e) => {
+        // The empty part of the view; text fields keep their own menu.
+        if ((e.target as HTMLElement).closest('input, textarea, button, [role=menu]')) return;
+        openMenu(app, catalog, e, 'list');
+      }}
+    >
       <div class="tk-main-inner">
         <header class="tk-view-header">
           {project && <span class="tk-dot" style={{ background: PROJECT_COLORS[project.color] }} />}
@@ -68,7 +76,8 @@ export function TaskView({
               e.preventDefault();
               const row = (e.target as HTMLElement).closest<HTMLElement>('[data-id]');
               const r = (row ?? listRef.current)!.getBoundingClientRect();
-              app.menu.value = { x: r.left + 24, y: r.top + Math.min(r.height, 32) };
+              const at = { x: r.left + 24, y: r.top + Math.min(r.height, 32) };
+              app.menu.value = { ...at, kind: app.hasTargets() ? 'task' : 'list' };
             }
           }}
         >
@@ -251,9 +260,11 @@ function TaskRow({
         if (!(e.target as HTMLElement).closest('.tk-check') && !inTrash) app.edit(task.id);
       }}
       onContextMenu={(e) => {
+        // A task always has something to offer (Complete, or Restore in the Trash).
         e.preventDefault();
+        e.stopPropagation();
         if (!app.selected.value.has(task.id)) app.click(task.id);
-        app.menu.value = { x: e.clientX, y: e.clientY };
+        app.menu.value = { x: e.clientX, y: e.clientY, kind: 'task' };
       }}
       onDragStart={(e) => {
         if (!app.selected.value.has(task.id)) app.click(task.id);

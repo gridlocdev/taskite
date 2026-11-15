@@ -262,6 +262,46 @@ kbd {
   font-size: 17px;
   font-weight: 650;
 }
+
+/*
+ * Unified toolbar (desktop app on macOS, PRD §12): the window has no title bar. The sidebar's top row
+ * makes room for the traffic lights, and a strip across the top of the task view stands in for the
+ * title bar. Both drag the window; anything clickable in them opts out.
+ */
+.tk-unified {
+  --tk-titlebar: 52px;
+}
+.tk-unified .tk-sidebar-top {
+  min-height: var(--tk-titlebar);
+  padding: 0 12px 0 84px;
+  -webkit-app-region: drag;
+}
+.tk-unified .tk-app-name {
+  visibility: hidden;
+}
+.tk-unified.tk-fullscreen .tk-sidebar-top {
+  padding-left: 16px;
+}
+.tk-unified.tk-fullscreen .tk-app-name {
+  visibility: visible;
+}
+.tk-unified .tk-main::before {
+  content: '';
+  display: block;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: var(--tk-titlebar);
+  margin-bottom: calc(-1 * var(--tk-titlebar));
+  background: var(--tk-bg);
+  -webkit-app-region: drag;
+}
+.tk-unified .tk-main-inner {
+  padding-top: var(--tk-titlebar);
+}
+.tk-unified :is(button, input, select, textarea, a, [role='menu'], [role='dialog']) {
+  -webkit-app-region: no-drag;
+}
 .tk-search {
   position: relative;
   margin: 0 12px 8px;

@@ -4,7 +4,7 @@
  */
 import { INBOX_ID, plural, type Priority } from '@taskite/core';
 import { CommandCatalog, type CommandSpec, type MenuEntry } from '@taskite/ui';
-import type { AppController } from './controller.ts';
+import type { AppController, MenuKind } from './controller.ts';
 
 /** The right-click menu on tasks: command ids in order, `|` between groups. */
 export const TASK_MENU: readonly string[] = [
@@ -18,11 +18,38 @@ export const TASK_MENU: readonly string[] = [
   'task.priority4',
   '|',
   'task.move',
+  'task.moveUp',
+  'task.moveDown',
   '|',
   'task.restore',
   'task.delete',
   'task.purge',
 ];
+
+/**
+ * Every right-click menu (PRD §8): command ids in order, `|` between groups. A menu shows only its enabled
+ * commands, and doesn't open when none are.
+ */
+export const MENUS: Readonly<Record<MenuKind, readonly string[]>> = {
+  task: TASK_MENU,
+  // The empty part of the list: the same actions as the view's ⋯ button, plus adding and choosing.
+  list: [
+    'task.new',
+    'select.all',
+    '|',
+    'project.edit',
+    'task.clearCompleted',
+    'trash.empty',
+    '|',
+    'project.delete',
+    'label.remove',
+  ],
+  project: ['task.newIn', '|', 'project.edit', '|', 'project.delete'],
+  label: ['label.remove'],
+  completed: ['task.clearCompleted'],
+  trash: ['trash.empty'],
+  projects: ['project.new'],
+};
 
 const PRIORITY_NAMES: Record<Priority, string> = { 1: 'urgent', 2: 'high', 3: 'medium', 4: 'normal' };
 
@@ -70,6 +97,20 @@ export function buildCommands(app: AppController): CommandCatalog {
       keywords: 'add create quick',
       global: true,
       run: () => app.newTask(),
+    },
+    {
+      id: 'task.newIn',
+      title: 'Add Task Here',
+      description: 'Opens the project you right-clicked with its add-task row ready.',
+      group: 'File',
+      hidden: true,
+      enabled: () => app.menu.value?.target?.kind === 'project',
+      run: () => {
+        const target = app.menu.value?.target;
+        if (target?.kind !== 'project') return;
+        app.go({ type: 'project', id: target.id });
+        app.newTask();
+      },
     },
     {
       id: 'project.new',
@@ -168,6 +209,28 @@ export function buildCommands(app: AppController): CommandCatalog {
       run: () => app.open({ kind: 'move', ids: app.targetIds() }),
     },
     {
+      id: 'task.moveUp',
+      title: 'Move Up',
+      description: 'Moves the chosen tasks one place up in the project.',
+      group: 'Task',
+      shortcuts: ['alt+up'],
+      keywords: 'reorder order earlier',
+      enabled: () => app.canMove(),
+      context: true,
+      run: () => app.moveChosen(-1),
+    },
+    {
+      id: 'task.moveDown',
+      title: 'Move Down',
+      description: 'Moves the chosen tasks one place down in the project.',
+      group: 'Task',
+      shortcuts: ['alt+down'],
+      keywords: 'reorder order later',
+      enabled: () => app.canMove(),
+      context: true,
+      run: () => app.moveChosen(1),
+    },
+    {
       id: 'task.delete',
       title: 'Move to Trash',
       description: 'Moves the chosen tasks to the Trash, where they stay 30 days.',
@@ -232,33 +295,34 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'project.edit',
       title: 'Edit Project…',
-      description: "Renames or recolours the project you're looking at.",
+      description: "Renames or recolours the project you're looking at (or right-clicked).",
       group: 'Task',
       keywords: 'rename colour color',
-      enabled: () => !!app.currentProject(),
-      run: () => app.open({ kind: 'project', id: app.currentProject()?.id ?? null }),
+      enabled: () => !!app.projectTarget(),
+      run: () => app.open({ kind: 'project', id: app.projectTarget()?.id ?? null }),
     },
     {
       id: 'project.delete',
       title: 'Delete Project…',
-      description: "Deletes the project you're looking at and moves its tasks to the Trash.",
+      description:
+        "Deletes the project you're looking at (or right-clicked) and moves its tasks to the Trash.",
       group: 'Task',
       danger: true,
-      enabled: () => !!app.currentProject(),
+      enabled: () => !!app.projectTarget(),
       run: () => {
-        const p = app.currentProject();
+        const p = app.projectTarget();
         if (p) app.deleteProject(p.id);
       },
     },
     {
       id: 'label.remove',
       title: 'Remove Label from All Tasks…',
-      description: "Takes the label you're looking at off every task.",
+      description: "Takes the label you're looking at (or right-clicked) off every task.",
       group: 'Task',
       danger: true,
-      enabled: () => !!app.currentLabel(),
+      enabled: () => !!app.labelTarget(),
       run: () => {
-        const l = app.currentLabel();
+        const l = app.labelTarget();
         if (l) app.removeLabel(l);
       },
     },

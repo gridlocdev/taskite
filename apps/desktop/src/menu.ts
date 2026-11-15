@@ -86,3 +86,47 @@ function windowMenu(mac: boolean): MenuItemConstructorOptions {
     ],
   };
 }
+
+/** The parts of Electron's `context-menu` params the text-field menu reads. */
+export interface EditMenuParams {
+  readonly isEditable: boolean;
+  readonly selectionText: string;
+  readonly misspelledWord: string;
+  readonly dictionarySuggestions: readonly string[];
+  readonly editFlags: {
+    readonly canCut: boolean;
+    readonly canCopy: boolean;
+    readonly canPaste: boolean;
+    readonly canSelectAll: boolean;
+  };
+}
+
+/**
+ * The right-click menu for text: Electron shows none of its own. Spelling suggestions first in a text
+ * field, then Cut, Copy, Paste and Select All; selected text outside a field gets Copy only. The page
+ * opens its own menus everywhere else, so anything else gets nothing (null).
+ */
+export function editMenuTemplate(
+  p: EditMenuParams,
+  fix: { replace(word: string): void; learn(word: string): void },
+): MenuItemConstructorOptions[] | null {
+  if (!p.isEditable) return p.selectionText.trim() ? [{ role: 'copy', enabled: p.editFlags.canCopy }] : null;
+  const spelling: MenuItemConstructorOptions[] = [];
+  if (p.misspelledWord) {
+    for (const word of p.dictionarySuggestions.slice(0, 5))
+      spelling.push({ label: word, click: () => fix.replace(word) });
+    if (!spelling.length) spelling.push({ label: 'No Guesses Found', enabled: false });
+    spelling.push(
+      { label: 'Learn Spelling', click: () => fix.learn(p.misspelledWord) },
+      { type: 'separator' },
+    );
+  }
+  return [
+    ...spelling,
+    { role: 'cut', enabled: p.editFlags.canCut },
+    { role: 'copy', enabled: p.editFlags.canCopy },
+    { role: 'paste', enabled: p.editFlags.canPaste },
+    { type: 'separator' },
+    { role: 'selectAll', enabled: p.editFlags.canSelectAll },
+  ];
+}

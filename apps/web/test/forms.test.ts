@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dropOrder, duePreview, parseDueText, parseLabels } from '../src/app/forms.ts';
+import { dropOrder, duePreview, parseDueText, parseLabels, stepOrder } from '../src/app/forms.ts';
 
 const TODAY = '2026-03-10';
 
@@ -23,5 +23,32 @@ describe('forms', () => {
     expect(dropOrder(ids, ['d', 'b'], 'a', false)).toEqual(['b', 'd', 'a', 'c']);
     expect(dropOrder(ids, ['a'], 'b', false)).toBeNull();
     expect(dropOrder(ids, ['a'], 'a', true)).toBeNull();
+  });
+
+  describe('stepOrder', () => {
+    // a has subtasks a1 and a2; b, c and d have none.
+    const ids = ['a', 'a1', 'a2', 'b', 'c', 'd'];
+    const parentOf = (id: string) => (id.length > 1 ? id[0]! : null);
+
+    it('moves a task past its neighbour, subtasks and all', () => {
+      expect(stepOrder(ids, parentOf, ['b'], -1)).toEqual(['b', 'a', 'a1', 'a2', 'c', 'd']);
+      expect(stepOrder(ids, parentOf, ['a'], 1)).toEqual(['b', 'a', 'a1', 'a2', 'c', 'd']);
+    });
+
+    it('moves a block together, and gaps close against the edge', () => {
+      expect(stepOrder(ids, parentOf, ['c', 'd'], -1)).toEqual(['a', 'a1', 'a2', 'c', 'd', 'b']);
+      expect(stepOrder(ids, parentOf, ['a', 'c'], -1)).toEqual(['a', 'a1', 'a2', 'c', 'b', 'd']);
+      expect(stepOrder(ids, parentOf, ['a', 'b'], -1)).toBeNull();
+      expect(stepOrder(ids, parentOf, ['d'], 1)).toBeNull();
+    });
+
+    it('moves subtasks of one parent among their siblings', () => {
+      expect(stepOrder(ids, parentOf, ['a2'], -1)).toEqual(['a', 'a2', 'a1', 'b', 'c', 'd']);
+      expect(stepOrder(ids, parentOf, ['a1'], -1)).toBeNull();
+    });
+
+    it('moves the parent when a subtask is chosen with other tasks', () => {
+      expect(stepOrder(ids, parentOf, ['a1', 'c'], 1)).toEqual(['b', 'a', 'a1', 'a2', 'd', 'c']);
+    });
   });
 });

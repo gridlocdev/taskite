@@ -111,6 +111,7 @@ Everything else, with spaces collapsed, is the title.
 ### §4.5 Order and drag and drop
 
 - In the Inbox and projects, top-level tasks can be dragged up and down to reorder.
+- **Move Up** / **Move Down** (⌥↑ / ⌥↓, Alt+Up / Alt+Down elsewhere) move the chosen tasks one place, in the Inbox and projects only. A task moves with its subtasks. Chosen subtasks of one parent move among their siblings; a subtask chosen with other tasks moves its parent. Tasks already at the top or bottom stay; the rest keep their order. One undo step.
 - A task dropped on a sidebar project or the Inbox moves there; on Today becomes due today; on Trash goes to the Trash; on a label gets that label.
 
 ### §4.6 Trash
@@ -180,7 +181,13 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
 - While a dialog is open, only commands marked global with a ⌘ chord run (and only those that make sense: the command menu and shortcuts window toggle closed).
 - Groups and menu order: File, Edit, Task, Select, Go, View, Help.
 - The command menu (⌘K, ⌘P) lists enabled commands, plus "Go to <project>", "Go to @<label>" and, with tasks chosen, "Move to <project>". Every typed word must appear in the title or group. The 5 most recently run commands come first when nothing is typed.
-- The right-click menu on a task lists, if enabled: Complete, Edit…, Set Due Date… | Priority 1–4 | Move to Project… | Restore, Move to Trash, Delete Forever. With several chosen, a header says "N tasks chosen". Shift+F10 and the context-menu key open it for the chosen tasks.
+- Right-click menus list only enabled commands, grouped by separators, with destructive commands last. A menu with nothing in it doesn't open, so the browser's own menu shows instead. Each surface has its own menu:
+  - **A task:** Complete, Edit…, Set Due Date… | Priority 1–4 | Move to Project…, Move Up, Move Down | Restore, Move to Trash, Delete Forever. Right-clicking a task that isn't chosen chooses it alone; with several chosen, a header says "N tasks chosen".
+  - **The empty part of a view:** New Task, Select All | Edit Project…, Move Completed Tasks to Trash, Empty Trash… | Delete Project…, Remove Label from All Tasks.
+  - **A sidebar project:** Add Task Here | Edit Project… | Delete Project… (the Inbox: Add Task Here only). **A sidebar label:** Remove Label from All Tasks. **Completed:** Move Completed Tasks to Trash. **Trash:** Empty Trash…. **The Projects heading:** New Project….
+  - A sidebar menu acts on the item right-clicked, not the open view.
+  - Shift+F10 and the context-menu key open the menu for the focused task (or the view) and the focused sidebar item.
+  - Text fields keep the system's edit menu (§12).
 - **Keyboard Shortcuts** (`?`, ⌘/) is built from the catalog, grouped, with a filter box, plus the mouse gestures (⌘-click, Shift-click) and Enter/Esc in the composer.
 - **Settings…** (⌘,): theme (System, Light, Dark).
 - **About Taskite**: name, version, licence (in the app menu on macOS, Help elsewhere).
@@ -229,6 +236,8 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
 
 - Electron, sandboxed with context isolation; the page loads from `app://taskite/`; the only native access is the `taskiteNative` bridge, which reads and writes the data file and carries menu commands. IPC is accepted only from `app://taskite/` frames. Links open in the default browser.
 - The menu bar comes from the catalog (§8), with the standard app, Edit (clipboard roles) and Window menus.
+- **macOS unified toolbar:** the window has no title bar (`titleBarStyle: 'hidden'`). The traffic lights sit in the sidebar's top row, which keeps room for them and hides the app name; a strip across the top of the task view stands in for the title bar. Both drag the window; their buttons don't. In full screen the room for the lights goes. Windows and Linux keep the standard frame and menu bar.
+- Right-clicking text gets an edit menu: spelling suggestions and Learn Spelling for a misspelt word, then Cut, Copy, Paste, Select All (Copy only for selected text outside a field).
 - On close, the app waits for a pending save (at most 3 s).
 - The window's size and place are remembered.
 - `TASKITE_HEADLESS=1` renders offscreen with no window or Dock icon (for automated checks); `TASKITE_USER_DATA=<dir>` uses another data folder.

@@ -22,7 +22,7 @@ Single-letter keys only work when you aren't typing in a box.
 | Choose a range               | **Shift-click**                      | **Shift-click**                                              |
 | Choose all tasks in the list | **⌘A**                               | **Ctrl+A**                                                   |
 | Clear the choice             | **⎋**                                | **Esc**                                                      |
-| Menu of actions              | Right-click a task                   | Right-click a task                                           |
+| Menu of actions              | Right-click a task (or **⇧F10**)     | Right-click a task (or **Shift+F10**)                        |
 
 ## Working on the chosen tasks
 
@@ -33,6 +33,7 @@ Single-letter keys only work when you aren't typing in a box.
 | Set due date                        | **D**                      | **D**                          |
 | Priority 1 to 4                     | **1**, **2**, **3**, **4** | **1**, **2**, **3**, **4**     |
 | Move to a project                   | **M**                      | **M**                          |
+| Move up / down in the project       | **⌥↑** / **⌥↓**            | **Alt+Up** / **Alt+Down**      |
 | Move to the Trash                   | **⌫** or **⌦**             | **Backspace** or **Delete**    |
 | Restore (in the Trash)              | **R**                      | **R**                          |
 | Delete forever (in the Trash)       | **⌫** or **⌦**             | **Backspace** or **Delete**    |

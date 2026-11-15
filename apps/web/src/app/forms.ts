@@ -50,3 +50,65 @@ export function dropOrder(
   const next = [...rest.slice(0, at + (after ? 1 : 0)), ...moving, ...rest.slice(at + (after ? 1 : 0))];
   return next.every((id, i) => id === ids[i]) ? null : next;
 }
+
+/**
+ * The order after moving the chosen rows one place up (-1) or down (1) (PRD §4.5). Top-level tasks pass
+ * their neighbours with their subtasks along; a subtask chosen with no top-level task moves its parent.
+ * When every chosen row is a subtask of one parent, they move among their siblings instead. Rows already
+ * at the edge stay, and so do chosen rows packed against them. Null when nothing would move.
+ */
+export function stepOrder(
+  ids: readonly string[],
+  parentOf: (id: string) => string | null,
+  chosen: readonly string[],
+  delta: 1 | -1,
+): string[] | null {
+  if (!chosen.length) return null;
+  const parents = new Set(chosen.map(parentOf));
+  const [onlyParent] = parents;
+  if (parents.size === 1 && onlyParent) {
+    // Subtasks of one parent: reorder the siblings, and put them back in the siblings' places.
+    const siblings = ids.filter((id) => parentOf(id) === onlyParent);
+    const moved = stepUnits(
+      siblings.map((id) => [id]),
+      (unit) => chosen.includes(unit[0]!),
+      delta,
+    );
+    if (!moved) return null;
+    const next = moved.flat();
+    let i = 0;
+    return ids.map((id) => (parentOf(id) === onlyParent ? next[i++]! : id));
+  }
+  // Top-level tasks, each with its subtasks.
+  const groups: string[][] = [];
+  const groupOf = new Map<string, string[]>();
+  for (const id of ids) {
+    const parent = parentOf(id);
+    const home = parent ? groupOf.get(parent) : undefined;
+    if (home) home.push(id);
+    else {
+      const group = [id];
+      groups.push(group);
+      groupOf.set(id, group);
+    }
+  }
+  const moving = new Set(chosen.map((id) => (groupOf.has(id) ? id : (parentOf(id) ?? id))));
+  const moved = stepUnits(groups, (group) => moving.has(group[0]!), delta);
+  return moved ? moved.flat() : null;
+}
+
+/** Each chosen unit swaps with the unchosen neighbour on its `delta` side. Null when nothing moves. */
+function stepUnits<T>(units: readonly T[], chosen: (unit: T) => boolean, delta: 1 | -1): T[] | null {
+  const next = [...units];
+  let changed = false;
+  const order = delta < 0 ? next.keys() : [...next.keys()].reverse();
+  for (const i of order) {
+    const j = i + delta;
+    if (j < 0 || j >= next.length) continue;
+    if (chosen(next[i]!) && !chosen(next[j]!)) {
+      [next[i], next[j]] = [next[j]!, next[i]!];
+      changed = true;
+    }
+  }
+  return changed ? next : null;
+}

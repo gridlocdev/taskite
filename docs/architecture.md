@@ -59,8 +59,8 @@ A `node:http` server with no framework. `GET` and `PUT /api/data` read and write
 ## Desktop (`apps/desktop`)
 
 - `main.ts`: one window, loading the web build from `app://taskite/`. The renderer is sandboxed with context isolation, and IPC is accepted only from that origin.
-- `preload.cts` exposes `taskiteNative`: load, save and save a copy of the tasks file, set the menu bar, and send menu commands to the page. The channels are listed in `bridge.ts`.
-- `paths.ts`: where the data lives, and the one-time read of the old Tasks file. `menu.ts`: the menu bar from the catalog plus the standard menus. `windowState.ts`: the window's size and place.
+- `preload.cts` exposes `taskiteNative`: load, save and save a copy of the tasks file, set the menu bar, send menu commands and full-screen changes to the page, and say whether the window uses the unified toolbar (`chrome`; macOS). `main.tsx` turns that into the `tk-unified` and `tk-fullscreen` classes on `<html>`, which the stylesheet uses for the drag regions. The channels are listed in `bridge.ts`.
+- `paths.ts`: where the data lives, and the one-time read of the old Tasks file. `menu.ts`: the menu bar from the catalog plus the standard menus, and the edit menu for right-clicked text. `windowState.ts`: the window's size and place.
 
 ## CLI (`apps/cli`)
 

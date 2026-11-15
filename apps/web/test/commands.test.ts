@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TASK_MENU, dynamicEntries } from '../src/app/commands.ts';
+import { MENUS, TASK_MENU, dynamicEntries } from '../src/app/commands.ts';
 import { nativeMenu } from '../src/app/nativeMenu.ts';
 import { shortcutGroups } from '../src/app/shortcuts.ts';
 import { makeApp } from './helpers.ts';
@@ -102,5 +102,51 @@ describe('commands', () => {
     ]);
     const newTask = groups[0]!.lines.find((l) => l.title === 'New Task');
     expect(newTask?.keys).toEqual([['Q'], ['N'], ['⌘N']]);
+  });
+
+  it('every menu only names real commands', async () => {
+    const { catalog } = await makeApp();
+    for (const [kind, ids] of Object.entries(MENUS))
+      for (const id of ids) if (id !== '|') expect(catalog.get(id), `${kind}: ${id}`).toBeDefined();
+  });
+
+  it('Option+Up and Option+Down move the chosen tasks in a project, and undo puts them back', async () => {
+    const { app, catalog } = await makeApp();
+    app.go({ type: 'project', id: 'inbox' });
+    for (const t of ['A', 'B', 'C']) app.addTask(t, 'end');
+    const titles = () => app.ids.value.map((id) => app.list.getTask(id)!.title);
+    app.step(1);
+    app.step(1);
+    app.step(1);
+    expect(catalog.forEvent(key('ArrowUp', { altKey: true }), 'list', 0, true)).toMatchObject({
+      command: { id: 'task.moveUp' },
+    });
+    catalog.run('task.moveUp');
+    expect(titles()).toEqual(['A', 'C', 'B']);
+    catalog.run('task.moveDown');
+    expect(titles()).toEqual(['A', 'B', 'C']);
+    app.undo();
+    expect(titles()).toEqual(['A', 'C', 'B']);
+    // Option+arrows belong to a text field.
+    expect(catalog.forEvent(key('ArrowUp', { altKey: true }), 'text', 0, true)).toBeNull();
+    // Only where the order is yours.
+    app.go({ type: 'today' });
+    expect(catalog.isEnabled(catalog.get('task.moveUp')!)).toBe(false);
+  });
+
+  it("a sidebar project's menu acts on that project, not the one on screen", async () => {
+    const { app, catalog } = await makeApp();
+    const work = app.list.addProject('Work');
+    app.go({ type: 'today' });
+    expect(catalog.isEnabled(catalog.get('project.edit')!)).toBe(false);
+    app.menu.value = { x: 0, y: 0, kind: 'project', target: { kind: 'project', id: work.id } };
+    expect(catalog.isEnabled(catalog.get('project.edit')!)).toBe(true);
+    catalog.run('project.edit');
+    expect(app.dialog.value).toEqual({ kind: 'project', id: work.id });
+    app.close();
+    app.menu.value = { x: 0, y: 0, kind: 'project', target: { kind: 'project', id: work.id } };
+    catalog.run('task.newIn');
+    expect(app.shown.value).toEqual({ type: 'project', id: work.id });
+    expect(app.composer.value).toBe('end');
   });
 });

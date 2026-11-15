@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { readDataFile, writeCopy, writeDataFile } from '@taskite/node-files';
 import { Channels, type NativeMenuItem } from './bridge.ts';
-import { toTemplate, withStandardMenus } from './menu.ts';
+import { editMenuTemplate, toTemplate, withStandardMenus } from './menu.ts';
 import { appFile, dataPaths, isAppUrl } from './paths.ts';
 import { loadSavedWindow, placeWindow, saveWindow, type SavedWindow } from './windowState.ts';
 
@@ -16,6 +16,11 @@ const webRoot = path.join(here, 'web');
 /** How long a closing window waits for the page to finish saving. */
 const CLOSE_WAIT_MS = 3000;
 const MIN_SIZE = { width: 640, height: 440 };
+/**
+ * macOS: a unified title bar. The page draws its own toolbar row and the traffic lights sit in the
+ * sidebar's top row; the centre of the lights lines up with that row's buttons (PRD §12).
+ */
+const unified = process.platform === 'darwin';
 /** TASKITE_HEADLESS=1: render offscreen and never show a window or Dock icon (automated checks). */
 const headless = process.env.TASKITE_HEADLESS === '1';
 if (headless) app.dock?.hide();
@@ -61,6 +66,7 @@ function createWindow(): BrowserWindow {
     minWidth: MIN_SIZE.width,
     minHeight: MIN_SIZE.height,
     title: 'Taskite',
+    ...(unified ? { titleBarStyle: 'hidden' as const, trafficLightPosition: { x: 18, y: 20 } } : {}),
     ...(process.platform === 'darwin' ? {} : { icon: path.join(here, '..', 'build', 'icon.png') }),
     show: false,
     // The page's background (--tk-bg), so a slow first paint doesn't flash.
@@ -71,7 +77,10 @@ function createWindow(): BrowserWindow {
       sandbox: true,
       nodeIntegration: false,
       offscreen: headless,
-      additionalArguments: [`--taskite-version=${app.getVersion()}`],
+      additionalArguments: [
+        `--taskite-version=${app.getVersion()}`,
+        `--taskite-chrome=${unified ? 'unified' : 'native'}`,
+      ],
     },
   });
   if (!headless)
@@ -112,6 +121,18 @@ function createWindow(): BrowserWindow {
   w.on('closed', () => {
     if (placeTimer) clearTimeout(placeTimer);
     if (win === w) win = null;
+  });
+
+  // In full screen the traffic lights hide, so the page drops the room it keeps for them.
+  w.on('enter-full-screen', () => w.webContents.send(Channels.fullScreen, true));
+  w.on('leave-full-screen', () => w.webContents.send(Channels.fullScreen, false));
+  // Electron shows no menu of its own on right-click; text gets the edit menu, the page does the rest.
+  w.webContents.on('context-menu', (_e, params) => {
+    const template = editMenuTemplate(params, {
+      replace: (word) => w.webContents.replaceMisspelling(word),
+      learn: (word) => w.webContents.session.addWordToSpellCheckerDictionary(word),
+    });
+    if (template) Menu.buildFromTemplate(template).popup({ window: w });
   });
 
   w.webContents.setWindowOpenHandler(({ url }) => {
