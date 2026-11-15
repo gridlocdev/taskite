@@ -41,6 +41,8 @@ export const NOTICE_MS = 5000;
 export interface NoticeAction {
   readonly label: string;
   readonly run: () => void;
+  /** For an Undo: the list's step it belongs to; the action is dropped once the list moves past it. */
+  readonly step?: number;
 }
 
 export interface Notice {
@@ -177,6 +179,9 @@ export class AppController {
     const last = session.list.data.settings.lastView;
     if (last) this.view.value = resolveView(session.list, last);
     session.list.onChange(() => {
+      const notice = this.notice.peek();
+      if (notice?.action?.step !== undefined && notice.action.step !== this.list.step)
+        this.notice.value = { ...notice, action: null };
       this.rev.value++;
       this.#pruneSelection();
     });
@@ -207,9 +212,21 @@ export class AppController {
     }
   }
 
-  /** A notice with Undo, for any edit that changed tasks. */
+  /**
+   * A notice with Undo, for the edit that just changed tasks. Its Undo goes away as soon as anything else
+   * changes the tasks, so it can't take back a different change than the one it names.
+   */
   sayUndoable(text: string): void {
-    this.say(text, { action: { label: 'Undo', run: () => this.undo() } });
+    const step = this.list.step;
+    this.say(text, {
+      action: {
+        label: 'Undo',
+        step,
+        run: () => {
+          if (this.list.step === step) this.undo();
+        },
+      },
+    });
   }
 
   dismissNotice(): void {

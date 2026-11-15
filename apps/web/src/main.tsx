@@ -64,9 +64,7 @@ async function start(): Promise<void> {
     if (document.hidden || app.hasDraft()) return;
     void session.refresh().then((changed) => {
       if (changed)
-        app.say(`Updated with ${changed === 1 ? 'a change' : `${changed} changes`} made elsewhere.`, {
-          action: { label: 'Undo', run: () => app.undo() },
-        });
+        app.sayUndoable(`Updated with ${changed === 1 ? 'a change' : `${changed} changes`} made elsewhere.`);
     });
   };
   addEventListener('focus', refresh);

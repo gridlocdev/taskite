@@ -80,6 +80,7 @@ export class TaskList {
   #newId: () => string;
   #batching = false;
   #batchChanged = false;
+  #step = 0;
 
   constructor(data: AppData, options: TaskListOptions = {}) {
     this.#data = data;
@@ -99,6 +100,7 @@ export class TaskList {
   }
 
   #emit(kind: ChangeKind): void {
+    if (kind !== 'settings') this.#step++;
     for (const fn of this.#listeners) fn(kind);
   }
 
@@ -155,6 +157,14 @@ export class TaskList {
   }
 
   // ---------- Undo ----------
+
+  /**
+   * Goes up with every change to the tasks, undo and redo included (not settings). A notice that offers
+   * Undo remembers it, so its Undo only ever takes back the change it announced.
+   */
+  get step(): number {
+    return this.#step;
+  }
 
   get canUndo(): boolean {
     return this.#undo.length > 0;

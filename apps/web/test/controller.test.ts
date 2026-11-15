@@ -242,4 +242,17 @@ describe('AppController', () => {
     app.saveTask(t.id, { title: 'B' });
     expect(app.list.getTask(t.id)?.title).toBe('A');
   });
+
+  it("drops a notice's Undo once another change is made, so it can't undo that one", async () => {
+    const { app } = await makeApp();
+    for (const t of ['A', 'B']) app.addTask(t, 'end');
+    app.click(app.ids.value[0]!);
+    await app.toggleComplete();
+    const stale = app.notice.value?.action;
+    expect(stale?.label).toBe('Undo');
+    app.list.addTask({ title: 'C' });
+    expect(app.notice.value?.action).toBeNull();
+    stale?.run();
+    expect(app.list.liveTasks().map((t) => t.title)).toContain('C');
+  });
 });
