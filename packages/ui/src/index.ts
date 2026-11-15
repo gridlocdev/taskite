@@ -21,4 +21,32 @@ export {
   type SaveStatus,
   type SessionOptions,
 } from './session/taskSession.ts';
-export * from './commands/index.ts';
+export {
+  COMMAND_GROUPS,
+  CommandCatalog,
+  MAX_RECENT,
+  SEQUENCE_MS,
+  filterEntries,
+  formatSequence,
+  formatShortcut,
+  isMac,
+  matchRank,
+  parseSequence,
+  parseShortcut,
+  sequenceAccelerator,
+  toAccelerator,
+  type Command,
+  type CommandGroup,
+  type CommandSpec,
+  type KeyFocus,
+  type KeyResult,
+  type KeySequence,
+  type MenuEntry,
+  type NativeMenuItem,
+  type Shortcut,
+  type ShortcutEvent,
+} from './commands/index.ts';
+export { Dialog } from './components/Dialog.tsx';
+export { focusables, trapIndex, trapTab } from './components/focusTrap.ts';
+export { Icon } from './components/Icon.tsx';
+export { ListPopup } from './components/ListPopup.tsx';

@@ -46,6 +46,28 @@ importers:
         specifier: workspace:*
         version: link:../../packages/node-files
 
+  apps/web:
+    dependencies:
+      '@preact/signals':
+        specifier: 2.11.4
+        version: 2.11.4(preact@11.1.1)
+      '@taskite/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@taskite/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      preact:
+        specifier: 11.1.1
+        version: 11.1.1
+    devDependencies:
+      '@preact/preset-vite':
+        specifier: 2.10.6
+        version: 2.10.6(@babel/core@7.29.13)(preact@11.1.1)(vite@8.3.5(@types/node@24.19.2))
+      vite:
+        specifier: 8.3.5
+        version: 8.3.5(@types/node@24.19.2)
+
   packages/core: {}
 
   packages/node-files:

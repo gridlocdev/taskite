@@ -25,6 +25,7 @@ function catalog(extra: CommandSpec[] = []) {
   const spec = (id: string, shortcuts: string[], more: Partial<CommandSpec> = {}): CommandSpec => ({
     id,
     title: id,
+    description: id,
     group: 'Task',
     shortcuts,
     run: () => void ran.push(id),
@@ -101,7 +102,14 @@ describe('the catalog', () => {
   it('runs enabled commands through the gate and keeps 5 recents', () => {
     let open = true;
     const { c, ran } = catalog([
-      { id: 'off', title: 'Off', group: 'Task', run: () => undefined, enabled: () => false },
+      {
+        id: 'off',
+        title: 'Off',
+        description: 'Off',
+        group: 'Task',
+        run: () => undefined,
+        enabled: () => false,
+      },
     ]);
     expect(c.run('off')).toBe(false);
     c.gate = () => open;
@@ -117,7 +125,13 @@ describe('the catalog', () => {
     expect(
       () =>
         new CommandCatalog(
-          [1, 2].map(() => ({ id: 'x', title: 'x', group: 'Task' as const, run: () => undefined })),
+          [1, 2].map(() => ({
+            id: 'x',
+            title: 'x',
+            description: 'x',
+            group: 'Task' as const,
+            run: () => undefined,
+          })),
         ),
     ).toThrow();
   });

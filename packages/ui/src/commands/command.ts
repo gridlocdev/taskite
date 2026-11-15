@@ -17,6 +17,8 @@ export type CommandGroup = (typeof COMMAND_GROUPS)[number];
 export interface CommandSpec {
   readonly id: string;
   readonly title: string;
+  /** One plain sentence: the Keyboard Shortcuts window, the command menu and docs/controls.md show it. */
+  readonly description: string;
   readonly group: CommandGroup;
   /** Shortcuts; the first is the one menus show. `g i` is two keys in a row. */
   readonly shortcuts?: readonly string[];
@@ -28,6 +30,8 @@ export interface CommandSpec {
   readonly hidden?: boolean;
   /** In a task's right-click menu. */
   readonly context?: boolean;
+  /** A ticked menu item (the current theme, say). */
+  readonly checked?: () => boolean;
   /** Shown in red in menus. */
   readonly danger?: boolean;
   /** Its shortcut also works in a text field or with a dialog open. Only for chords with ⌘/Ctrl. */
@@ -117,7 +121,7 @@ export class CommandCatalog {
 
   /**
    * What a key press does: runs a command, waits for the second key of a sequence, or nothing. Plain keys
-   * (no ⌘/Ctrl) only count in the list; in a text field only `global` commands run; Space and Enter on a
+   * (no ⌘/Ctrl) never count in a text field, where only `global` chords run; Space and Enter on a
    * button belong to the button (PRD §8).
    */
   forEvent(e: ShortcutEvent, focus: KeyFocus, now: number = Date.now(), mac = isMac): KeyResult {
@@ -140,6 +144,7 @@ export class CommandCatalog {
         const [only] = seq;
         if (seq.length !== 1 || !only) continue;
         if (focus === 'control' && !only.mod && (only.key === 'space' || only.key === 'enter')) continue;
+        if (focus === 'text' && !only.mod && !only.ctrl) continue;
         const rank = matchRank(only, e, mac);
         if (rank > 0 && rank < bestRank) {
           best = c;
@@ -160,8 +165,9 @@ export class CommandCatalog {
     return null;
   }
 
+  /** Disabled commands let their keys through, so two commands can share a key (Delete in the Trash). */
   #allowed(c: Command, focus: KeyFocus): boolean {
-    return focus !== 'text' || c.global === true;
+    return (focus !== 'text' || c.global === true) && this.isEnabled(c);
   }
 }
 
@@ -186,3 +192,17 @@ export function filterEntries<T extends MenuEntry>(
     })
     .sort((a, b) => rank(a) - rank(b) || (words.length ? a.title.localeCompare(b.title) : 0));
 }
+
+/** One item of the desktop menu bar, as the Electron main process builds it (PRD §8). */
+export type NativeMenuItem =
+  | { readonly type: 'separator' }
+  | { readonly role: string; readonly label?: string }
+  | {
+      readonly label: string;
+      readonly command?: string;
+      readonly accelerator?: string;
+      readonly enabled?: boolean;
+      readonly type?: 'checkbox';
+      readonly checked?: boolean;
+      readonly submenu?: readonly NativeMenuItem[];
+    };

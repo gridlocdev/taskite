@@ -9,6 +9,7 @@ export {
   type KeyFocus,
   type KeyResult,
   type MenuEntry,
+  type NativeMenuItem,
 } from './command.ts';
 export {
   SEQUENCE_MS,
