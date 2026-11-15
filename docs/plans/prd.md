@@ -116,7 +116,7 @@ Everything else, with spaces collapsed, is the title.
 
 ### §4.5 Order and drag and drop
 
-- In the Inbox and projects, top-level tasks can be dragged up and down to reorder. Dropped on a row in another section, or on a section's heading or empty space (to its end), they join that section.
+- In the Inbox and projects, top-level tasks can be dragged up and down to reorder. Dropped on a row in another section, or on a section's heading or empty space (to its end), they join that section. A drop on a row lands above or below it by which half of the row the pointer is over.
 - **Move to Previous / Next Section** (⌥← / ⌥→, Alt+Left / Alt+Right) move the chosen top-level tasks (a chosen subtask counts as its parent) to the end of the section before or after the first one's. Above the first section counts as a place. One undo step.
 - **Move Up** / **Move Down** (⌥↑ / ⌥↓, Alt+Up / Alt+Down elsewhere) move the chosen tasks one place, in the Inbox and projects only. A task moves with its subtasks. Chosen subtasks of one parent move among their siblings; a subtask chosen with other tasks moves its parent. Tasks already at the top or bottom stay; the rest keep their order. One undo step.
 - A task dropped on a sidebar project or the Inbox moves there; on Today becomes due today; on Trash goes to the Trash; on a label gets that label.
@@ -163,7 +163,7 @@ The list re-renders at midnight so Today stays right.
 
 ### §5.3 View actions
 
-A ⋯ button by the title holds actions for the view: Inbox and project → Add Section…, View as Board / View as List; project → Edit Project…, Delete Project… (asks first; its tasks go to the Trash; Undo); Completed → Move Completed Tasks to Trash; Trash → Empty Trash…; label → Edit Label…, Remove Label from All Tasks. All are commands too.
+A ⋯ button by the title holds actions for the view: Inbox and project → Add Section…, View as Board / View as List; project → Edit Project…, Delete Project… (asks first; its tasks go to the Trash; Undo); Completed → Move Completed Tasks to Trash; Trash → Empty Trash…; label → Edit Label…, Remove Label from All Tasks. All are commands too. Deleting a project, or removing a label, while its own view is shown goes to the Inbox; from anywhere else (the sidebar's right-click menu), the view on screen stays.
 
 ### §5.4 Search
 

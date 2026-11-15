@@ -218,7 +218,9 @@ function NavItem(props: {
           e.preventDefault();
           setOver(true);
         }}
-        onDragLeave={() => setOver(false)}
+        onDragLeave={(e) => {
+          if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) setOver(false);
+        }}
         onDrop={(e) => {
           setOver(false);
           const data = e.dataTransfer?.getData(DRAG_TYPE);

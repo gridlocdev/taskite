@@ -49,6 +49,8 @@
 - Enter and Esc while typing with an input method (Japanese, Chinese, Korean) pick or cancel the candidate instead of adding the task, closing the dialog or clearing the search.
 - After a click on empty space inside a dialog, Esc still closes it and Tab stays inside, and closing a dialog puts focus back where it was before it opened.
 - Priority keys 1–4 work on AZERTY keyboards, and pressing G in the list then typing I in the search box types the I instead of jumping to the Inbox.
+- Deleting a project or removing a label from the sidebar while another view is open no longer jumps to the Inbox.
+- A task dropped on the lower half of a row lands below it, and the drop line no longer flickers as the pointer crosses the row's title.
 
 ## 2.0.0
 

@@ -207,6 +207,12 @@ export function menuArrows(e: KeyboardEvent): void {
 }
 
 /** Where a project section's rows can be dropped: the section's key, or none outside project views. */
+/** Which half of the row the pointer is over during a drag. */
+function dropSide(e: DragEvent): 'before' | 'after' {
+  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+  return e.clientY > r.top + r.height / 2 ? 'after' : 'before';
+}
+
 function sectionDrop(app: AppController, section: Section): { sectionId: string | undefined } | null {
   if (app.shown.value.type !== 'project') return null;
   if (section.key === 'tasks') return { sectionId: undefined };
@@ -374,12 +380,15 @@ function TaskRow({
       onDragOver={(e) => {
         if (!canReorder || !e.dataTransfer?.types.includes(DRAG_TYPE)) return;
         e.preventDefault();
-        const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-        setDrop(e.clientY > r.top + r.height / 2 ? 'after' : 'before');
+        setDrop(dropSide(e));
       }}
-      onDragLeave={() => setDrop(null)}
+      onDragLeave={(e) => {
+        // Moving onto the row's own title or check fires dragleave too; only leaving the row clears the line.
+        if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) setDrop(null);
+      }}
       onDrop={(e) => {
-        const after = drop === 'after';
+        // The side comes from where the drop is, not the last dragover, which may have been cleared.
+        const after = dropSide(e) === 'after';
         setDrop(null);
         const data = e.dataTransfer?.getData(DRAG_TYPE);
         if (!canReorder || !data) return;
