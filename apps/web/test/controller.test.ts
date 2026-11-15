@@ -3,6 +3,11 @@ import { INBOX_ID } from '@taskite/core';
 import { makeApp } from './helpers.ts';
 
 describe('AppController', () => {
+  it('opens on Today when the file has no saved view', async () => {
+    const { app } = await makeApp();
+    expect(app.view.value).toEqual({ type: 'today' });
+  });
+
   it('adds from the add-task row with Quick Add and the view defaults', async () => {
     const { app } = await makeApp();
     app.go({ type: 'today' });

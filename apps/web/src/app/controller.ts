@@ -83,7 +83,8 @@ export interface ControllerOptions {
   readonly location?: string;
 }
 
-const DEFAULT_VIEW: View = { type: 'project', id: INBOX_ID };
+/** With no saved view, the app opens on Today (PRD §5.1). */
+const DEFAULT_VIEW: View = { type: 'today' };
 
 export class AppController {
   readonly session: TaskSession;
