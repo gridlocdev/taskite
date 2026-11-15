@@ -8,3 +8,4 @@ coverage/
 .nas-data/
 .types/
 /build/
+.types-test/

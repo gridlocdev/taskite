@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "projects": [
+    {
+      "id": "inbox",
+      "name": "Inbox",
+      "color": "gray"
+    },
+    {
+      "id": "c50d13ed-02b8-4aaf-86e2-c1b40a11907d",
+      "name": "Work",
+      "color": "teal"
+    },
+    {
+      "id": "4c428064-60a8-4a39-b34b-f403afbec097",
+      "name": "Home Stuff",
+      "color": "pink"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "c2362ed5-cd66-4df5-b2d8-e3e98e84f888",
+      "title": "Pay rent",
+      "description": "",
+      "projectId": "4c428064-60a8-4a39-b34b-f403afbec097",
+      "parentId": null,
+      "labels": [
+        "bills"
+      ],
+      "priority": 1,
+      "due": "2026-11-01",
+      "recurrence": null,
+      "completed": false,
+      "completedAt": null,
+      "createdAt": 1794761739777,
+      "order": 0,
+      "deletedAt": null
+    },
+    {
+      "id": "487e0e3a-d051-4821-bbde-a207622f8f72",
+      "title": "Call landlord",
+      "description": "",
+      "projectId": "4c428064-60a8-4a39-b34b-f403afbec097",
+      "parentId": "c2362ed5-cd66-4df5-b2d8-e3e98e84f888",
+      "labels": [],
+      "priority": 4,
+      "due": null,
+      "recurrence": null,
+      "completed": false,
+      "completedAt": null,
+      "createdAt": 1794761739777,
+      "order": 1,
+      "deletedAt": null
+    },
+    {
+      "id": "3565b74b-fe86-4fa6-bf84-cd705c2624cd",
+      "title": "Standup",
+      "description": "Daily sync\nRoom 4",
+      "projectId": "c50d13ed-02b8-4aaf-86e2-c1b40a11907d",
+      "parentId": null,
+      "labels": [],
+      "priority": 4,
+      "due": "2026-11-16",
+      "recurrence": "weekdays",
+      "completed": false,
+      "completedAt": null,
+      "createdAt": 1794761739777,
+      "order": 0,
+      "deletedAt": null
+    },
+    {
+      "id": "2d7101fc-dc8c-4809-9594-5e47051356a4",
+      "title": "Ship v2",
+      "description": "",
+      "projectId": "c50d13ed-02b8-4aaf-86e2-c1b40a11907d",
+      "parentId": null,
+      "labels": [
+        "release",
+        "big"
+      ],
+      "priority": 2,
+      "due": null,
+      "recurrence": null,
+      "completed": false,
+      "completedAt": null,
+      "createdAt": 1794761739777,
+      "order": 1,
+      "deletedAt": null
+    },
+    {
+      "id": "35d0a376-f5fe-4987-88c7-5ce86fd39eb1",
+      "title": "Buy milk",
+      "description": "",
+      "projectId": "inbox",
+      "parentId": null,
+      "labels": [
+        "errands"
+      ],
+      "priority": 4,
+      "due": null,
+      "recurrence": null,
+      "completed": true,
+      "completedAt": 1794761739778,
+      "createdAt": 1794761739777,
+      "order": 0,
+      "deletedAt": null
+    },
+    {
+      "id": "07a48b45-83a9-43ec-9403-0dcee4d70a67",
+      "title": "Old idea",
+      "description": "",
+      "projectId": "inbox",
+      "parentId": null,
+      "labels": [],
+      "priority": 4,
+      "due": null,
+      "recurrence": null,
+      "completed": false,
+      "completedAt": null,
+      "createdAt": 1794761739778,
+      "order": 1,
+      "deletedAt": 1794761739778
+    }
+  ],
+  "settings": {
+    "theme": "dark",
+    "lastView": {
+      "type": "project",
+      "id": "c50d13ed-02b8-4aaf-86e2-c1b40a11907d"
+    }
+  }
+}

@@ -1,0 +1,54 @@
+import { describe, expect, it } from 'vitest';
+import {
+  addDays,
+  addMonths,
+  diffDays,
+  formatDue,
+  isISODate,
+  nextOccurrence,
+  nextWeekday,
+} from '../src/index.ts';
+
+describe('dates', () => {
+  it('addDays crosses month and year boundaries', () => {
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
+    expect(addDays('2026-03-01', -1)).toBe('2026-02-28');
+  });
+
+  it('addMonths clamps to the end of shorter months', () => {
+    expect(addMonths('2026-01-31', 1)).toBe('2026-02-28');
+    expect(addMonths('2028-01-31', 1)).toBe('2028-02-29');
+    expect(addMonths('2026-11-15', 2)).toBe('2027-01-15');
+  });
+
+  it('diffDays works across DST changes', () => {
+    expect(diffDays('2026-03-07', '2026-03-09')).toBe(2);
+    expect(diffDays('2026-11-02', '2026-10-31')).toBe(-2);
+  });
+
+  it('nextWeekday is strictly after the start date', () => {
+    // 2026-10-09 is a Friday.
+    expect(nextWeekday(5, '2026-10-09')).toBe('2026-10-16');
+    expect(nextWeekday(1, '2026-10-09')).toBe('2026-10-12');
+  });
+
+  it('nextOccurrence skips past today for overdue repeating tasks', () => {
+    expect(nextOccurrence('2026-10-01', 'daily', '2026-10-09')).toBe('2026-10-10');
+    expect(nextOccurrence('2026-10-09', 'weekly', '2026-10-09')).toBe('2026-10-16');
+    expect(nextOccurrence('2026-10-09', 'weekdays', '2026-10-09')).toBe('2026-10-12');
+    expect(nextOccurrence('2026-01-31', 'monthly', '2026-01-31')).toBe('2026-02-28');
+  });
+
+  it('formatDue uses friendly words for nearby days', () => {
+    expect(formatDue('2026-10-09', '2026-10-09')).toBe('Today');
+    expect(formatDue('2026-10-10', '2026-10-09')).toBe('Tomorrow');
+    expect(formatDue('2026-10-08', '2026-10-09')).toBe('Yesterday');
+  });
+
+  it('isISODate accepts only real dates', () => {
+    expect(isISODate('2026-02-28')).toBe(true);
+    expect(isISODate('2026-02-30')).toBe(false);
+    expect(isISODate('tomorrow')).toBe(false);
+    expect(isISODate(null)).toBe(false);
+  });
+});

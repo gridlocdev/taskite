@@ -7,3 +7,5 @@ packages/ui/src/icons
 .types
 # The 1.x app, kept running until the rewrite replaces it.
 apps/desktop/legacy
+packages/core/test/fixtures
+.types-test

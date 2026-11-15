@@ -1,0 +1,190 @@
+/**
+ * The data file (PRD §3.1): types, defaults, repair of older or hand-edited files, and the exact text
+ * written to disk.
+ */
+import { RECURRENCES, isISODate, type Recurrence } from './dates.ts';
+import type { Priority } from './parser.ts';
+
+export interface Task {
+  id: string;
+  title: string;
+  description: string;
+  projectId: string;
+  /** Set for subtasks (one level deep). */
+  parentId: string | null;
+  labels: string[];
+  /** 1 = most urgent, 4 = normal. */
+  priority: Priority;
+  /** YYYY-MM-DD. */
+  due: string | null;
+  recurrence: Recurrence | null;
+  completed: boolean;
+  /** Epoch ms. */
+  completedAt: number | null;
+  /** Epoch ms. */
+  createdAt: number;
+  /** Position within its project. */
+  order: number;
+  /** Epoch ms when moved to the Trash. */
+  deletedAt: number | null;
+}
+
+export const PROJECT_COLORS = {
+  gray: '#808080',
+  red: '#db4035',
+  orange: '#ff9933',
+  yellow: '#e0b100',
+  green: '#299438',
+  teal: '#158fad',
+  blue: '#4073ff',
+  purple: '#884dff',
+  magenta: '#af38eb',
+  pink: '#e05194',
+} as const;
+
+export type ProjectColor = keyof typeof PROJECT_COLORS;
+
+export const PROJECT_COLOR_NAMES = Object.keys(PROJECT_COLORS) as ProjectColor[];
+
+export interface Project {
+  id: string;
+  name: string;
+  color: ProjectColor;
+}
+
+/** A screen the app can show, saved so it reopens there. */
+export type SavedView =
+  | { type: 'project'; id: string }
+  | { type: 'today' }
+  | { type: 'upcoming' }
+  | { type: 'completed' }
+  | { type: 'trash' }
+  | { type: 'label'; name: string };
+
+export type Theme = 'auto' | 'light' | 'dark';
+
+export interface Settings {
+  theme: Theme;
+  lastView: SavedView | null;
+}
+
+export interface AppData {
+  version: number;
+  projects: Project[];
+  tasks: Task[];
+  settings: Settings;
+}
+
+export const FORMAT_VERSION = 1;
+export const INBOX_ID = 'inbox';
+/** Days a task stays in the Trash before it is removed for good (PRD §4.6). */
+export const TRASH_DAYS = 30;
+export const DAY_MS = 24 * 60 * 60 * 1000;
+/** Longest project name (PRD §6). */
+export const MAX_PROJECT_NAME = 80;
+
+export function emptyData(): AppData {
+  return {
+    version: FORMAT_VERSION,
+    projects: [{ id: INBOX_ID, name: 'Inbox', color: 'gray' }],
+    tasks: [],
+    settings: { theme: 'auto', lastView: null },
+  };
+}
+
+type Loose = Record<string, unknown>;
+
+function isObject(value: unknown): value is Loose {
+  return typeof value === 'object' && value !== null;
+}
+
+function isColor(value: unknown): value is ProjectColor {
+  return typeof value === 'string' && Object.hasOwn(PROJECT_COLORS, value);
+}
+
+function normalizeView(raw: unknown): SavedView | null {
+  if (!isObject(raw)) return null;
+  const type = raw['type'];
+  if (type === 'today' || type === 'upcoming' || type === 'completed' || type === 'trash') return { type };
+  if (type === 'project' && typeof raw['id'] === 'string') return { type, id: raw['id'] };
+  if (type === 'label' && typeof raw['name'] === 'string') return { type, name: raw['name'] };
+  return null;
+}
+
+/** Fills in anything missing so older or hand-edited files load (PRD §3.2). */
+export function normalize(raw: unknown, now: number = Date.now()): AppData {
+  const base = emptyData();
+  if (!isObject(raw)) return base;
+  const rawProjects = Array.isArray(raw['projects']) ? (raw['projects'] as unknown[]) : [];
+  const projects: Project[] = rawProjects
+    .filter((p): p is Loose => isObject(p) && Boolean(p['id']) && Boolean(p['name']))
+    .map((p) => ({
+      id: String(p['id']),
+      name: String(p['name']),
+      color: isColor(p['color']) ? p['color'] : 'gray',
+    }));
+  if (!projects.some((p) => p.id === INBOX_ID)) projects.unshift(...base.projects);
+  const projectIds = new Set(projects.map((p) => p.id));
+  const rawTasks = Array.isArray(raw['tasks']) ? (raw['tasks'] as unknown[]) : [];
+  const tasks: Task[] = rawTasks
+    .filter((t): t is Loose => isObject(t) && Boolean(t['id']) && typeof t['title'] === 'string')
+    .map((t, i) => ({
+      id: String(t['id']),
+      title: t['title'] as string,
+      description: typeof t['description'] === 'string' ? t['description'] : '',
+      projectId: projectIds.has(t['projectId'] as string) ? (t['projectId'] as string) : INBOX_ID,
+      parentId: typeof t['parentId'] === 'string' ? t['parentId'] : null,
+      labels: Array.isArray(t['labels'])
+        ? (t['labels'] as unknown[]).filter((l) => typeof l === 'string')
+        : [],
+      priority: [1, 2, 3, 4].includes(t['priority'] as number) ? (t['priority'] as Priority) : 4,
+      due: isISODate(t['due']) ? t['due'] : null,
+      recurrence: RECURRENCES.includes(t['recurrence'] as Recurrence)
+        ? (t['recurrence'] as Recurrence)
+        : null,
+      completed: Boolean(t['completed']),
+      completedAt: typeof t['completedAt'] === 'number' ? t['completedAt'] : null,
+      createdAt: typeof t['createdAt'] === 'number' ? t['createdAt'] : now,
+      order: typeof t['order'] === 'number' ? t['order'] : i,
+      deletedAt: typeof t['deletedAt'] === 'number' ? t['deletedAt'] : null,
+    }));
+  const settings = isObject(raw['settings']) ? raw['settings'] : {};
+  const theme = settings['theme'];
+  return {
+    version: FORMAT_VERSION,
+    projects,
+    tasks,
+    settings: {
+      theme: theme === 'light' || theme === 'dark' ? theme : 'auto',
+      lastView: normalizeView(settings['lastView']),
+    },
+  };
+}
+
+/** The exact text written to tasks.json: two-space JSON, no trailing newline, as 1.x wrote it (PRD §3.1). */
+export function serialize(data: AppData): string {
+  return JSON.stringify(data, null, 2);
+}
+
+export type ParseResult = { ok: true; data: AppData } | { ok: false; reason: 'corrupt' };
+
+/** Reads tasks.json text. Text that isn't JSON is reported, never thrown (PRD §3.2). */
+export function parseDataFile(text: string, now: number = Date.now()): ParseResult {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    return { ok: false, reason: 'corrupt' };
+  }
+  return { ok: true, data: normalize(raw, now) };
+}
+
+/** Task ids that have been in the Trash longer than TRASH_DAYS at `now`, with their subtasks. */
+export function expiredTaskIds(data: AppData, now: number): Set<string> {
+  const cutoff = now - TRASH_DAYS * DAY_MS;
+  const ids = new Set(
+    data.tasks.filter((t) => t.deletedAt !== null && t.deletedAt < cutoff).map((t) => t.id),
+  );
+  for (const t of data.tasks) if (t.parentId && ids.has(t.parentId)) ids.add(t.id);
+  return ids;
+}
