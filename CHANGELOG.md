@@ -10,6 +10,7 @@
 ### Improvements
 
 - **On macOS the title bar is gone.** The window buttons sit in the sidebar, and the top of the window still drags it.
+- **The command menu (`⌘K`) finds more.** Spaces don't matter (`newtask` finds **New Task**), the closest matches come first, and commands answer to other words for them, such as `preferences`, `deadline` or `reorder`.
 - **Text fields have a right-click menu** in the desktop app: Cut, Copy, Paste, Select All, and spelling suggestions.
 
 ## 2.0.0

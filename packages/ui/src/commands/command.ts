@@ -172,25 +172,52 @@ export class CommandCatalog {
 }
 
 /**
- * Command menu search (PRD §8): every typed word must appear in the title, group or keywords. With nothing
- * typed, the recent ones come first; otherwise recent ones still lead, then alphabetical.
+ * Command menu search (PRD §8). Spaces don't count, so "newtask" and "new task" both find New Task. Best
+ * first: the title starts with the query, then contains it, then the group or keywords contain it (or
+ * every typed word appears somewhere), then the title holds the query's letters in order ("nwtk").
+ * Within a rank, recent entries lead and the rest keep their order. With nothing typed, recent first.
  */
 export function filterEntries<T extends MenuEntry>(
   entries: readonly T[],
   query: string,
   recent: readonly string[] = [],
 ): T[] {
+  const q = compact(query);
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-  const rank = (e: T) => {
+  const recentRank = (e: T) => {
     const i = recent.indexOf(e.id);
     return i === -1 ? Infinity : i;
   };
+  const score = (e: T): number => {
+    if (!q) return 0;
+    const title = compact(e.title);
+    const rest = `${e.group} ${e.keywords ?? ''}`.toLowerCase();
+    if (title.startsWith(q)) return 0;
+    if (title.includes(q)) return 1;
+    if (compact(rest).includes(q) || words.every((w) => `${e.title.toLowerCase()} ${rest}`.includes(w)))
+      return 2;
+    return inOrder(q, title) ? 3 : -1;
+  };
   return entries
-    .filter((e) => {
-      const text = `${e.title} ${e.group} ${e.keywords ?? ''}`.toLowerCase();
-      return words.every((w) => text.includes(w));
-    })
-    .sort((a, b) => rank(a) - rank(b) || (words.length ? a.title.localeCompare(b.title) : 0));
+    .map((e) => ({ e, s: score(e) }))
+    .filter(({ s }) => s >= 0)
+    .sort((a, b) => a.s - b.s || recentRank(a.e) - recentRank(b.e))
+    .map(({ e }) => e);
+}
+
+/** Lower-cased with every space removed: what the command menu compares. */
+export function compact(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, '');
+}
+
+/** True when every character of `needle` appears in `hay` in order, gaps allowed. */
+export function inOrder(needle: string, hay: string): boolean {
+  let at = 0;
+  for (const ch of needle) {
+    at = hay.indexOf(ch, at) + 1;
+    if (at === 0) return false;
+  }
+  return true;
 }
 
 /** One item of the desktop menu bar, as the Electron main process builds it (PRD §8). */

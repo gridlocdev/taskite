@@ -144,10 +144,28 @@ describe('the command menu', () => {
     { id: 'new', title: 'New Task', group: 'File' },
   ];
 
+  const ids = (q: string, recent?: string[]) => filterEntries(entries, q, recent).map((e) => e.id);
+
   it('matches every word and puts recent commands first', () => {
-    expect(filterEntries(entries, 'go in').map((e) => e.id)).toEqual(['inbox']);
-    expect(filterEntries(entries, 'file').map((e) => e.id)).toEqual(['new']);
-    expect(filterEntries(entries, '', ['new', 'today']).map((e) => e.id)).toEqual(['new', 'today', 'inbox']);
-    expect(filterEntries(entries, 'go').map((e) => e.id)).toEqual(['inbox', 'today']);
+    expect(ids('go in')).toEqual(['inbox']);
+    expect(ids('file')).toEqual(['new']);
+    expect(ids('', ['new', 'today'])).toEqual(['new', 'today', 'inbox']);
+    expect(ids('go')).toEqual(['today', 'inbox']);
+    expect(ids('go', ['inbox'])).toEqual(['inbox', 'today']);
+  });
+
+  it('ignores spaces, so a run-together or split query finds the same command', () => {
+    expect(ids('newtask')).toEqual(['new']);
+    expect(ids('new task')).toEqual(['new']);
+    expect(ids('gotoinbox')).toEqual(['inbox']);
+    expect(ids('goto inb')).toEqual(['inbox']);
+  });
+
+  it('ranks title matches over keyword matches, and finds letters in order last', () => {
+    const more = [...entries, { id: 'add', title: 'Add Project', group: 'File', keywords: 'new list' }];
+    expect(filterEntries(more, 'new').map((e) => e.id)).toEqual(['new', 'add']);
+    expect(filterEntries(more, 'newlist').map((e) => e.id)).toEqual(['add']);
+    expect(ids('nwtk')).toEqual(['new']);
+    expect(ids('zzz')).toEqual([]);
   });
 });

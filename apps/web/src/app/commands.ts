@@ -64,7 +64,7 @@ export function buildCommands(app: AppController): CommandCatalog {
     description: `Sets the chosen tasks to priority ${p}.`,
     group: 'Task',
     shortcuts: [String(p)],
-    keywords: `p${p} flag`,
+    keywords: `p${p} flag importance urgency`,
     enabled: tasksChosen,
     context: true,
     keysOnly: true,
@@ -76,9 +76,11 @@ export function buildCommands(app: AppController): CommandCatalog {
     title: string,
     key: string,
     view: Parameters<AppController['go']>[0],
+    keywords?: string,
   ): CommandSpec => ({
     id,
     title,
+    ...(keywords ? { keywords } : {}),
     description: `Shows ${title.replace(/^Go to /, '')}.`,
     group: 'Go',
     shortcuts: [key],
@@ -91,16 +93,17 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'task.new',
       title: 'New Task',
+      keywords: 'add create quick capture todo item',
       description: 'Opens the add-task row in this view (the Inbox from Completed, Trash or a search).',
       group: 'File',
       shortcuts: ['q', 'n', 'mod+n'],
-      keywords: 'add create quick',
       global: true,
       run: () => app.newTask(),
     },
     {
       id: 'task.newIn',
       title: 'Add Task Here',
+      keywords: 'new create quick todo item',
       description: 'Opens the project you right-clicked with its add-task row ready.',
       group: 'File',
       hidden: true,
@@ -115,18 +118,18 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'project.new',
       title: 'New Project…',
+      keywords: 'add create list folder area',
       description: 'Makes a project to group tasks.',
       group: 'File',
-      keywords: 'add create list',
       run: () => app.open({ kind: 'project', id: null }),
     },
     {
       id: 'app.settings',
       title: 'Settings…',
+      keywords: 'preferences options config prefs theme dark light appearance',
       description: 'Opens Settings: the theme and where your tasks are kept.',
       group: 'File',
       shortcuts: ['mod+,'],
-      keywords: 'preferences theme dark light',
       run: () => app.open({ kind: 'settings' }),
     },
 
@@ -134,6 +137,7 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'edit.undo',
       title: 'Undo',
+      keywords: 'revert back oops',
       description: 'Takes back the last change to your tasks.',
       group: 'Edit',
       shortcuts: ['mod+z'],
@@ -146,6 +150,7 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'edit.redo',
       title: 'Redo',
+      keywords: 'again repeat forward',
       description: 'Makes the change Undo took back.',
       group: 'Edit',
       shortcuts: ['mod+shift+z', 'mod+y'],
@@ -160,10 +165,10 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'task.complete',
       title: 'Complete',
+      keywords: 'done finish check tick close mark reopen undone incomplete uncheck',
       description: 'Checks off the chosen tasks, or un-checks them when they are all done.',
       group: 'Task',
       shortcuts: ['space'],
-      keywords: 'done finish check reopen undone',
       enabled: tasksChosen,
       context: true,
       keysOnly: true,
@@ -172,10 +177,10 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'task.edit',
       title: 'Edit Task…',
+      keywords: 'open details change modify rename description notes subtasks labels tags repeat recurring',
       description: 'Opens the chosen task: name, notes, date, repeat, priority, project, labels, subtasks.',
       group: 'Task',
       shortcuts: ['enter'],
-      keywords: 'open details description subtasks labels',
       enabled: () => !!app.single() && !inTrash(),
       context: true,
       keysOnly: true,
@@ -184,10 +189,10 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'task.due',
       title: 'Due Date…',
+      keywords: 'schedule deadline when today tomorrow reminder',
       description: 'Sets or clears the due date of the chosen tasks.',
       group: 'Task',
       shortcuts: ['d'],
-      keywords: 'schedule date deadline',
       enabled: tasksChosen,
       context: true,
       keysOnly: true,
@@ -200,6 +205,7 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'task.move',
       title: 'Move to Project…',
+      keywords: 'send file list folder assign',
       description: 'Moves the chosen tasks to another project.',
       group: 'Task',
       shortcuts: ['m'],
@@ -211,10 +217,10 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'task.moveUp',
       title: 'Move Up',
+      keywords: 'reorder sort arrange order shift raise earlier',
       description: 'Moves the chosen tasks one place up in the project.',
       group: 'Task',
       shortcuts: ['alt+up'],
-      keywords: 'reorder order earlier',
       enabled: () => app.canMove(),
       context: true,
       run: () => app.moveChosen(-1),
@@ -222,10 +228,10 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'task.moveDown',
       title: 'Move Down',
+      keywords: 'reorder sort arrange order shift lower later',
       description: 'Moves the chosen tasks one place down in the project.',
       group: 'Task',
       shortcuts: ['alt+down'],
-      keywords: 'reorder order later',
       enabled: () => app.canMove(),
       context: true,
       run: () => app.moveChosen(1),
@@ -233,10 +239,10 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'task.delete',
       title: 'Move to Trash',
+      keywords: 'delete remove erase bin discard',
       description: 'Moves the chosen tasks to the Trash, where they stay 30 days.',
       group: 'Task',
       shortcuts: ['backspace', 'delete'],
-      keywords: 'delete remove',
       enabled: tasksChosen,
       context: true,
       danger: true,
@@ -246,10 +252,10 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'task.restore',
       title: 'Restore',
+      keywords: 'undelete recover bring back untrash',
       description: 'Takes the chosen tasks out of the Trash.',
       group: 'Task',
       shortcuts: ['r'],
-      keywords: 'undelete trash',
       enabled: trashChosen,
       context: true,
       keysOnly: true,
@@ -258,10 +264,10 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'task.purge',
       title: 'Delete for Good…',
+      keywords: 'purge erase permanently forever destroy',
       description: 'Deletes the chosen tasks in the Trash for good.',
       group: 'Task',
       shortcuts: ['backspace', 'delete'],
-      keywords: 'purge remove trash',
       enabled: trashChosen,
       context: true,
       danger: true,
@@ -271,9 +277,9 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'task.clearCompleted',
       title: 'Move Completed Tasks to Trash',
+      keywords: 'clear clean tidy archive done finished',
       description: 'Moves every checked-off task to the Trash.',
       group: 'Task',
-      keywords: 'clear done',
       enabled: () => {
         void app.rev.value;
         return app.list.liveTasks().some((t) => t.completed);
@@ -283,6 +289,7 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'trash.empty',
       title: 'Empty Trash…',
+      keywords: 'purge clear bin erase permanently',
       description: 'Deletes everything in the Trash for good.',
       group: 'Task',
       danger: true,
@@ -295,15 +302,16 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'project.edit',
       title: 'Edit Project…',
+      keywords: 'rename change colour color',
       description: "Renames or recolours the project you're looking at (or right-clicked).",
       group: 'Task',
-      keywords: 'rename colour color',
       enabled: () => !!app.projectTarget(),
       run: () => app.open({ kind: 'project', id: app.projectTarget()?.id ?? null }),
     },
     {
       id: 'project.delete',
       title: 'Delete Project…',
+      keywords: 'remove erase trash list',
       description:
         "Deletes the project you're looking at (or right-clicked) and moves its tasks to the Trash.",
       group: 'Task',
@@ -317,6 +325,7 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'label.remove',
       title: 'Remove Label from All Tasks…',
+      keywords: 'delete clear erase tag untag',
       description: "Takes the label you're looking at (or right-clicked) off every task.",
       group: 'Task',
       danger: true,
@@ -331,6 +340,7 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'select.next',
       title: 'Next Task',
+      keywords: 'down below cursor',
       description: 'Moves to the next task.',
       group: 'Select',
       shortcuts: ['down', 'j'],
@@ -341,6 +351,7 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'select.prev',
       title: 'Previous Task',
+      keywords: 'up above cursor prev',
       description: 'Moves to the previous task.',
       group: 'Select',
       shortcuts: ['up', 'k'],
@@ -351,6 +362,7 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'select.extendDown',
       title: 'Choose Next Too',
+      keywords: 'select extend shift down range multiple',
       description: 'Adds the next task to the ones chosen.',
       group: 'Select',
       shortcuts: ['shift+down', 'shift+j'],
@@ -361,6 +373,7 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'select.extendUp',
       title: 'Choose Previous Too',
+      keywords: 'select extend shift up range multiple',
       description: 'Adds the previous task to the ones chosen.',
       group: 'Select',
       shortcuts: ['shift+up', 'shift+k'],
@@ -371,15 +384,16 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'select.all',
       title: 'Choose All',
+      keywords: 'select every everything',
       description: 'Chooses every task in the view.',
       group: 'Select',
       shortcuts: ['mod+a'],
-      keywords: 'select all',
       run: () => app.selectAll(),
     },
     {
       id: 'select.clear',
       title: 'Choose None',
+      keywords: 'deselect unselect clear selection',
       description: 'Unchooses every task.',
       group: 'Select',
       shortcuts: ['esc'],
@@ -389,18 +403,30 @@ export function buildCommands(app: AppController): CommandCatalog {
     },
 
     // Go
-    go('go.inbox', 'Go to Inbox', 'g i', { type: 'project', id: INBOX_ID }),
-    go('go.today', 'Go to Today', 'g t', { type: 'today' }),
-    go('go.upcoming', 'Go to Upcoming', 'g u', { type: 'upcoming' }),
-    go('go.completed', 'Go to Completed', 'g c', { type: 'completed' }),
-    go('go.trash', 'Go to Trash', 'g x', { type: 'trash' }),
+    go('go.inbox', 'Go to Inbox', 'g i', { type: 'project', id: INBOX_ID }, 'open show view unsorted'),
+    go('go.today', 'Go to Today', 'g t', { type: 'today' }, 'open show view due overdue now'),
+    go(
+      'go.upcoming',
+      'Go to Upcoming',
+      'g u',
+      { type: 'upcoming' },
+      'open show view week future soon calendar scheduled',
+    ),
+    go(
+      'go.completed',
+      'Go to Completed',
+      'g c',
+      { type: 'completed' },
+      'open show view done finished history logbook',
+    ),
+    go('go.trash', 'Go to Trash', 'g x', { type: 'trash' }, 'open show view deleted bin'),
     {
       id: 'go.search',
       title: 'Search',
+      keywords: 'find filter look lookup query',
       description: 'Moves to the search box.',
       group: 'Go',
       shortcuts: ['/', 'mod+f'],
-      keywords: 'find',
       global: true,
       run: () => {
         app.focusSearch.value++;
@@ -416,7 +442,7 @@ export function buildCommands(app: AppController): CommandCatalog {
           ? 'Follows the light or dark setting of your computer.'
           : `Always uses the ${theme} look.`,
       group: 'View',
-      keywords: 'appearance dark light mode',
+      keywords: 'appearance colour color scheme mode',
       checked: () => app.theme.value === theme,
       run: () => app.setTheme(theme),
     })),
@@ -425,10 +451,10 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'help.commands',
       title: 'Command Menu',
+      keywords: 'palette run actions commands',
       description: 'Searches every command, project and label.',
       group: 'Help',
       shortcuts: ['mod+k', 'mod+p'],
-      keywords: 'palette run',
       global: true,
       hidden: true,
       run: () => app.toggle('commands'),
@@ -436,19 +462,19 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'help.shortcuts',
       title: 'Keyboard Shortcuts',
+      keywords: 'keys hotkeys bindings cheat sheet help',
       description: 'Lists every key Taskite knows.',
       group: 'Help',
       shortcuts: ['mod+/', '?'],
-      keywords: 'keys help',
       global: true,
       run: () => app.toggle('shortcuts'),
     },
     {
       id: 'help.docs',
       title: 'Taskite Help',
+      keywords: 'documentation docs manual guide',
       description: 'Opens the guide to Taskite on the web.',
       group: 'Help',
-      keywords: 'documentation manual guide',
       run: () => {
         window.open('https://github.com/gridlocdev/taskite/blob/main/docs/README.md', '_blank', 'noopener');
       },
@@ -456,9 +482,9 @@ export function buildCommands(app: AppController): CommandCatalog {
     {
       id: 'help.about',
       title: 'About Taskite',
+      keywords: 'version info licence license credits',
       description: 'Shows the version and where your tasks are kept.',
       group: 'Help',
-      keywords: 'version',
       run: () => app.open({ kind: 'about' }),
     },
   ];
@@ -484,7 +510,7 @@ export function dynamicEntries(app: AppController): DynamicEntry[] {
       id: `go.project:${p.id}`,
       title: `Go to ${p.name}`,
       group: 'Go',
-      keywords: 'project',
+      keywords: 'project open show view list',
       run: () => app.go({ type: 'project', id: p.id }),
     });
   for (const name of list.getLabels())
@@ -492,7 +518,7 @@ export function dynamicEntries(app: AppController): DynamicEntry[] {
       id: `go.label:${name}`,
       title: `Go to @${name}`,
       group: 'Go',
-      keywords: 'label tag',
+      keywords: 'label tag open show view filter',
       run: () => app.go({ type: 'label', name }),
     });
   const ids = app.shown.value.type === 'trash' ? [] : app.targetIds();

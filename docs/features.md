@@ -48,7 +48,7 @@ Drop a task on a project, a label, Today or the Trash in the sidebar to move it 
 
 ## Commands and shortcuts
 
-Every action is a command. Find any of them by name with the command menu (`⌘K`), which also jumps to a project or label and moves the chosen tasks. The menu bar, the right-click menu and the **Keyboard Shortcuts** window (`?`) all come from the same list. See [Controls](controls.md).
+Every action is a command. Find any of them with the command menu (`⌘K`) by its name or another word for it, with or without spaces, which also jumps to a project or label and moves the chosen tasks. The menu bar, the right-click menu and the **Keyboard Shortcuts** window (`?`) all come from the same list. See [Controls](controls.md).
 
 ## Look
 

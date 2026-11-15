@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { filterEntries } from '@taskite/ui';
 import { MENUS, TASK_MENU, dynamicEntries } from '../src/app/commands.ts';
 import { nativeMenu } from '../src/app/nativeMenu.ts';
 import { shortcutGroups } from '../src/app/shortcuts.ts';
@@ -8,6 +9,29 @@ const key = (k: string, more: Partial<KeyboardEvent> = {}) =>
   ({ key: k, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, ...more }) as KeyboardEvent;
 
 describe('commands', () => {
+  it('the command menu finds commands by run-together names and by their keywords', async () => {
+    const { catalog } = await makeApp();
+    const entries = catalog.all
+      .filter((c) => !c.hidden)
+      .map((c) => ({
+        id: c.id,
+        title: c.title,
+        group: c.group,
+        keywords: `${c.keywords ?? ''} ${c.description}`,
+      }));
+    const first = (q: string) => filterEntries(entries, q)[0]?.id;
+    expect(first('newtask')).toBe('task.new');
+    expect(first('new task')).toBe('task.new');
+    expect(first('movetotrash')).toBe('task.delete');
+    expect(first('preferences')).toBe('app.settings');
+    expect(first('deadline')).toBe('task.due');
+    expect(first('hotkeys')).toBe('help.shortcuts');
+    expect(filterEntries(entries, 'reorder').map((e) => e.id)).toEqual(['task.moveUp', 'task.moveDown']);
+    for (const c of catalog.all)
+      for (const word of (c.keywords ?? '').toLowerCase().split(/\s+/).filter(Boolean))
+        expect(c.title.toLowerCase().split(/[^a-z0-9]+/), `${c.id} repeats "${word}"`).not.toContain(word);
+  });
+
   it('every command says what it does', async () => {
     const { catalog } = await makeApp();
     for (const c of catalog.all) expect(c.description, c.id).toMatch(/^[A-Z].*\.$/);
