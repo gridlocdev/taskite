@@ -217,4 +217,29 @@ describe('AppController', () => {
     app.setBoard(true);
     expect(app.content.value.board).toBe(true);
   });
+
+  it('saves the open editor before another dialog replaces it (PRD §9.1)', async () => {
+    const { app } = await makeApp();
+    const t = app.list.addTask({ title: 'A' });
+    app.open({ kind: 'task', id: t.id });
+    let typed = 'A, edited';
+    app.setDraft({
+      flush: () => app.saveTask(t.id, { title: typed }),
+      dirty: () => typed !== app.list.getTask(t.id)?.title,
+    });
+    expect(app.hasDraft()).toBe(true);
+    app.toggle('commands');
+    expect(app.list.getTask(t.id)?.title).toBe('A, edited');
+    typed = 'A, again';
+    app.close();
+    expect(app.list.getTask(t.id)?.title).toBe('A, again');
+  });
+
+  it('never saves an editor into a task that went to the Trash', async () => {
+    const { app } = await makeApp();
+    const t = app.list.addTask({ title: 'A' });
+    app.list.deleteTasks(t.id);
+    app.saveTask(t.id, { title: 'B' });
+    expect(app.list.getTask(t.id)?.title).toBe('A');
+  });
 });

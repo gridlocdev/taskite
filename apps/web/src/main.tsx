@@ -49,6 +49,7 @@ async function start(): Promise<void> {
   effect(() => app.saveStatusChanged(session.status.value));
   // Saves still waiting when the tab closes are kept by the recovery snapshot; ask the browser to wait.
   addEventListener('beforeunload', (e) => {
+    app.flushDraft();
     if (session.status.peek() !== 'saved') e.preventDefault();
   });
   if (import.meta.env.DEV) Object.assign(globalThis, { taskite: { app, catalog } });
@@ -56,7 +57,8 @@ async function start(): Promise<void> {
   // Changes made elsewhere (the CLI, another window or device) show up when the window comes back, and
   // every so often while it's in front (PRD §3.4).
   const refresh = () => {
-    if (document.hidden) return;
+    // Typed text not yet saved waits until the field is left, so a refresh can't pull it out from under the user.
+    if (document.hidden || app.hasDraft()) return;
     void session.refresh().then((changed) => {
       if (changed)
         app.say(`Updated with ${changed === 1 ? 'a change' : `${changed} changes`} made elsewhere.`, {
@@ -86,7 +88,10 @@ async function start(): Promise<void> {
       }
       catalog.run(id);
     });
-    native.onCloseRequested(() => void session.flush().finally(() => native.closeReady()));
+    native.onCloseRequested(() => {
+      app.flushDraft();
+      void session.flush().finally(() => native.closeReady());
+    });
     const menu = menuSender((items) => native.setMenu(items));
     addEventListener('focus', () => {
       menu.forget();

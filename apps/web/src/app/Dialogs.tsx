@@ -16,7 +16,7 @@ import { Dialog, Icon, ListPopup, filterEntries, isMac, type CommandCatalog } fr
 import { Calendar } from './Calendar.tsx';
 import { CommandMenu } from './CommandMenu.tsx';
 import type { AppController } from './controller.ts';
-import { duePreview, parseDueText, parseLabels } from './forms.ts';
+import { duePreview, editorPatch, parseDueText, type EditorFields } from './forms.ts';
 import { shortcutGroups } from './shortcuts.ts';
 
 /** Whichever dialog is open, plus the save conflict and recovery dialogs, which come from the session. */
@@ -196,8 +196,62 @@ function TaskEditor({ app, id }: { readonly app: AppController; readonly id: str
     body.current?.querySelector<HTMLElement>(`[data-field="${focusField}"]`)?.focus();
     setFocusField(null);
   }, [focusField]);
-  void app.rev.value;
-  if (!task) return null;
+  // The text as it was when the editor opened or last saved; only fields typed since then are saved.
+  const fields = { title, description, due, labels };
+  const start = useRef<EditorFields>(fields);
+  const latest = useRef(fields);
+  latest.current = fields;
+  const saveText = () => {
+    const now = latest.current;
+    if (!now.title.trim()) setTitle(start.current.title);
+    app.saveTask(id, editorPatch(start.current, now));
+    start.current = { ...now, title: now.title.trim() ? now.title : start.current.title };
+  };
+  const saveRef = useRef(saveText);
+  saveRef.current = saveText;
+  useEffect(() => {
+    app.setDraft({
+      flush: () => saveRef.current(),
+      dirty: () => Object.keys(editorPatch(start.current, latest.current)).length > 0,
+    });
+    return () => {
+      saveRef.current();
+      app.setDraft(null);
+    };
+  }, [app]);
+  const rev = app.rev.value;
+  // A change from elsewhere shows in the fields nobody has typed in.
+  useEffect(() => {
+    const t = app.list.getTask(id);
+    if (!t) return;
+    const fresh: EditorFields = {
+      title: t.title,
+      description: t.description,
+      due: t.due ?? '',
+      labels: t.labels.join(', '),
+    };
+    const was = start.current;
+    const now = latest.current;
+    if (now.title === was.title) setTitle(fresh.title);
+    if (now.description === was.description) setDescription(fresh.description);
+    if (now.due === was.due) setDue(fresh.due);
+    if (now.labels === was.labels) setLabels(fresh.labels);
+    start.current = {
+      title: now.title === was.title ? fresh.title : was.title,
+      description: now.description === was.description ? fresh.description : was.description,
+      due: now.due === was.due ? fresh.due : was.due,
+      labels: now.labels === was.labels ? fresh.labels : was.labels,
+    };
+  }, [rev]);
+  // The task went away (deleted elsewhere, or a conflict choice): close instead of showing nothing.
+  const gone = !task || task.deletedAt !== null;
+  useEffect(() => {
+    if (gone) {
+      app.close();
+      app.say('That task is no longer there.');
+    }
+  }, [gone]);
+  if (!task || gone) return null;
   const subtasks = app.list.getSubtasks(task.id);
   const has: Readonly<Record<Extra, boolean>> = {
     due: task.due !== null,
@@ -211,17 +265,6 @@ function TaskEditor({ app, id }: { readonly app: AppController; readonly id: str
     (x) => !shows(x) && !(x === 'subtasks' && task.parentId),
   );
   const save = (patch: TaskPatch) => app.saveTask(task.id, patch);
-  // Text fields: the typed text, saved when the field loses focus and when the editor closes.
-  const saveText = () => {
-    const name = title.trim();
-    if (!name) setTitle(task.title);
-    save({
-      ...(name ? { title: name } : {}),
-      description: description.trim(),
-      labels: parseLabels(labels),
-      due: due || null,
-    });
-  };
   const done = () => {
     saveText();
     app.close();

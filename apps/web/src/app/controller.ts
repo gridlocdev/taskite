@@ -53,6 +53,12 @@ export interface Notice {
 }
 
 /** The one dialog that can be open (PRD §9). */
+/** The task editor's unsaved text: save it, or ask whether there is any. */
+export interface Draft {
+  flush(): void;
+  dirty(): boolean;
+}
+
 export type DialogState =
   | { readonly kind: 'task'; readonly id: string }
   | { readonly kind: 'due'; readonly ids: readonly string[] }
@@ -440,7 +446,7 @@ export class AppController {
    */
   saveTask(id: string, patch: TaskPatch): void {
     const task = this.list.getTask(id);
-    if (!task) return;
+    if (!task || task.deletedAt !== null) return;
     const next: TaskPatch = { ...patch };
     if (next.recurrence && !(next.due ?? task.due)) next.due = this.today.peek();
     if (next.due === null && task.recurrence && next.recurrence === undefined) next.recurrence = null;
@@ -780,7 +786,29 @@ export class AppController {
 
   // ---------- Dialogs ----------
 
+  /**
+   * The open editor's typed text, which isn't in the task list until it's saved. Everything that closes
+   * or replaces the editor saves it first: another dialog, Esc, a conflict, closing the window (PRD §9.1).
+   */
+  #draft: Draft | null = null;
+
+  /** The editor registers its draft while it's open. */
+  setDraft(draft: Draft | null): void {
+    this.#draft = draft;
+  }
+
+  /** Saves the open editor's typed text, if any. */
+  flushDraft(): void {
+    this.#draft?.flush();
+  }
+
+  /** Whether the open editor holds typed text not yet saved. Changes from elsewhere wait for it. */
+  hasDraft(): boolean {
+    return this.#draft?.dirty() ?? false;
+  }
+
   open(dialog: DialogState): void {
+    this.flushDraft();
     batch(() => {
       this.menu.value = null;
       this.dialog.value = dialog;
@@ -788,6 +816,7 @@ export class AppController {
   }
 
   close(): void {
+    this.flushDraft();
     this.dialog.value = null;
     this.focusList.value++;
   }

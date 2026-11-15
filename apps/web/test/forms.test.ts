@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { dropOrder, duePreview, parseDueText, parseLabels, stepOrder } from '../src/app/forms.ts';
+import {
+  dropOrder,
+  duePreview,
+  editorPatch,
+  parseDueText,
+  parseLabels,
+  stepOrder,
+} from '../src/app/forms.ts';
 
 const TODAY = '2026-03-10';
 
@@ -49,6 +56,24 @@ describe('forms', () => {
 
     it('moves the parent when a subtask is chosen with other tasks', () => {
       expect(stepOrder(ids, parentOf, ['a1', 'c'], 1)).toEqual(['b', 'a', 'a1', 'a2', 'd', 'c']);
+    });
+  });
+
+  describe('editorPatch', () => {
+    const start = { title: 'Buy milk', description: '', due: '', labels: 'home' };
+    it('sends only the fields typed in', () => {
+      expect(editorPatch(start, start)).toEqual({});
+      expect(editorPatch(start, { ...start, description: ' two litres ' })).toEqual({
+        description: 'two litres',
+      });
+      expect(editorPatch(start, { ...start, labels: 'home,  shop' })).toEqual({ labels: ['home', 'shop'] });
+      expect(editorPatch(start, { ...start, due: '2026-03-12' })).toEqual({ due: '2026-03-12' });
+    });
+    it('keeps the old name when the name is cleared', () => {
+      expect(editorPatch(start, { ...start, title: '  ' })).toEqual({});
+    });
+    it('ignores spacing and label order that mean the same thing', () => {
+      expect(editorPatch(start, { ...start, title: 'Buy milk ', labels: ' home ' })).toEqual({});
     });
   });
 });

@@ -1,5 +1,5 @@
 /** The rules behind the dialogs' fields, kept out of the components so they can be tested. */
-import { formatDue, parseDueText } from '@taskite/core';
+import { formatDue, parseDueText, type TaskPatch } from '@taskite/core';
 
 export { parseDueText };
 
@@ -11,6 +11,30 @@ export function duePreview(text: string, today: string): string {
 }
 
 /** The labels field: comma-separated, "@" dropped, spaces become "-", no repeats ignoring case. */
+/** The task editor's text fields, as typed (PRD §9.1). */
+export interface EditorFields {
+  readonly title: string;
+  readonly description: string;
+  readonly due: string;
+  readonly labels: string;
+}
+
+/**
+ * What the editor saves: only the fields typed since `start` (the values when it opened, or when it last
+ * saved). A field left alone is never sent, so it can't write an old copy over a change made elsewhere
+ * while the editor was open. An empty name isn't saved.
+ */
+export function editorPatch(start: EditorFields, now: EditorFields): TaskPatch {
+  const patch: TaskPatch = {};
+  const title = now.title.trim();
+  if (title && title !== start.title.trim()) patch.title = title;
+  if (now.description.trim() !== start.description.trim()) patch.description = now.description.trim();
+  if (now.due !== start.due) patch.due = now.due || null;
+  if (JSON.stringify(parseLabels(now.labels)) !== JSON.stringify(parseLabels(start.labels)))
+    patch.labels = parseLabels(now.labels);
+  return patch;
+}
+
 export function parseLabels(text: string): string[] {
   const labels: string[] = [];
   for (const raw of text.split(',')) {
