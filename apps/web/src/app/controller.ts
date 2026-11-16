@@ -30,7 +30,7 @@ import {
   type Theme,
   type View,
 } from '@taskite/core';
-import type { TaskSession } from '@taskite/ui';
+import { after, wait, type TaskSession } from '@taskite/ui';
 import { stepOrder } from './forms.ts';
 
 /** How long a checked-off row shows its tick before it leaves, and how long a leaving row fades (PRD §5.3). */
@@ -149,7 +149,7 @@ export class AppController {
   readonly focusSearch = signal(0);
 
   #noticeId = 0;
-  #noticeTimer: ReturnType<typeof setTimeout> | undefined;
+  #cancelNotice: (() => void) | undefined;
 
   readonly theme = computed<Theme>(() => {
     void this.rev.value;
@@ -173,7 +173,7 @@ export class AppController {
   constructor(session: TaskSession, opts: ControllerOptions = {}) {
     this.session = session;
     this.#now = opts.now ?? Date.now;
-    this.#wait = opts.wait ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
+    this.#wait = opts.wait ?? wait;
     this.version = opts.version ?? '';
     this.location = opts.location ?? session.store.location();
     this.today = signal(todayISO(new Date(this.#now())));
@@ -198,7 +198,7 @@ export class AppController {
 
   /** Puts a message in the status bar (PRD §5.5). */
   say(text: string, opts: { action?: NoticeAction; sticky?: boolean; tone?: 'info' | 'error' } = {}): void {
-    clearTimeout(this.#noticeTimer);
+    this.#cancelNotice?.();
     const notice: Notice = {
       id: ++this.#noticeId,
       text,
@@ -209,9 +209,9 @@ export class AppController {
     this.notice.value = notice;
     this.announcement.value = text;
     if (!notice.sticky) {
-      this.#noticeTimer = setTimeout(() => {
+      this.#cancelNotice = after(NOTICE_MS, () => {
         if (this.notice.peek()?.id === notice.id) this.notice.value = null;
-      }, NOTICE_MS);
+      });
     }
   }
 
@@ -235,7 +235,7 @@ export class AppController {
   }
 
   dismissNotice(): void {
-    clearTimeout(this.#noticeTimer);
+    this.#cancelNotice?.();
     this.notice.value = null;
   }
 

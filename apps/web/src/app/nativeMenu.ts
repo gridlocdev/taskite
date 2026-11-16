@@ -7,6 +7,7 @@ import {
   type CommandCatalog,
   type NativeMenuItem,
   type Shortcut,
+  debounce,
 } from '@taskite/ui';
 import type { AppController } from './controller.ts';
 
@@ -91,18 +92,17 @@ export function menuSender(send: (menu: readonly NativeMenuItem[]) => void): {
 
 /** Calls `changed` (on the next tick, at most every `settleMs`) when anything a menu item reads may have moved. */
 export function watchMenuInputs(app: AppController, changed: () => void, settleMs = 100): () => void {
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  const later = debounce(settleMs, changed);
   const stop = effect(() => {
     void app.rev.value;
     void app.shown.value;
     void app.selected.value;
     void app.cursor.value;
     void app.dialog.value;
-    clearTimeout(timer);
-    timer = setTimeout(changed, settleMs);
+    later.call();
   });
   return () => {
-    clearTimeout(timer);
+    later.cancel();
     stop();
   };
 }

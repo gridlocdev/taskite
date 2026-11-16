@@ -53,6 +53,7 @@ export {
   type Shortcut,
   type ShortcutEvent,
 } from './commands/index.ts';
+export { after, debounce, every, wait } from './schedule.ts';
 export { Dialog } from './components/Dialog.tsx';
 export { focusables, trapIndex, trapTab } from './components/focusTrap.ts';
 export { Icon } from './components/Icon.tsx';

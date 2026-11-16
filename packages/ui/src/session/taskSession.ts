@@ -13,6 +13,7 @@ import {
   type AppData,
   type TaskListOptions,
 } from '@taskite/core';
+import { wait } from '../schedule.ts';
 import { ConflictError, type TaskStore } from '../store/taskStore.ts';
 
 export type SaveStatus = 'saved' | 'saving' | 'failed' | 'conflict';
@@ -112,7 +113,7 @@ export class TaskSession {
     this.list = new TaskList(data, opts);
     this.#version = version;
     this.#recovery = opts.recovery ?? memoryRecovery();
-    this.#wait = opts.wait ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
+    this.#wait = opts.wait ?? wait;
     this.#now = opts.now ?? Date.now;
     this.list.onChange((kind) => {
       if (kind !== 'load' && kind !== 'outside') this.#kick();

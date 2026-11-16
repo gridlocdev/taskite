@@ -1,7 +1,7 @@
 import { effect } from '@preact/signals';
 import { render } from 'preact';
 import '@taskite/ui/styles.css';
-import { NasClient, TaskSession, localRecovery, localTokenStorage, BrowserStore } from '@taskite/ui';
+import { NasClient, TaskSession, localRecovery, localTokenStorage, BrowserStore, every } from '@taskite/ui';
 import { App } from './app/App.tsx';
 import { buildCommands } from './app/commands.ts';
 import { AppController } from './app/controller.ts';
@@ -69,7 +69,7 @@ async function start(): Promise<void> {
   };
   addEventListener('focus', refresh);
   document.addEventListener('visibilitychange', refresh);
-  setInterval(refresh, REFRESH_MS);
+  every(REFRESH_MS, refresh);
 
   if (native) {
     const html = document.documentElement.classList;

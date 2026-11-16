@@ -1,5 +1,5 @@
 import { useEffect } from 'preact/hooks';
-import type { CommandCatalog, KeyFocus } from '@taskite/ui';
+import { every, type CommandCatalog, type KeyFocus } from '@taskite/ui';
 import { ContextMenu } from './ContextMenu.tsx';
 import type { AppController } from './controller.ts';
 import { Dialogs } from './Dialogs.tsx';
@@ -42,13 +42,13 @@ export function App({ app, catalog }: { readonly app: AppController; readonly ca
     };
     addEventListener('keydown', onKey);
     // Midnight: Today, Upcoming and the due dates move on.
-    const clock = setInterval(() => app.tick(), 30_000);
+    const stopClock = every(30_000, () => app.tick());
     const wake = () => app.tick();
     addEventListener('focus', wake);
     return () => {
       removeEventListener('keydown', onKey);
       removeEventListener('focus', wake);
-      clearInterval(clock);
+      stopClock();
     };
   }, [app, catalog]);
 
