@@ -12,14 +12,14 @@ just setup   # corepack enable, then pnpm install
 
 ### Running it
 
-| Recipe                      | What it runs                                                                                                          |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `just run-web`              | The web client on http://localhost:5173 with hot reload, plus the NAS server on :8788 serving `./.nas-data`           |
-| `just run-server`           | The NAS server only, on http://localhost:8788, restarting when its source changes                                     |
-| `just preview-web`          | The built web client served by the NAS server, as it runs on a NAS                                                    |
-| `just run-desktop`          | The desktop app in dev mode (builds the web client first)                                                             |
+| Recipe | What it runs |
+| --- | --- |
+| `just run-web` | The web client on http://localhost:5173 with hot reload, plus the NAS server on :8788 serving `./.nas-data` |
+| `just run-server` | The NAS server only, on http://localhost:8788, restarting when its source changes |
+| `just preview-web` | The built web client served by the NAS server, as it runs on a NAS |
+| `just run-desktop` | The desktop app in dev mode (builds the web client first) |
 | `just run-desktop-headless` | The desktop app with no window or Dock icon, on `./.headless-data`, with DevTools on port 9334 (for automated checks) |
-| `just cli <args>`           | The `taskite` CLI from source, for example `just cli list upcoming`                                                   |
+| `just cli <args>` | The `taskite` CLI from source, for example `just cli list upcoming` |
 
 The desktop app in dev mode uses your real tasks file. To try it on throwaway data, set `TASKITE_USER_DATA` to another folder:
 

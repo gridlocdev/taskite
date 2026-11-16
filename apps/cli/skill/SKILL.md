@@ -1,11 +1,7 @@
 ---
 name: taskite
 description: >-
-  Read and change someone's Taskite tasks from the terminal with the `taskite` command: list what is
-  due today, upcoming, in the Inbox, in a project or with a label; add tasks with Quick Add text
-  ("Call mum tomorrow p1 #Family @phone"); complete, reopen, trash and restore them, move them to a project or set their due date; list projects.
-  Use it when a task involves their to-do list, Taskite, or "my tasks", or when a script needs to add
-  or check tasks. Covers naming tasks by title or id, `--json` output, which file it uses, and the exit codes.
+  Read and change someone's Taskite tasks from the terminal with the `taskite` command: list what is due today, upcoming, in the Inbox, in a project or with a label; add tasks with Quick Add text ("Call mum tomorrow p1 #Family @phone"); complete, reopen, trash and restore them, move them to a project or set their due date; list projects. Use it when a task involves their to-do list, Taskite, or "my tasks", or when a script needs to add or check tasks. Covers naming tasks by title or id, `--json` output, which file it uses, and the exit codes.
 ---
 
 # Working with Taskite through `taskite`
@@ -14,19 +10,19 @@ description: >-
 
 ## Commands
 
-| Command                                                   | Does                                                                                 |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `taskite list [today\|upcoming\|inbox\|completed\|trash]` | Prints tasks. Default `today` (overdue and due today).                               |
-| `taskite list --project <name>` / `--label <name>`        | A project's or a label's open tasks; sections print as `## Name`. Names ignore case. |
-| `taskite add <text...>`                                   | Adds a task to the Inbox. Prints its short id.                                       |
-| `taskite add <text...> --section <name>`                  | Adds it into a section of its project (`#Work --section doing`).                     |
-| `taskite done <task>`                                     | Completes a task. A repeating task moves to its next date instead.                   |
-| `taskite reopen <task>`                                   | Marks a completed task not done.                                                     |
-| `taskite trash <task>` / `taskite restore <task>`         | Moves a task to the Trash, or back.                                                  |
-| `taskite move <task> <project>`                           | Moves a task to a project (`#Name` or the name, ignoring case).                      |
-| `taskite due <task> <date>`                               | Sets the due date (`tomorrow`, `fri`, `jan 5`); `none` clears it.                    |
-| `taskite projects`                                        | Projects with their open task counts.                                                |
-| `taskite path`                                            | The tasks file it uses.                                                              |
+| Command | Does |
+| --- | --- |
+| `taskite list [today\|upcoming\|inbox\|completed\|trash]` | Prints tasks. Default `today` (overdue and due today). |
+| `taskite list --project <name>` / `--label <name>` | A project's or a label's open tasks; sections print as `## Name`. Names ignore case. |
+| `taskite add <text...>` | Adds a task to the Inbox. Prints its short id. |
+| `taskite add <text...> --section <name>` | Adds it into a section of its project (`#Work --section doing`). |
+| `taskite done <task>` | Completes a task. A repeating task moves to its next date instead. |
+| `taskite reopen <task>` | Marks a completed task not done. |
+| `taskite trash <task>` / `taskite restore <task>` | Moves a task to the Trash, or back. |
+| `taskite move <task> <project>` | Moves a task to a project (`#Name` or the name, ignoring case). |
+| `taskite due <task> <date>` | Sets the due date (`tomorrow`, `fri`, `jan 5`); `none` clears it. |
+| `taskite projects` | Projects with their open task counts. |
+| `taskite path` | The tasks file it uses. |
 
 ## Quick Add text
 

@@ -14,14 +14,14 @@ Taskite is a to-do list for one person. One UI runs in the browser, in the NAS s
 
 ## Layout
 
-| Path            | What it is                                                                                                                                          |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Path | What it is |
+| --- | --- |
 | `packages/core` | The pure engine: the task model, `tasks.json` reading and writing, Quick Add parsing, dates, recurrence, undo. No DOM or Node (ESLint enforces it). |
-| `packages/ui`   | Preact and signals: the command catalog, dialogs, ⌘K, icons, and the `TaskStore` adapters.                                                          |
-| `apps/web`      | The app shell, the list of commands and the Vite entry point. One static build serves the browser, the NAS server and the desktop app.              |
-| `apps/server`   | The NAS server (`node:http`): serves the client and `/api/data`. No framework.                                                                      |
-| `apps/desktop`  | The Electron shell: main process, sandboxed preload bridge, native menu.                                                                            |
-| `apps/cli`      | The `taskite` CLI, run from source. It depends on `packages/core` only.                                                                             |
+| `packages/ui` | Preact and signals: the command catalog, dialogs, ⌘K, icons, and the `TaskStore` adapters. |
+| `apps/web` | The app shell, the list of commands and the Vite entry point. One static build serves the browser, the NAS server and the desktop app. |
+| `apps/server` | The NAS server (`node:http`): serves the client and `/api/data`. No framework. |
+| `apps/desktop` | The Electron shell: main process, sandboxed preload bridge, native menu. |
+| `apps/cli` | The `taskite` CLI, run from source. It depends on `packages/core` only. |
 
 ## Golden rules
 

@@ -6,23 +6,23 @@ Single-letter keys only work when you aren't typing in a box.
 
 ## Adding tasks
 
-| Action                               | macOS                           | Windows / Linux                       |
-| ------------------------------------ | ------------------------------- | ------------------------------------- |
-| New task                             | **Q**, **N** or **⌘N**          | **Q**, **N** or **Ctrl+N**            |
-| Save the task and start the next one | **↩**                           | **Enter**                             |
-| Stop adding                          | **↩** on an empty row, or **⎋** | **Enter** on an empty row, or **Esc** |
+| Action | macOS | Windows / Linux |
+| --- | --- | --- |
+| New task | **Q**, **N** or **⌘N** | **Q**, **N** or **Ctrl+N** |
+| Save the task and start the next one | **↩** | **Enter** |
+| Stop adding | **↩** on an empty row, or **⎋** | **Enter** on an empty row, or **Esc** |
 
 ## Choosing tasks
 
-| Action                       | macOS                                | Windows / Linux                                              |
-| ---------------------------- | ------------------------------------ | ------------------------------------------------------------ |
-| Next / previous task         | **↓** / **↑** (or **J** / **K**)     | **Down** / **Up** (or **J** / **K**)                         |
-| Add the task below / above   | **⇧↓** / **⇧↑** (or **⇧J** / **⇧K**) | **Shift+Down** / **Shift+Up** (or **Shift+J** / **Shift+K**) |
-| Add or remove one task       | **⌘-click**                          | **Ctrl-click**                                               |
-| Choose a range               | **Shift-click**                      | **Shift-click**                                              |
-| Choose all tasks in the list | **⌘A**                               | **Ctrl+A**                                                   |
-| Clear the choice             | **⎋**                                | **Esc**                                                      |
-| Menu of actions              | Right-click a task (or **⇧F10**)     | Right-click a task (or **Shift+F10**)                        |
+| Action | macOS | Windows / Linux |
+| --- | --- | --- |
+| Next / previous task | **↓** / **↑** (or **J** / **K**) | **Down** / **Up** (or **J** / **K**) |
+| Add the task below / above | **⇧↓** / **⇧↑** (or **⇧J** / **⇧K**) | **Shift+Down** / **Shift+Up** (or **Shift+J** / **Shift+K**) |
+| Add or remove one task | **⌘-click** | **Ctrl-click** |
+| Choose a range | **Shift-click** | **Shift-click** |
+| Choose all tasks in the list | **⌘A** | **Ctrl+A** |
+| Clear the choice | **⎋** | **Esc** |
+| Menu of actions | Right-click a task (or **⇧F10**) | Right-click a task (or **Shift+F10**) |
 
 ## Working on the chosen tasks
 
@@ -56,10 +56,10 @@ Single-letter keys only work when you aren't typing in a box.
 
 ## Settings and help
 
-| Action                              | macOS                            | Windows / Linux                               |
-| ----------------------------------- | -------------------------------- | --------------------------------------------- |
-| Settings                            | **⌘,**                           | **Ctrl+,**                                    |
-| Command menu                        | **⌘K** or **⌘P**                 | **Ctrl+K** or **Ctrl+P**                      |
+| Action | macOS | Windows / Linux |
+| --- | --- | --- |
+| Settings | **⌘,** | **Ctrl+,** |
+| Command menu | **⌘K** or **⌘P** | **Ctrl+K** or **Ctrl+P** |
 | Next / previous command in the menu | **↓** / **↑**, or **⇥** / **⇧⇥** | **Down** / **Up**, or **Tab** / **Shift+Tab** |
-| Keyboard shortcuts                  | **?** or **⌘/**                  | **?** or **Ctrl+/**                           |
-| Close a window or clear search      | **⎋**                            | **Esc**                                       |
+| Keyboard shortcuts | **?** or **⌘/** | **?** or **Ctrl+/** |
+| Close a window or clear search | **⎋** | **Esc** |

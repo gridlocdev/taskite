@@ -36,12 +36,12 @@ Taskite used to be called Tasks. The first time it starts, if it has no tasks fi
 
 ## Where your tasks are kept
 
-| Runs as | File                                                                                                                             |
-| ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Runs as | File |
+| --- | --- |
 | Desktop | `tasks.json` in `~/Library/Application Support/Taskite/` (macOS), `%APPDATA%\Taskite\` (Windows) or `~/.config/Taskite/` (Linux) |
-| Browser | The browser's private storage for the site                                                                                       |
-| NAS     | `tasks.json` in the folder you mount at `/data`                                                                                  |
-| CLI     | `--file <path>`, else `$TASKITE_FILE`, else the desktop app's file                                                               |
+| Browser | The browser's private storage for the site |
+| NAS | `tasks.json` in the folder you mount at `/data` |
+| CLI | `--file <path>`, else `$TASKITE_FILE`, else the desktop app's file |
 
 It is plain JSON, so you can back it up, sync it, or read it with other tools.
 
@@ -54,14 +54,14 @@ docker run -d -p 8788:8788 -e TASKITE_TOKEN=change-me -v /volume1/taskite:/data 
 
 Then open `http://<nas>:8788` and enter the token. To run it with Compose or as your NAS user, see [compose.example.yaml](../compose.example.yaml).
 
-| Variable          | Default   | Meaning                                                                                                              |
-| ----------------- | --------- | -------------------------------------------------------------------------------------------------------------------- |
-| `TASKITE_TOKEN`   | unset     | The browser asks for this token once before it shows any tasks. Required unless the server answers this machine only |
-| `TASKITE_NO_AUTH` | unset     | `1` lets the server listen on the network without a token, for a reverse proxy that already asks for a password      |
-| `TASKITE_HOSTS`   | unset     | Without a token, the extra host names to answer (comma-separated)                                                    |
-| `TASKITE_HOST`    | `0.0.0.0` | The address to listen on, in the Docker image (`127.0.0.1` outside it)                                               |
-| `TASKITE_PORT`    | `8788`    | The port to listen on                                                                                                |
-| `TASKITE_DATA`    | `/data`   | The folder that holds `tasks.json`                                                                                   |
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `TASKITE_TOKEN` | unset | The browser asks for this token once before it shows any tasks. Required unless the server answers this machine only |
+| `TASKITE_NO_AUTH` | unset | `1` lets the server listen on the network without a token, for a reverse proxy that already asks for a password |
+| `TASKITE_HOSTS` | unset | Without a token, the extra host names to answer (comma-separated) |
+| `TASKITE_HOST` | `0.0.0.0` | The address to listen on, in the Docker image (`127.0.0.1` outside it) |
+| `TASKITE_PORT` | `8788` | The port to listen on |
+| `TASKITE_DATA` | `/data` | The folder that holds `tasks.json` |
 
 Anyone who can reach the server can change and delete your tasks, so it refuses to start on a network address without `TASKITE_TOKEN`. If your NAS's reverse proxy already asks for a password, set `TASKITE_NO_AUTH=1` instead, and publish the port only to the proxy.
 
