@@ -87,7 +87,8 @@ export function TaskView({
           role="listbox"
           aria-labelledby="tk-view-title"
           aria-multiselectable="true"
-          tabIndex={cursor ? -1 : 0}
+          // A board's columns are Tab stops of their own (see SectionView), so the board itself isn't one.
+          tabIndex={cursor || (content.board && app.ids.value.length) ? -1 : 0}
           onKeyDown={(e) => {
             if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
               e.preventDefault();
@@ -105,6 +106,7 @@ export function TaskView({
               catalog={catalog}
               section={s}
               showContext={content.showContext}
+              board={content.board === true}
             />
           ))}
           {shownProject && (
@@ -224,12 +226,19 @@ function SectionView({
   catalog,
   section,
   showContext,
+  board,
 }: {
   readonly app: AppController;
   readonly catalog: CommandCatalog;
   readonly section: Section;
   readonly showContext: boolean;
+  readonly board: boolean;
 }) {
+  // Tab reaches every board column: the cursor's row in its column, the first row in the others. A list is
+  // one Tab stop, the cursor's row.
+  const cursor = app.cursor.value;
+  const tabStop =
+    board && !section.rows.some((r) => r.task.id === cursor) ? (section.rows[0]?.task.id ?? null) : cursor;
   const slot = section.addSlot;
   const composerHere = slot !== null && app.composer.value === slot;
   const [into, setInto] = useState(false);
@@ -297,7 +306,13 @@ function SectionView({
         </h2>
       )}
       {section.rows.map((row) => (
-        <TaskRow key={row.task.id} app={app} row={row} showContext={showContext} />
+        <TaskRow
+          key={row.task.id}
+          app={app}
+          row={row}
+          showContext={showContext}
+          tabStop={row.task.id === tabStop}
+        />
       ))}
       {composerHere ? (
         <Composer app={app} slot={slot} />
@@ -319,10 +334,12 @@ function TaskRow({
   app,
   row,
   showContext,
+  tabStop,
 }: {
   readonly app: AppController;
   readonly row: Row;
   readonly showContext: boolean;
+  readonly tabStop: boolean;
 }) {
   const { task, isSubtask } = row;
   const list = app.list;
@@ -354,7 +371,12 @@ function TaskRow({
       role="option"
       aria-selected={chosen}
       data-id={task.id}
-      tabIndex={isCursor ? 0 : -1}
+      tabIndex={tabStop ? 0 : -1}
+      // Tab into another board column puts the cursor there. A click does that itself (and ⌘-click mustn't
+      // choose the row first), so only keyboard focus counts.
+      onFocus={(e) => {
+        if (!isCursor && (e.currentTarget as HTMLElement).matches(':focus-visible')) app.click(task.id);
+      }}
       // Only top-level tasks are dragged; subtasks follow their parent (PRD §4.5).
       draggable={!inTrash && !task.parentId}
       onClick={(e) => {

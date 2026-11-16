@@ -1,4 +1,5 @@
-import { expect, openApp, readTasks, runCommand, test } from './fixtures.ts';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { DATA, expect, openApp, readTasks, runCommand, test } from './fixtures.ts';
 
 test.describe('Views', () => {
   test.beforeEach(async ({ seed, page }) => {
@@ -51,5 +52,44 @@ test.describe('Views', () => {
     await page.keyboard.type('chapter');
     await expect(page.getByRole('main')).toContainText('Read chapter four');
     await expect(page.getByRole('main')).not.toContainText('Water the plants');
+  });
+
+  test('Tab reaches every board column, and lands on the cursor row in a list', async ({ page }) => {
+    // Work as a board: Draft quarterly report in To do, Plan team offsite in Doing.
+    const file = `${DATA}/tasks.json`;
+    const data = JSON.parse(readFileSync(file, 'utf8'));
+    const work = data.projects.find((p: { name: string }) => p.name === 'Work');
+    work.view = 'board';
+    work.sections = [
+      { id: 's1', name: 'To do' },
+      { id: 's2', name: 'Doing' },
+    ];
+    for (const t of data.tasks)
+      if (t.projectId === work.id) t.sectionId = t.title.startsWith('Draft') ? 's1' : 's2';
+    writeFileSync(file, JSON.stringify(data, null, 2));
+    await page.reload();
+
+    await page.getByRole('button', { name: /^Work/ }).click();
+    const draft = page.getByRole('option', { name: /Draft quarterly report/ });
+    const plan = page.getByRole('option', { name: /Plan team offsite/ });
+    await draft.click();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('main').getByRole('button', { name: 'Add task' }).first()).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Doing section actions' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(plan).toBeFocused();
+    await expect(plan).toHaveAttribute('aria-selected', 'true');
+    await expect(draft).toHaveAttribute('aria-selected', 'false');
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Shift+Tab');
+    await expect(draft).toBeFocused();
+
+    // A list is one stop: Tab goes from the cursor row to Add task, past the other rows.
+    await page.getByRole('button', { name: /^Home/ }).click();
+    await page.getByRole('option').first().click();
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('main').getByRole('button', { name: 'Add task' })).toBeFocused();
   });
 });

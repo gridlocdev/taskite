@@ -16,6 +16,7 @@
 ### Improvements
 
 - **New Task adds beside the task you're on**: in its section or board column, or on its day in Upcoming. With no task chosen it adds at the end of the list (the first column on a board, today in Upcoming).
+- **Tab reaches every board column.** Before, a board was one Tab stop, so the tasks in the other columns could only be reached with the mouse. Tab into a column chooses the task it lands on.
 - **New Task is ⌘N** (Ctrl+N), and **New Project… is ⇧⌘N** (Ctrl+Shift+N). `N` still adds a task; `Q` no longer does.
 
 - In the command menu (⌘K) and the **Move to** list, Tab and Shift+Tab move the highlight down and up, like the arrow keys.
