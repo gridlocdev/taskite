@@ -1,0 +1,4 @@
+{
+  "ignore-error: packages/node-files/src/dataFile.ts -> some file systems cannot flush a folder; the rename itself already happened": 1,
+  "lint-disable: apps/desktop/src/preload.cts -> @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports": 1
+}

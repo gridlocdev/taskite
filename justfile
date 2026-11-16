@@ -123,6 +123,17 @@ run-docker tag="taskite:latest":
 check:
     pnpm check
 
+# Architecture rules only: layers, entry points, platform APIs, swallowed errors, file size. Part of `check`.
+[group('quality')]
+check-arch:
+    pnpm vitest run test/architecture.test.ts
+
+# Record today's architecture violations and exceptions (once, when adopting the rules; refuses after that).
+[group('quality')]
+arch-baseline:
+    @if [ -e test/architecture-baseline.json ]; then echo "The baseline exists and only shrinks: fix the violation, or ask the owner for an exception." >&2; exit 1; fi
+    ARCH_BASELINE=write pnpm vitest run test/architecture.test.ts
+
 # Run the tests once (pass a file or -t "name" to narrow them).
 [group('quality')]
 test *args:

@@ -4,7 +4,10 @@ Taskite is a to-do list for one person. One UI runs in the browser, in the NAS s
 
 ## Gates
 
-- `just check` (= `pnpm check`) must pass before you commit: Prettier check, ESLint, `tsc -b`, Vitest, and the build.
+- `just check` (= `pnpm check`) must pass before you commit: Prettier check, ESLint, `tsc -b`, Vitest (including the architecture rules in `test/architecture.test.ts`), and the build.
+- When the owner corrects something, turn the correction into a rule in `test/architecture.test.ts` or a test, not a comment or a line here.
+- Never add to `test/architecture-baseline.json`. Fix the violation; lower or delete its entry when you do. A comment is never permission: a deliberate exception (`ignoreError(promise, 'why')`, an `eslint-disable`, a `@ts-expect-error`) goes in `test/architecture-exceptions.json` only after the owner agrees.
+- Page timers go through `packages/ui/src/schedule.ts` (`wait`, `after`, `every`, `debounce`), never `setTimeout` directly.
 - When you change behaviour, add or update a test in the package's `test/` folder, and update the PRD section the code cites (`PRD §n`).
 - Check UI changes headlessly (a browser driven in the background, or the desktop app with `TASKITE_HEADLESS=1`). Never open a visible window to check your work.
 - Never point a check at the real data file. Use `TASKITE_USER_DATA=<temp dir>` for the desktop app and `--file <temp file>` for the CLI.
@@ -35,7 +38,7 @@ Taskite is a to-do list for one person. One UI runs in the browser, in the NAS s
 
 - Strict mode with `noUncheckedIndexedAccess` and `erasableSyntaxOnly`: no enums, parameter properties or namespaces. Use union types and `const` objects.
 - Relative imports end in `.ts`. Use `import type` for types only.
-- Each package's `src/index.ts` names its exports one by one. Other packages import only through `@taskite/<package>`; ESLint rejects deep imports.
+- Each package's `src/index.ts` names its exports one by one. Other packages import only through `@taskite/<package>`; ESLint and the architecture test reject deep imports.
 
 ## Git workflow
 
