@@ -46,7 +46,7 @@ const ENGINE_BANNED_GLOBALS = [
 /** The parts that run in the page. */
 const RENDERER = ['packages/ui', 'apps/web'];
 
-/** Things the page may do only in the folders or files listed. */
+// Things the page may do only in the folders or files listed. The test fails on an entry that doesn't exist.
 // Taskite keeps its settings in tasks.json, so only the store adapters touch browser storage.
 const SHARED_DIALOGS = ['packages/ui/src/components/Dialog.tsx', 'packages/ui/src/components/ListPopup.tsx'];
 const CONFINED: { rule: Rule; allowed: readonly string[] }[] = [
@@ -470,6 +470,8 @@ function scan(): Finding[] {
 
 // ── The lists ─────────────────────────────────────────────────────────────
 
+// A key names a file, not a line, so each list keeps a count per key: a second violation of a rule in a file
+// that's already in the baseline fails like any other new one.
 type Counts = Map<string, number>;
 
 function count(findings: Finding[]): Counts {
@@ -512,6 +514,10 @@ describe('architecture', () => {
 
   if (process.env.ARCH_BASELINE === 'write') {
     it('writes the baseline and the exception list', () => {
+      // Once only: written again later, the lists would quietly accept every new violation and exception.
+      expect(existsSync(BASELINE), 'The baseline exists and only shrinks. Fix the violation instead.').toBe(
+        false,
+      );
       writeList(BASELINE, count(violations));
       writeList(EXCEPTIONS, count(exceptions));
     });
@@ -522,6 +528,11 @@ describe('architecture', () => {
   const allowed = readList(EXCEPTIONS);
   it('finds the workspace parts', () => {
     expect(packageNames.size).toBeGreaterThan(0);
+  });
+
+  it("allows only files and folders that exist (set CONFINED to the app's real ones)", () => {
+    const entries = CONFINED.flatMap((c) => c.allowed.map((entry) => `${c.rule}: ${entry}`));
+    expect(entries.filter((e) => !existsSync(path.join(ROOT, e.slice(e.indexOf(': ') + 2))))).toEqual([]);
   });
 
   it('has no new violations', () => {
