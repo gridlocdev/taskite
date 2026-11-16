@@ -133,6 +133,11 @@ check-arch:
 arch-baseline:
     ARCH_BASELINE=write pnpm vitest run test/architecture.test.ts
 
+# Random-operation tests on many seeds (FUZZ_SEED=<n> just fuzz repeats one; FUZZ_SEED_BASE picks where to start).
+[group('quality')]
+fuzz runs="500":
+    FUZZ_RUNS={{ runs }} pnpm vitest run -t random
+
 # Run the tests once (pass a file or -t "name" to narrow them).
 [group('quality')]
 test *args:
