@@ -10,9 +10,7 @@ description: >-
 
 # Working with Taskite through `taskite`
 
-`taskite` uses the same engine as the Taskite app and edits the same `tasks.json`, so a task added here
-looks exactly like one added in the app. Every change is saved at once, atomically, and only if the file
-hasn't changed since the command read it.
+`taskite` uses the same engine as the Taskite app and edits the same `tasks.json`, so a task added here looks exactly like one added in the app. Every change is saved at once, atomically, and only if the file hasn't changed since the command read it.
 
 ## Commands
 
@@ -32,36 +30,22 @@ hasn't changed since the command read it.
 
 ## Quick Add text
 
-`add` reads the text like the app's add-task row: a date (`today`, `tomorrow`, `fri`, `next week`,
-`next month`, `in 3 days`, `mar 3`, `2026-04-01`), a repeat (`every day`, `every weekday`, `every week`, `every month`, `every year`, `every monday`),
-a priority (`p1` urgent to `p4` normal), `#Project` (made if it doesn't exist; `#Big-Plans` means
-"Big Plans") and `@labels`. What is left is the task's name. Quote the text if it has shell characters.
+`add` reads the text like the app's add-task row: a date (`today`, `tomorrow`, `fri`, `next week`, `next month`, `in 3 days`, `mar 3`, `2026-04-01`), a repeat (`every day`, `every weekday`, `every week`, `every month`, `every year`, `every monday`), a priority (`p1` urgent to `p4` normal), `#Project` (made if it doesn't exist; `#Big-Plans` means "Big Plans") and `@labels`. What is left is the task's name. Quote the text if it has shell characters.
 
 ## Naming a task
 
-A `<task>` is part of its title, ignoring case: `taskite done call mum`. `move` and `due` take only the
-first word as the task, so quote a longer title there: `taskite due "call mum" fri`. A title that equals
-the words wins over titles that only contain them. When several tasks still match, taskite lists them
-with their short ids, exits 1 and changes nothing; run it again with more of the title or the id.
+A `<task>` is part of its title, ignoring case: `taskite done call mum`. `move` and `due` take only the first word as the task, so quote a longer title there: `taskite due "call mum" fri`. A title that equals the words wins over titles that only contain them. When several tasks still match, taskite lists them with their short ids, exits 1 and changes nothing; run it again with more of the title or the id.
 
-`list` prints each task's short id (the first 8 characters). Any start of an id that only one task has
-also works: `taskite done 9ac7`. Use ids from `list --json` when scripting, since titles can change.
+`list` prints each task's short id (the first 8 characters). Any start of an id that only one task has also works: `taskite done 9ac7`. Use ids from `list --json` when scripting, since titles can change.
 
 ## JSON
 
-Add `--json` to any command. Successes print `{ "ok": true, ... }` with `tasks`, `task` or `projects`;
-each task has `id`, `shortId`, `title`, `project`, `parentId`, `labels`, `priority`, `due`
-(`YYYY-MM-DD` or null), `recurrence`, `completed` and `deleted`. Failures print
-`{ "ok": false, "error": "..." }` and still exit non-zero.
+Add `--json` to any command. Successes print `{ "ok": true, ... }` with `tasks`, `task` or `projects`; each task has `id`, `shortId`, `title`, `project`, `parentId`, `labels`, `priority`, `due` (`YYYY-MM-DD` or null), `recurrence`, `completed` and `deleted`. Failures print `{ "ok": false, "error": "..." }` and still exit non-zero.
 
 ## Which file
 
-`--file <path>`, else `$TASKITE_FILE`, else the desktop app's file (macOS
-`~/Library/Application Support/Taskite/tasks.json`, Windows `%APPDATA%\Taskite\tasks.json`, Linux
-`~/.config/Taskite/tasks.json`). Use `--file` with a copy when trying things out.
+`--file <path>`, else `$TASKITE_FILE`, else the desktop app's file (macOS `~/Library/Application Support/Taskite/tasks.json`, Windows `%APPDATA%\Taskite\tasks.json`, Linux `~/.config/Taskite/tasks.json`). Use `--file` with a copy when trying things out.
 
 ## Exit codes
 
-`0` done. `1` a problem: no task or several tasks match, the file changed during the run (run it again), a file
-that isn't valid JSON (it is left alone), or a desktop app that hasn't brought over the old Tasks app's
-file yet. `2` a command-line mistake. Errors print one line, `taskite: <message>`, to stderr.
+`0` done. `1` a problem: no task or several tasks match, the file changed during the run (run it again), a file that isn't valid JSON (it is left alone), or a desktop app that hasn't brought over the old Tasks app's file yet. `2` a command-line mistake. Errors print one line, `taskite: <message>`, to stderr.

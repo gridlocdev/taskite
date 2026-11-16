@@ -1,3 +1,1 @@
-Made-up tasks for the browser scenarios, written with the CLI (`just cli add … --file`). The scenarios fix the
-page clock at 2027-01-15 09:00 UTC, so "Water the plants" is due today and "Book dentist appointment" is overdue.
-Never copy real tasks here.
+Made-up tasks for the browser scenarios, written with the CLI (`just cli add … --file`). The scenarios fix the page clock at 2027-01-15 09:00 UTC, so "Water the plants" is due today and "Book dentist appointment" is overdue. Never copy real tasks here.
