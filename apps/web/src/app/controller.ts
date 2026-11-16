@@ -275,8 +275,14 @@ export class AppController {
         return `@${view.name}`;
       case 'search':
         return `Search: ${view.query}`;
-      default:
-        return view.type[0]!.toUpperCase() + view.type.slice(1);
+      case 'today':
+        return 'Today';
+      case 'upcoming':
+        return 'Upcoming';
+      case 'completed':
+        return 'Completed';
+      case 'trash':
+        return 'Trash';
     }
   }
 

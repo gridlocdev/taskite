@@ -172,7 +172,8 @@ function navMenu(view: SavedView): Pick<ContextMenuState, 'kind' | 'target'> | n
       return { kind: 'completed' };
     case 'trash':
       return { kind: 'trash' };
-    default:
+    case 'today':
+    case 'upcoming':
       return null;
   }
 }
