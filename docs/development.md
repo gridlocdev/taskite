@@ -42,6 +42,7 @@ just diagram      # redraw the save diagram in architecture.md from its table
 just e2e          # browser scenarios in headless Chromium (pass a file or -g "name")
 just e2e-update   # accept new screenshots, after looking at the diff in .e2e-results
 just e2e-desktop  # the built desktop app starts headless on a throwaway folder
+just soak         # the random tests long, on new seeds from the clock: before a release, or while you're away
 just drive aria   # a quick headless look: cmd:"Go to Work" key:KeyQ type:"Buy milk" shot:after aria
 ```
 

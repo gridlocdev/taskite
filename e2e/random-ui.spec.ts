@@ -84,6 +84,9 @@ const sidebar = (page: Page) =>
 /** After a run: everything is saved, and a reload shows the same tasks without changing the file. */
 async function checkSettled(page: Page): Promise<void> {
   for (let i = 0; i < 4; i++) await page.keyboard.press('Escape');
+  // Space and Delete play the row's way out before they change anything (COMPLETE_MS, LEAVE_MS), so the save
+  // badge still says saved while one is pending. Run those timers out first.
+  await page.clock.runFor(1000);
   await expect(page.locator('.tk-save'), 'every change is saved').toHaveClass(/tk-save-saved/);
   const before = await sidebar(page);
   const file = JSON.stringify(readTasks());

@@ -141,7 +141,7 @@ diagram:
 # Random-operation tests on many seeds (FUZZ_SEED=<n> just fuzz repeats one; FUZZ_SEED_BASE picks where to start).
 [group('quality')]
 fuzz runs="500":
-    FUZZ_RUNS={{ runs }} pnpm vitest run -t random
+    FUZZ_RUNS={{ runs }} pnpm vitest run -t random --testTimeout=0
 
 # Browser scenarios against the built client and the NAS server, on fixture data in ./.e2e-data.
 [group('quality')]
@@ -158,6 +158,16 @@ e2e-update *args: build-web
 [positional-arguments]
 drive *steps: build-web
     node e2e/drive.ts "$@"
+
+# Long random runs on new seeds, on this machine: before a release, or while you're away. No CI minutes.
+[group('quality')]
+soak runs="1000": build-web
+    #!/usr/bin/env bash
+    set -euo pipefail
+    base=$(date +%s)
+    echo "Seeds start at $base (FUZZ_SEED=<n> replays one)."
+    FUZZ_RUNS={{ runs }} FUZZ_SEED_BASE=$base pnpm vitest run -t random --testTimeout=0 --silent=passed-only
+    FUZZ_RUNS=25 FUZZ_SEED_BASE=$base pnpm exec playwright test -c e2e/playwright.config.ts --project=web -g random
 
 # Desktop smoke test: the built Electron app, headless, with a throwaway data folder.
 [group('quality')]
