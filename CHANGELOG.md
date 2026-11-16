@@ -31,6 +31,8 @@
 
 ### Bugs fixed
 
+- **New Task works on a board** whose tasks are all in sections. It opens the add-task row in the first column; before, nothing happened.
+
 - **Emptying the Trash could delete a subtask that wasn't in it.** A subtask restored on its own, whose parent was later trashed and deleted, went with it. Subtasks in the Trash now also move with their parent, so a restored one comes back beside it.
 - **Unsaved changes from last time could be lost at start-up.** When Taskite started with old tasks to empty from the Trash, that save replaced the copy of your unsaved changes before it was offered back.
 - The task editor saves only the fields you typed in, so it no longer puts back a change made elsewhere (the CLI, another window) to the task's other fields. Text you typed is saved before ⌘K, another dialog, a save conflict or closing the window replaces the editor, and the editor closes when its task is deleted elsewhere.

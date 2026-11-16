@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { INBOX_ID } from '@taskite/core';
 import { filterEntries } from '@taskite/ui';
 import { MENUS, TASK_MENU, dynamicEntries } from '../src/app/commands.ts';
 import { nativeMenu } from '../src/app/nativeMenu.ts';
@@ -165,6 +166,17 @@ describe('commands', () => {
     expect(catalog.isEnabled(toggle)).toBe(true);
     // Checked off today, so Today lists them.
     expect(app.ids.value).toEqual([a.id, b.id]);
+  });
+
+  it('New Task on a board with only sections opens in the first column', async () => {
+    const { app, catalog } = await makeApp();
+    app.go({ type: 'project', id: INBOX_ID });
+    app.list.addSection(INBOX_ID, 'To do');
+    app.setBoard(true);
+    const first = app.content.value.sections[0]!;
+    expect(first.addSlot).toMatch(/^section:/);
+    catalog.run('task.new');
+    expect(app.composer.value).toBe(first.addSlot);
   });
 
   it('every menu only names real commands', async () => {

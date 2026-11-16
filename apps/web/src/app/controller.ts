@@ -451,7 +451,9 @@ export class AppController {
     const view = this.shown.value;
     if (view.type === 'upcoming') return `day:${this.today.value}`;
     if (view.type === 'completed' || view.type === 'trash' || view.type === 'search') return null;
-    return 'end';
+    // A board hides its empty No section column, so add to the first column there.
+    const slots = this.content.value.sections.map((s) => s.addSlot);
+    return slots.length === 0 || slots.includes('end') ? 'end' : (slots.find((s) => s !== null) ?? 'end');
   }
 
   /** New Task: opens the add-task row here, or in the Inbox from a view that can't take one. */
