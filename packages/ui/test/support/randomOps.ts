@@ -2,10 +2,10 @@
 // Copy to test/support/randomOps.ts in each package that uses it (a package's tests stay inside the package). Name every test that uses it "random …" so `just fuzz` finds it.
 //
 //   FUZZ_RUNS=<n>       how many seeds to try (default 20: quick enough for `just check`)
-//   FUZZ_SEED=<n>       run just this seed (paste it from a failure to reproduce it)
+//   FUZZ_SEED=<n>       run just this seed (paste it from a failure to reproduce it); its failure prints every step
 //   FUZZ_SEED_BASE=<n>  first seed of the run (`just soak` starts from the clock; default 1, so `just check` is repeatable)
 //
-// A failure throws with the seed and the last steps. Pin a found seed as a plain test so it stays fixed.
+// A failure throws with the seed and the last 30 steps (all of them under FUZZ_SEED). Pin a found seed as a plain test so it stays fixed.
 
 export interface Random {
   /** Integer in [0, max). */
@@ -33,6 +33,9 @@ export interface RandomRun<S> {
   /** The invariants: throw (or use expect) when one doesn't hold. Runs after every step. */
   check(state: S): void | Promise<void>;
   steps?: number;
+  /** Checks that only make sense once, after the last step (for example: undoing every step gives back the start). */
+  finish?(state: S): void | Promise<void>;
+  /** Cleans up after each seed. An error here never hides the seed's own failure. */
   teardown?(state: S): void | Promise<void>;
 }
 
@@ -114,17 +117,27 @@ export async function runRandomOps<S>(run: RandomRun<S>): Promise<void> {
       for (let step = 0; step < (run.steps ?? 50); step++) {
         const op = choose(run.ops, state, random);
         if (!op) break;
+        // Logged before it runs, so an op that throws is the last line.
+        log.push(`${step}: ${op.name}`);
         const detail = await op.run(state, random);
-        log.push(`${step}: ${op.name}${detail ? ` ${detail}` : ''}`);
+        if (detail) log[log.length - 1] += ` ${detail}`;
         await run.check(state);
       }
+      log.push('finish');
+      await run.finish?.(state);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`FUZZ_SEED=${seed} failed after:\n${log.slice(-30).join('\n')}\n\n${message}`, {
-        cause: error,
-      });
+      throw new Error(
+        `FUZZ_SEED=${seed} failed after:\n${(process.env.FUZZ_SEED ? log : log.slice(-30)).join('\n')}\n\n${message}`,
+        { cause: error },
+      );
     } finally {
-      await run.teardown?.(state);
+      try {
+        await run.teardown?.(state);
+      } catch (error) {
+        // Thrown from here, it would replace the failure above and lose the seed.
+        console.error(`FUZZ_SEED=${seed} teardown failed:`, error);
+      }
     }
   }
 }
