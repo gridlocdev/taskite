@@ -9,7 +9,7 @@ test.describe('Quick Add', () => {
   test('one line becomes a task with its date, priority, project and label, saved to the file', async ({
     page,
   }) => {
-    await page.keyboard.press('KeyQ');
+    await page.keyboard.press('KeyN');
     const row = page.getByRole('textbox', { name: 'New task' });
     await expect(row).toBeFocused();
     await page.keyboard.type('Buy milk tomorrow p1 #Errands @shop');
@@ -31,7 +31,7 @@ test.describe('Quick Add', () => {
 
   test('a task added in a project starts in that project', async ({ page }) => {
     await page.getByRole('button', { name: /^Work/ }).click();
-    await page.keyboard.press('KeyQ');
+    await page.keyboard.press('KeyN');
     await expect(page.getByRole('textbox', { name: 'New task' })).toBeFocused();
     await page.keyboard.type('Write the agenda');
     await page.keyboard.press('Enter');

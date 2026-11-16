@@ -28,7 +28,7 @@ const KEYS = [
   'End',
   'Backspace',
   'Delete',
-  'KeyQ',
+  'KeyN',
   'KeyD',
   'KeyM',
   'KeyR',

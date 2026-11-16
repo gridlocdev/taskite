@@ -10,9 +10,12 @@
 - **`taskite` knows tasks by name.** `taskite done call mum` works without looking up an id; when several tasks match, it lists them instead of guessing. New `taskite move <task> <project>` and `taskite due <task> <date>` commands.
 - **Changes from elsewhere show up on their own.** A task added with the `taskite` command, or in another window or on another device, appears when you come back to the window (and every 15 seconds while it's in front), with Undo. Before, you only found out when your next change ran into it.
 - **Move tasks up and down** with `⌥↑` and `⌥↓` (`Alt+Up` / `Alt+Down` on Windows and Linux). Choose one or several tasks; subtasks come along with their task.
+- **Show completed tasks in any view.** **Show Completed Tasks** (View menu or ⌘K) lists finished tasks after the open ones in the Inbox, projects, labels, Today and Upcoming, so you can see what you've done and reopen it with Space.
 - **More right-click menus.** The empty part of a list, sidebar projects and labels, Completed, the Trash and the Projects heading now have menus with the actions that fit them, such as **Add Task Here**, **Edit Project…** and **Empty Trash…**.
 
 ### Improvements
+
+- **New Task is ⌘N** (Ctrl+N), and **New Project… is ⇧⌘N** (Ctrl+Shift+N). `N` still adds a task; `Q` no longer does.
 
 - In the command menu (⌘K) and the **Move to** list, Tab and Shift+Tab move the highlight down and up, like the arrow keys.
 - ⌘Enter (Ctrl+Enter on Windows and Linux) saves and closes the task editor from any field, the description included, like **Done**. It presses the main button in the other dialogs too.

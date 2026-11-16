@@ -113,7 +113,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       keywords: 'add create quick capture todo item',
       description: 'Opens the add-task row in this view (the Inbox from Completed, Trash or a search).',
       group: 'File',
-      shortcuts: ['q', 'n', 'mod+n'],
+      shortcuts: ['mod+n', 'n'],
       global: true,
       run: () => app.newTask(),
     },
@@ -138,6 +138,8 @@ export function buildCommands(app: AppController): CommandCatalog {
       keywords: 'add create list folder area',
       description: 'Makes a project to group tasks.',
       group: 'File',
+      shortcuts: ['mod+shift+n'],
+      global: true,
       run: () => app.open({ kind: 'project', id: null }),
     },
     {
@@ -578,6 +580,17 @@ export function buildCommands(app: AppController): CommandCatalog {
     },
 
     // View
+    {
+      id: 'view.showCompleted',
+      title: 'Show Completed Tasks',
+      keywords: 'done finished checked hide reveal toggle',
+      description:
+        'Lists checked-off tasks in every view, after the open ones. Choose it again to hide them.',
+      group: 'View',
+      enabled: () => app.canShowCompleted(),
+      checked: () => app.showCompleted.value,
+      run: () => app.toggleShowCompleted(),
+    },
     ...(['auto', 'light', 'dark'] as const).map((theme): CommandSpec => ({
       id: `view.theme.${theme}`,
       title: theme === 'auto' ? 'Theme: System' : `Theme: ${theme === 'light' ? 'Light' : 'Dark'}`,

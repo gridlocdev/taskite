@@ -163,9 +163,17 @@ export class AppController {
     return q ? { type: 'search', query: q } : resolveView(this.list, this.view.value);
   });
 
+  /** Views list checked-off tasks too (the Show Completed Tasks setting). */
+  readonly showCompleted = computed(() => {
+    void this.rev.value;
+    return this.list.data.settings.showCompleted === true;
+  });
+
   readonly content = computed(() => {
     void this.rev.value;
-    return viewContent(this.list, this.shown.value, this.today.value);
+    return viewContent(this.list, this.shown.value, this.today.value, {
+      showCompleted: this.showCompleted.value,
+    });
   });
 
   readonly ids = computed(() => visibleIds(this.content.value));
@@ -481,7 +489,8 @@ export class AppController {
     }
     const open = live.filter((id) => !this.list.getTask(id)?.completed);
     const type = this.shown.peek().type;
-    if (type !== 'search' && type !== 'completed') this.#fallBack(open);
+    // Checked-off rows stay in view while completed tasks are shown.
+    if (type !== 'search' && type !== 'completed' && !this.showCompleted.peek()) this.#fallBack(open);
     const still = await this.#leave(open, 'completing', COMPLETE_MS);
     if (!still.length) return;
     const results = this.list.completeTasks(still, this.today.peek());
@@ -869,6 +878,18 @@ export class AppController {
 
   setTheme(theme: Theme): void {
     this.list.updateSettings({ theme });
+  }
+
+  /** Whether the shown view has checked-off tasks to show or hide (not Completed, the Trash or a search). */
+  canShowCompleted(): boolean {
+    const type = this.shown.value.type;
+    return type !== 'completed' && type !== 'trash' && type !== 'search';
+  }
+
+  toggleShowCompleted(): void {
+    const on = !this.showCompleted.peek();
+    this.list.updateSettings({ showCompleted: on });
+    this.say(on ? 'Showing completed tasks.' : 'Hiding completed tasks.');
   }
 
   // ---------- Dialogs ----------

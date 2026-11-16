@@ -70,6 +70,31 @@ describe('views', () => {
     expect(content.empty).toBeNull();
   });
 
+  it('with completed tasks shown, each view lists its finished tasks after the open ones', () => {
+    const a = list.addTask({ title: 'A', due: TODAY, labels: ['home'] });
+    list.addTask({ title: 'B', labels: ['home'] });
+    const sub = list.addTask({ title: 'A1', parentId: a.id });
+    const old = list.addTask({ title: 'old', due: '2026-10-01' });
+    const sat = list.addTask({ title: 'sat done', due: '2026-10-10' });
+    list.addTask({ title: 'sat open', due: '2026-10-10' });
+    list.completeTasks([sub.id, old.id, sat.id]);
+    list.completeTasks(a.id);
+    const shown = (view: Parameters<typeof viewContent>[1]) =>
+      viewContent(list, view, TODAY, { showCompleted: true }).sections.map((s) =>
+        s.rows.map((r) => r.task.title),
+      );
+    expect(shown({ type: 'project', id: INBOX_ID })).toEqual([
+      ['B', 'sat open', 'A', 'A1', 'old', 'sat done'],
+    ]);
+    expect(shown({ type: 'label', name: 'home' })).toEqual([['B', 'A']]);
+    // Today: done tasks due today. (These were checked off at now() = 0, not today; 'old' isn't overdue.)
+    expect(shown({ type: 'today' })).toEqual([['A']]);
+    expect(shown({ type: 'upcoming' })[0]).toEqual(['A']);
+    expect(shown({ type: 'upcoming' })[1]).toEqual(['sat open', 'sat done']);
+    // Hidden by default.
+    expect(titles({ type: 'project', id: INBOX_ID })).toEqual([[null, ['B', 'sat open']]]);
+  });
+
   it('Today shows overdue first, then today by priority', () => {
     list.addTask({ title: 'late', due: '2026-10-01' });
     list.addTask({ title: 'today p4', due: TODAY });
@@ -90,7 +115,7 @@ describe('views', () => {
     list.addTask({ title: 'mon', due: '2026-10-12' });
     list.addTask({ title: 'sun after', due: '2026-10-18' });
     list.addTask({ title: 'far', due: '2026-12-01' });
-    const monday = viewContent(list, { type: 'upcoming' }, TODAY, 1);
+    const monday = viewContent(list, { type: 'upcoming' }, TODAY, { weekStart: 1 });
     expect(monday.sections.map((s) => s.key)).toEqual([
       'day:2026-10-09',
       'day:2026-10-10',
@@ -107,7 +132,7 @@ describe('views', () => {
     expect(next.heading).toMatch(/^Next Week · Oct 12 – 18$/);
     expect(monday.sections.at(-1)?.rows[0]?.task.title).toBe('far');
     // A week that starts on Sunday ends on Saturday, so Sunday the 11th belongs to next week.
-    const sunday = viewContent(list, { type: 'upcoming' }, TODAY, 0);
+    const sunday = viewContent(list, { type: 'upcoming' }, TODAY, { weekStart: 0 });
     expect(sunday.sections.map((s) => s.key)).toEqual([
       'day:2026-10-09',
       'day:2026-10-10',

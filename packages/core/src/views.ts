@@ -144,32 +144,44 @@ function formatRange(from: string, to: string): string {
   return `${start} – ${end}`;
 }
 
-/**
- * The sections a view lists, in order (PRD §5.2). `view` should already be resolved. `weekStart` (0 =
- * Sunday) is where Upcoming's weeks begin; it defaults to the locale's.
- */
-export function viewContent(
-  list: TaskList,
-  view: View,
-  today: string,
-  weekStart: number = firstDayOfWeek(),
-): ViewContent {
+export interface ViewOptions {
+  /** Where Upcoming's weeks begin (0 = Sunday); defaults to the locale's. */
+  weekStart?: number;
+  /**
+   * Lists checked-off tasks too, after the open ones in each section: in a project or label all of them,
+   * in Today those due or checked off today, in Upcoming those due today or later.
+   */
+  showCompleted?: boolean;
+}
+
+/** Open tasks first, then checked-off ones, each kept in the order given. */
+function openFirst(tasks: Task[]): Task[] {
+  return [...tasks.filter((t) => !t.completed), ...tasks.filter((t) => t.completed)];
+}
+
+/** The sections a view lists, in order (PRD §5.2). `view` should already be resolved. */
+export function viewContent(list: TaskList, view: View, today: string, opts: ViewOptions = {}): ViewContent {
+  const { weekStart = firstDayOfWeek(), showCompleted = false } = opts;
   const active = list.activeTasks();
+  // Checked-off tasks that aren't in the Trash, for views that show them.
+  const done = showCompleted ? list.liveTasks().filter((t) => t.completed) : [];
   switch (view.type) {
     case 'project': {
       const project = list.getProject(view.id);
       const projectSections = project?.sections ?? [];
       const board = project?.view === 'board';
-      const tasks = active
-        .filter((t) => t.projectId === view.id && !t.parentId)
-        .sort((a, b) => a.order - b.order);
+      const tasks = openFirst(
+        [...active, ...done]
+          .filter((t) => t.projectId === view.id && !t.parentId)
+          .sort((a, b) => a.order - b.order),
+      );
       const rowsIn = (sectionId: string | undefined): Row[] => {
         const rows: Row[] = [];
         for (const task of tasks) {
           if (task.sectionId !== sectionId) continue;
           rows.push({ task, isSubtask: false });
           for (const sub of list.getSubtasks(task.id))
-            if (!sub.completed) rows.push({ task: sub, isSubtask: true });
+            if (showCompleted || !sub.completed) rows.push({ task: sub, isSubtask: true });
         }
         return rows;
       };
@@ -211,7 +223,10 @@ export function viewContent(
     case 'today': {
       const due = active.filter((t) => t.due !== null && t.due <= today);
       const overdue = due.filter((t) => (t.due ?? '') < today).sort(byDueThenPriority);
-      const todays = due.filter((t) => t.due === today).sort(byPriority);
+      const doneToday = done.filter(
+        (t) => t.due === today || (t.completedAt !== null && toISODate(new Date(t.completedAt)) === today),
+      );
+      const todays = [...due.filter((t) => t.due === today).sort(byPriority), ...doneToday.sort(byPriority)];
       const sections: Section[] = [];
       if (overdue.length) sections.push(section('overdue', 'Overdue', overdue, { tone: 'overdue' }));
       sections.push(
@@ -219,7 +234,8 @@ export function viewContent(
       );
       return {
         sections,
-        empty: due.length ? null : { title: 'Nothing due today', hint: 'Enjoy your day!' },
+        empty:
+          due.length || doneToday.length ? null : { title: 'Nothing due today', hint: 'Enjoy your day!' },
         note: null,
         showContext: true,
       };
@@ -228,11 +244,13 @@ export function viewContent(
       const dated = active.filter((t) => t.due !== null);
       const sections: Section[] = [];
       const overdue = dated.filter((t) => (t.due ?? '') < today).sort(byDueThenPriority);
+      // Checked-off tasks join the days ahead; a past one isn't overdue.
+      dated.push(...done.filter((t) => t.due !== null && t.due >= today));
       if (overdue.length) sections.push(section('overdue', 'Overdue', overdue, { tone: 'overdue' }));
       // The rest of this calendar week a day at a time, then next week together, then Later.
       const nextWeek = addDays(startOfWeek(today, weekStart), 7);
       for (let day = today; day < nextWeek; day = addDays(day, 1)) {
-        const tasks = dated.filter((t) => t.due === day).sort(byPriority);
+        const tasks = openFirst(dated.filter((t) => t.due === day).sort(byPriority));
         sections.push(
           section(`day:${day}`, formatDayHeading(day, today), tasks, {
             count: tasks.length || null,
@@ -241,21 +259,23 @@ export function viewContent(
         );
       }
       const weekAfter = addDays(nextWeek, 7);
-      const next = dated
-        .filter((t) => (t.due ?? '') >= nextWeek && (t.due ?? '') < weekAfter)
-        .sort(byDueThenPriority);
+      const next = openFirst(
+        dated.filter((t) => (t.due ?? '') >= nextWeek && (t.due ?? '') < weekAfter).sort(byDueThenPriority),
+      );
       sections.push(
         section('next-week', `Next Week · ${formatRange(nextWeek, addDays(weekAfter, -1))}`, next, {
           count: next.length || null,
           addSlot: `day:${nextWeek}`,
         }),
       );
-      const later = dated.filter((t) => (t.due ?? '') >= weekAfter).sort(byDueThenPriority);
+      const later = openFirst(dated.filter((t) => (t.due ?? '') >= weekAfter).sort(byDueThenPriority));
       if (later.length) sections.push(section('later', 'Later', later));
       return { sections, empty: null, note: null, showContext: true };
     }
     case 'label': {
-      const tasks = active.filter((t) => hasLabel(t, view.name)).sort(byDueThenPriority);
+      const tasks = openFirst(
+        [...active, ...done].filter((t) => hasLabel(t, view.name)).sort(byDueThenPriority),
+      );
       return {
         sections: [section('tasks', null, tasks, { addSlot: 'end' })],
         empty: tasks.length

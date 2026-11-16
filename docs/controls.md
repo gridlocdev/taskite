@@ -4,11 +4,14 @@ Every action is in the menu bar, in the **command menu** (**⌘K** on a Mac, **C
 
 Single-letter keys only work when you aren't typing in a box.
 
+In a browser tab, the browser keeps **⌘N** and **⇧⌘N** (**Ctrl+N** and **Ctrl+Shift+N**) for its own windows, so use **N** there, or **⌘K** and type "new project". The desktop app has both.
+
 ## Adding tasks
 
 | Action | macOS | Windows / Linux |
 | --- | --- | --- |
-| New task | **Q**, **N** or **⌘N** | **Q**, **N** or **Ctrl+N** |
+| New task | **⌘N** or **N** | **Ctrl+N** or **N** |
+| New project | **⇧⌘N** | **Ctrl+Shift+N** |
 | Save the task and start the next one | **↩** | **Enter** |
 | Stop adding | **↩** on an empty row, or **⎋** | **Enter** on an empty row, or **Esc** |
 

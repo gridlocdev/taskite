@@ -63,7 +63,7 @@ describe('commands', () => {
     expect(catalog.forEvent(key('g'), 'list', 0, true)).toEqual({ kind: 'wait' });
     const r = catalog.forEvent(key('i'), 'list', 10, true);
     expect(r).toMatchObject({ command: { id: 'go.inbox' } });
-    expect(catalog.forEvent(key('q'), 'text', 0, true)).toBeNull();
+    expect(catalog.forEvent(key('n'), 'text', 0, true)).toBeNull();
     expect(catalog.forEvent(key('n', { metaKey: true }), 'text', 0, true)).toMatchObject({
       command: { id: 'task.new' },
     });
@@ -125,7 +125,46 @@ describe('commands', () => {
       'Help',
     ]);
     const newTask = groups[0]!.lines.find((l) => l.title === 'New Task');
-    expect(newTask?.keys).toEqual([['Q'], ['N'], ['⌘N']]);
+    expect(newTask?.keys).toEqual([['⌘N'], ['N']]);
+  });
+
+  it('⌘N adds a task and Shift+⌘N makes a project, even while typing', async () => {
+    const { catalog } = await makeApp();
+    expect(catalog.forEvent(key('n', { metaKey: true }), 'text', 0, true)).toMatchObject({
+      command: { id: 'task.new' },
+    });
+    expect(catalog.forEvent(key('N', { metaKey: true, shiftKey: true }), 'text', 0, true)).toMatchObject({
+      command: { id: 'project.new' },
+    });
+    expect(catalog.forEvent(key('q'), 'list', 0, true)).toBeNull();
+  });
+
+  it('Show Completed Tasks keeps checked-off rows in view, is remembered, and is off in Completed', async () => {
+    const { app, catalog, session } = await makeApp();
+    const a = app.list.addTask({ title: 'A' });
+    app.list.addTask({ title: 'B' });
+    await app.toggleComplete([a.id]);
+    expect(app.ids.value).not.toContain(a.id);
+
+    const toggle = catalog.get('view.showCompleted')!;
+    expect(catalog.isEnabled(toggle)).toBe(true);
+    catalog.run('view.showCompleted');
+    expect(app.showCompleted.value).toBe(true);
+    expect(session.list.data.settings.showCompleted).toBe(true);
+    expect(app.ids.value.at(-1)).toBe(a.id);
+
+    const b = app.list.activeTasks()[0]!;
+    app.cursor.value = b.id;
+    await app.toggleComplete([b.id]);
+    expect(app.ids.value).toContain(b.id);
+    expect(app.cursor.value).toBe(b.id);
+
+    app.go({ type: 'completed' });
+    expect(catalog.isEnabled(toggle)).toBe(false);
+    app.go({ type: 'today' });
+    expect(catalog.isEnabled(toggle)).toBe(true);
+    // Checked off today, so Today lists them.
+    expect(app.ids.value).toEqual([a.id, b.id]);
   });
 
   it('every menu only names real commands', async () => {

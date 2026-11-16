@@ -1,4 +1,4 @@
-import { expect, openApp, test } from './fixtures.ts';
+import { expect, openApp, readTasks, runCommand, test } from './fixtures.ts';
 
 test.describe('Views', () => {
   test.beforeEach(async ({ seed, page }) => {
@@ -27,6 +27,17 @@ test.describe('Views', () => {
   test('Completed lists finished tasks', async ({ page }) => {
     await page.getByRole('button', { name: 'Completed' }).click();
     await expect(page.getByRole('main')).toContainText('Read chapter four');
+  });
+
+  test('Show Completed Tasks lists finished tasks in the Inbox and is remembered', async ({ page }) => {
+    await page.getByRole('button', { name: /^Inbox/ }).click();
+    const inbox = page.getByRole('listbox', { name: 'Inbox' });
+    await expect(inbox).not.toContainText('Read chapter four');
+    await runCommand(page, 'Show Completed Tasks');
+    await expect(inbox.getByRole('option').last()).toContainText('Read chapter four');
+    await expect.poll(() => readTasks().settings.showCompleted).toBe(true);
+    await page.reload();
+    await expect(page.getByRole('listbox', { name: 'Inbox' })).toContainText('Read chapter four');
   });
 
   test('a label lists its tasks', async ({ page }) => {

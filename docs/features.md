@@ -27,6 +27,7 @@ The row previews the date, project and labels while you type. Press Enter to add
 - **Labels** list every open task with that label. Right-click a label to rename it or give it a colour.
 - **Completed** lists finished tasks under the day you finished them.
 - **Search** (`/`) finds tasks by their name, description or labels, finished ones included.
+- **Show Completed Tasks** (in the View menu and ⌘K) lists finished tasks in the Inbox, projects, labels, Today and Upcoming too, after the open ones. Today shows what was due or finished today; Upcoming shows finished tasks that were due today or later. Choose it again to hide them; Taskite remembers the choice.
 
 Drop a task on a project, a label, Today or the Trash in the sidebar to move it there, give it that label, make it due today or delete it.
 

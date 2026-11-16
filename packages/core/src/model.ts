@@ -83,6 +83,8 @@ export type Theme = 'auto' | 'light' | 'dark';
 export interface Settings {
   theme: Theme;
   lastView: SavedView | null;
+  /** Views list checked-off tasks too. Left out of the file until it is first turned on. */
+  showCompleted?: boolean;
 }
 
 export interface AppData {
@@ -212,6 +214,7 @@ export function normalize(raw: unknown, now: number = Date.now()): AppData {
       ...settings,
       theme: theme === 'light' || theme === 'dark' ? theme : 'auto',
       lastView: normalizeView(settings['lastView']),
+      ...('showCompleted' in settings ? { showCompleted: settings['showCompleted'] === true } : {}),
     },
   };
 }
