@@ -15,6 +15,7 @@
 
 ### Improvements
 
+- **New Task adds beside the task you're on**: in its section or board column, or on its day in Upcoming. With no task chosen it adds at the end of the list (the first column on a board, today in Upcoming).
 - **New Task is ⌘N** (Ctrl+N), and **New Project… is ⇧⌘N** (Ctrl+Shift+N). `N` still adds a task; `Q` no longer does.
 
 - In the command menu (⌘K) and the **Move to** list, Tab and Shift+Tab move the highlight down and up, like the arrow keys.
@@ -31,7 +32,7 @@
 
 ### Bugs fixed
 
-- **New Task works on a board** whose tasks are all in sections. It opens the add-task row in the first column; before, nothing happened.
+- **New Task works on a board** whose tasks are all in sections; before, nothing happened.
 
 - **Emptying the Trash could delete a subtask that wasn't in it.** A subtask restored on its own, whose parent was later trashed and deleted, went with it. Subtasks in the Trash now also move with their parent, so a restored one comes back beside it.
 - **Unsaved changes from last time could be lost at start-up.** When Taskite started with old tasks to empty from the Trash, that save replaced the copy of your unsaved changes before it was offered back.

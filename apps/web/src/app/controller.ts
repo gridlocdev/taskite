@@ -449,10 +449,15 @@ export class AppController {
   /** Where Add task opens in this view, or null when the view takes no new tasks. */
   defaultSlot(): string | null {
     const view = this.shown.value;
-    if (view.type === 'upcoming') return `day:${this.today.value}`;
     if (view.type === 'completed' || view.type === 'trash' || view.type === 'search') return null;
+    const sections = this.content.value.sections;
+    // Beside the task with the cursor: its section or board column, or its day in Upcoming.
+    const cursor = this.cursor.value;
+    const here = sections.find((s) => s.rows.some((r) => r.task.id === cursor))?.addSlot;
+    if (cursor !== null && here) return here;
+    if (view.type === 'upcoming') return `day:${this.today.value}`;
     // A board hides its empty No section column, so add to the first column there.
-    const slots = this.content.value.sections.map((s) => s.addSlot);
+    const slots = sections.map((s) => s.addSlot);
     return slots.length === 0 || slots.includes('end') ? 'end' : (slots.find((s) => s !== null) ?? 'end');
   }
 

@@ -33,6 +33,7 @@ Drop a task on a project, a label, Today or the Trash in the sidebar to move it 
 
 ## Working on tasks
 
+- **Add** a task with **New Task** (`⌘N` or `N`). It opens beside the task you're on: in its section or board column, or on its day in Upcoming.
 - **Complete** a task with its circle or Space. A repeating task moves to its next date instead, and says when that is.
 - **Edit** a task (click it, or Enter) to change its name, description, date, repeat, priority, project, labels and subtasks. Changes apply as you make them (each one can be undone), and fields the task doesn't use stay out of the way until you add them with **+ Add**.
 - **Set a due date** with `D`: type it ("fri", "jan 5") or pick a day on the month calendar, where today is ringed.

@@ -179,6 +179,29 @@ describe('commands', () => {
     expect(app.composer.value).toBe(first.addSlot);
   });
 
+  it('New Task adds beside the task with the cursor: its board column, or its day in Upcoming', async () => {
+    const { app, catalog } = await makeApp();
+    app.go({ type: 'project', id: INBOX_ID });
+    const todo = app.list.addSection(INBOX_ID, 'To do')!;
+    const doing = app.list.addSection(INBOX_ID, 'Doing')!;
+    const t = app.list.addTask({ title: 'T', sectionId: doing.id });
+    app.setBoard(true);
+    app.cursor.value = t.id;
+    catalog.run('task.new');
+    expect(app.composer.value).toBe(`section:${doing.id}`);
+    app.closeComposer();
+    app.cursor.value = null;
+    catalog.run('task.new');
+    expect(app.composer.value).toBe(`section:${todo.id}`);
+
+    app.closeComposer();
+    app.go({ type: 'upcoming' });
+    const later = app.list.addTask({ title: 'U', due: '2026-03-12' });
+    app.cursor.value = later.id;
+    catalog.run('task.new');
+    expect(app.composer.value).toBe('day:2026-03-12');
+  });
+
   it('every menu only names real commands', async () => {
     const { catalog } = await makeApp();
     for (const [kind, ids] of Object.entries(MENUS))
