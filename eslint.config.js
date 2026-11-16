@@ -28,6 +28,18 @@ export default tseslint.config(
     },
   },
   {
+    // Typed rules: slower, so source files only. An eslint-disable for them is an exception like any other.
+    files: ['packages/*/src/**/*.{ts,tsx}', 'apps/*/src/**/*.{ts,tsx}'],
+    languageOptions: { parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname } },
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+        'error',
+        { considerDefaultExhaustiveForUnions: false },
+      ],
+    },
+  },
+  {
     // Build scripts run in Node.
     files: ['**/scripts/**/*.mjs'],
     languageOptions: { globals: { console: 'readonly', process: 'readonly' } },
