@@ -77,6 +77,13 @@ interface Lookup {
   readonly children: Map<string, Task[]>;
 }
 
+/** Deletes tasks for good; their subtasks become tasks of their own. */
+function removeTasks(data: AppData, ids: ReadonlySet<string>): void {
+  if (!ids.size) return;
+  data.tasks = data.tasks.filter((t) => !ids.has(t.id));
+  for (const t of data.tasks) if (t.parentId && ids.has(t.parentId)) t.parentId = null;
+}
+
 /** Whether an edit changed anything: an edit that leaves the data as it was records no undo step. */
 function sameData(a: AppData, b: AppData): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
@@ -328,7 +335,8 @@ export class TaskList {
   }
 
   /**
-   * Changes fields on tasks as one undo step. Subtasks follow their parent's project and section. A task
+   * Changes fields on tasks as one undo step. Subtasks follow their parent's project and section, and a
+   * subtask moved to another project or section by itself leaves its parent. A task
    * that moves to another project leaves its section unless the patch names one there; `sectionId:
    * undefined` takes a task out of its section.
    */
@@ -359,6 +367,12 @@ export class TaskList {
           if (task.sectionId) sub.sectionId = task.sectionId;
           else delete sub.sectionId;
         }
+      }
+      // A subtask moved away from its parent on its own leaves it (PRD §6).
+      for (const task of tasks) {
+        const parent = task.parentId ? this.getTask(task.parentId) : undefined;
+        if (parent && (parent.projectId !== task.projectId || parent.sectionId !== task.sectionId))
+          task.parentId = null;
       }
     });
   }
@@ -497,14 +511,15 @@ export class TaskList {
   }
 
   /**
-   * Removes tasks that have been in the Trash too long, with no undo step (PRD §3.2).
+   * Removes tasks that have been in the Trash too long, with no undo step (PRD §3.2). They leave the undo
+   * and redo history too, so Undo can't bring back a task that is gone for good.
    * Returns whether anything was removed.
    */
   purgeExpired(now: number = this.#now()): boolean {
+    for (const data of [...this.#undo, ...this.#redo]) removeTasks(data, expiredTaskIds(data, now));
     const ids = expiredTaskIds(this.#data, now);
     if (!ids.size) return false;
-    this.#data.tasks = this.#data.tasks.filter((t) => !ids.has(t.id));
-    for (const t of this.#data.tasks) if (t.parentId && ids.has(t.parentId)) t.parentId = null;
+    removeTasks(this.#data, ids);
     this.#emit('settings');
     return true;
   }
@@ -541,13 +556,19 @@ export class TaskList {
     });
   }
 
-  /** Deletes a project and moves its tasks to the Trash. The Inbox can't be deleted. */
+  /**
+   * Deletes a project and moves its tasks to the Trash. They belong to the Inbox from then on, where Restore
+   * puts them and where the file would load them (PRD §3.2, §4.6). The Inbox can't be deleted.
+   */
   deleteProject(id: string, now: number = this.#now()): void {
     if (id === INBOX_ID || !this.getProject(id)) return;
     this.#edit((data) => {
       data.projects = data.projects.filter((p) => p.id !== id);
       for (const task of data.tasks) {
-        if (task.projectId === id && task.deletedAt === null) task.deletedAt = now;
+        if (task.projectId !== id) continue;
+        if (task.deletedAt === null) task.deletedAt = now;
+        task.projectId = INBOX_ID;
+        delete task.sectionId;
       }
     });
   }

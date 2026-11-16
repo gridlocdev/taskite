@@ -104,6 +104,23 @@ describe('TaskList', () => {
     expect(task(child.id).projectId).toBe(p.id);
   });
 
+  it('a subtask moved to another project or section on its own leaves its parent', () => {
+    // Found by the random test (FUZZ_SEED=1 and 55): it kept a parent in another project or section.
+    const p = list.addProject('Other');
+    const s = list.addSection(INBOX_ID, 'S');
+    const parent = list.addTask({ title: 'Parent' });
+    const moved = list.addTask({ title: 'Moved', parentId: parent.id });
+    const sectioned = list.addTask({ title: 'Sectioned', parentId: parent.id });
+    const together = list.addTask({ title: 'Together', parentId: parent.id });
+    list.updateTasks(moved.id, { projectId: p.id });
+    list.updateTasks(sectioned.id, { sectionId: s?.id });
+    expect(task(moved.id)).toMatchObject({ projectId: p.id, parentId: null });
+    expect(task(sectioned.id)).toMatchObject({ sectionId: s?.id, parentId: null });
+    // Moved with its parent, it stays a subtask.
+    list.updateTasks([together.id, parent.id], { projectId: p.id });
+    expect(task(together.id)).toMatchObject({ projectId: p.id, parentId: parent.id });
+  });
+
   it('deleting a project moves its tasks to the Trash; the Inbox cannot be deleted', () => {
     const p = list.addProject('Temp');
     const t = list.addTask({ title: 'Gone', projectId: p.id });
@@ -114,6 +131,23 @@ describe('TaskList', () => {
     expect(list.getProject(INBOX_ID)).toBeDefined();
     list.restoreTasks(t.id);
     expect(task(t.id).projectId).toBe(INBOX_ID);
+  });
+
+  it("a deleted project's tasks belong to the Inbox at once, as the saved file would load them", () => {
+    // Found by the random test (FUZZ_SEED=1): trashed tasks kept the gone project until the next reload.
+    const p = list.addProject('Temp');
+    const s = list.addSection(p.id, 'S');
+    const earlier = list.addTask({ title: 'Trashed before', projectId: p.id, sectionId: s?.id });
+    list.deleteTasks(earlier.id);
+    const t = list.addTask({ title: 'Gone', projectId: p.id, sectionId: s?.id });
+    list.deleteProject(p.id);
+    for (const id of [earlier.id, t.id]) {
+      expect(task(id).projectId).toBe(INBOX_ID);
+      expect(task(id).sectionId).toBeUndefined();
+    }
+    expect(normalize(JSON.parse(JSON.stringify(list.data)))).toEqual(list.data);
+    list.undo();
+    expect(task(t.id).projectId).toBe(p.id);
   });
 
   it('findProjectByName ignores case, spaces, dashes and underscores', () => {
@@ -197,6 +231,19 @@ describe('TaskList', () => {
     expect(list.canUndo).toBe(false);
     expect(changes).toEqual(['settings']);
     expect(list.purgeExpired(now)).toBe(false);
+  });
+
+  it('Undo never brings back a task the Trash has deleted for good', () => {
+    // Found by the random test (FUZZ_SEED=195 and 41): history steps still held the expired tasks.
+    const later = 1_000_000 + 31 * DAY_MS;
+    const old = list.addTask({ title: 'Old' });
+    const purged = list.addTask({ title: 'Purged by hand' });
+    list.deleteTasks([old.id, purged.id]);
+    list.purgeTasks(purged.id);
+    expect(list.purgeExpired(later)).toBe(true);
+    list.undo();
+    expect(list.getTask(old.id)).toBeUndefined();
+    expect(list.getTask(purged.id)).toBeUndefined();
   });
 
   it('trashed tasks are left out of labels and subtasks', () => {
