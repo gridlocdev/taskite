@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "projects": [
+    {
+      "id": "inbox",
+      "name": "Inbox",
+      "color": "gray"
+    },
+    {
+      "id": "978cd5f4-cbfd-4ecf-afad-4a96d464378b",
+      "name": "Home",
+      "color": "orange"
+    },
+    {
+      "id": "81558b78-5709-466a-bf91-b852ae40fe56",
+      "name": "Work",
+      "color": "yellow"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "12ead3e2-ca81-4ba1-87da-77733728fbd6",
+      "title": "Water the plants",
+      "description": "",
+      "projectId": "978cd5f4-cbfd-4ecf-afad-4a96d464378b",
+      "parentId": null,
+      "labels": [],
+      "priority": 4,
+      "due": "2027-01-15",
+      "recurrence": null,
+      "completed": false,
+      "completedAt": null,
+      "createdAt": 1794797295697,
+      "order": 0,
+      "deletedAt": null
+    },
+    {
+      "id": "9fad6065-30dd-4b7e-8552-6a6cfa9e2f56",
+      "title": "Book dentist appointment",
+      "description": "",
+      "projectId": "inbox",
+      "parentId": null,
+      "labels": [],
+      "priority": 1,
+      "due": "2027-01-14",
+      "recurrence": null,
+      "completed": false,
+      "completedAt": null,
+      "createdAt": 1794797295768,
+      "order": 0,
+      "deletedAt": null
+    },
+    {
+      "id": "cb014dc9-10ef-475d-91fc-6ef25b2e65d3",
+      "title": "Draft quarterly report",
+      "description": "",
+      "projectId": "81558b78-5709-466a-bf91-b852ae40fe56",
+      "parentId": null,
+      "labels": ["writing"],
+      "priority": 2,
+      "due": "2027-01-18",
+      "recurrence": null,
+      "completed": false,
+      "completedAt": null,
+      "createdAt": 1794797295838,
+      "order": 0,
+      "deletedAt": null
+    },
+    {
+      "id": "f1d71a2d-ce45-444d-85fc-83db72474f94",
+      "title": "Pick up dry cleaning",
+      "description": "",
+      "projectId": "978cd5f4-cbfd-4ecf-afad-4a96d464378b",
+      "parentId": null,
+      "labels": ["errand"],
+      "priority": 4,
+      "due": null,
+      "recurrence": null,
+      "completed": false,
+      "completedAt": null,
+      "createdAt": 1794797295908,
+      "order": 1,
+      "deletedAt": null
+    },
+    {
+      "id": "b34b81c6-5fd8-4f10-a092-b984aa4e313f",
+      "title": "Read chapter four",
+      "description": "",
+      "projectId": "inbox",
+      "parentId": null,
+      "labels": [],
+      "priority": 4,
+      "due": null,
+      "recurrence": null,
+      "completed": true,
+      "completedAt": 1794797296121,
+      "createdAt": 1794797295980,
+      "order": 1,
+      "deletedAt": null
+    },
+    {
+      "id": "64286e8a-6690-4029-90ed-70f00f85a879",
+      "title": "Plan team offsite",
+      "description": "",
+      "projectId": "81558b78-5709-466a-bf91-b852ae40fe56",
+      "parentId": null,
+      "labels": [],
+      "priority": 4,
+      "due": null,
+      "recurrence": null,
+      "completed": false,
+      "completedAt": null,
+      "createdAt": 1794797296050,
+      "order": 1,
+      "deletedAt": null
+    },
+    {
+      "id": "7de0fa07-e6b3-4d24-a9b7-e87f5b120369",
+      "title": "Café ☕ list for Zoë",
+      "description": "",
+      "projectId": "978cd5f4-cbfd-4ecf-afad-4a96d464378b",
+      "parentId": null,
+      "labels": ["errand"],
+      "priority": 4,
+      "due": null,
+      "recurrence": null,
+      "completed": false,
+      "completedAt": null,
+      "createdAt": 1794797301331,
+      "order": 2,
+      "deletedAt": null
+    }
+  ],
+  "settings": {
+    "theme": "auto",
+    "lastView": null
+  }
+}

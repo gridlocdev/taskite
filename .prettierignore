@@ -9,3 +9,8 @@ packages/ui/src/icons
 apps/desktop/legacy
 packages/core/test/fixtures
 .types-test
+.e2e-data
+.e2e-results
+.e2e-report
+.types-e2e
+e2e/__screenshots__

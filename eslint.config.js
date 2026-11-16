@@ -15,6 +15,8 @@ export default tseslint.config(
       '**/out/**',
       '**/release/**',
       '**/.types/**',
+      '.types-e2e/**',
+      '.e2e-*/**',
       '**/node_modules/**',
     ],
   },

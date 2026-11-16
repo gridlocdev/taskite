@@ -37,11 +37,19 @@ just lint         # ESLint
 just typecheck    # tsc -b
 just fmt          # format every file with Prettier
 just fmt-check    # check formatting without changing anything
+just fuzz         # the random-edit tests on 500 seeds (FUZZ_SEED=<n> replays one)
+just diagram      # redraw the save diagram in architecture.md from its table
+just e2e          # browser scenarios in headless Chromium (pass a file or -g "name")
+just e2e-update   # accept new screenshots, after looking at the diff in .e2e-results
+just e2e-desktop  # the built desktop app starts headless on a throwaway folder
+just drive aria   # a quick headless look: cmd:"Go to Work" key:KeyQ type:"Buy milk" shot:after aria
 ```
 
 Tests live in each package's `test/` folder and run in Node with Vitest. `apps/web/test/controls.test.ts` fails when [Controls](controls.md) and the command catalog disagree, so update that page with any shortcut you add or change.
 
-Check UI changes without a visible window: drive a headless Chromium against `just preview-web`, or the desktop app started with `just run-desktop-headless`, over the DevTools protocol. Never point a check at your real tasks: use `TASKITE_USER_DATA` for the desktop app and `--file` for the CLI.
+Browser scenarios live in `e2e/`, one `test.describe` per `##` heading of [Features](features.md); `apps/web/test/features.test.ts` fails when a feature has no scenarios. They run against the built client and the NAS server on a copy of `e2e/fixtures/basic`, with the page clock fixed at 15 January 2027. `random-ui.spec.ts` runs a few seeds of random commands, typing and keys; a failure prints `FUZZ_SEED=<n> just e2e -g random` to replay it. Screenshots are compared on macOS only.
+
+Check UI changes without a visible window: `just drive`, the scenarios, or the desktop app started with `just run-desktop-headless`. Never point a check at your real tasks: use `TASKITE_USER_DATA` for the desktop app and `--file` for the CLI.
 
 ## The spec
 

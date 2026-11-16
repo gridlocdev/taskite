@@ -143,6 +143,27 @@ diagram:
 fuzz runs="500":
     FUZZ_RUNS={{ runs }} pnpm vitest run -t random
 
+# Browser scenarios against the built client and the NAS server, on fixture data in ./.e2e-data.
+[group('quality')]
+e2e *args: build-web
+    pnpm exec playwright test -c e2e/playwright.config.ts --project=web {{ args }}
+
+# Accept the current screenshots as the new baseline (macOS; look at the diff in .e2e-results first).
+[group('quality')]
+e2e-update *args: build-web
+    pnpm exec playwright test -c e2e/playwright.config.ts --project=web --update-snapshots {{ args }}
+
+# Drive the app headlessly for a quick look: just drive cmd:"Go to Inbox" key:KeyQ type:"Buy milk" shot:after aria
+[group('quality')]
+[positional-arguments]
+drive *steps: build-web
+    node e2e/drive.ts "$@"
+
+# Desktop smoke test: the built Electron app, headless, with a throwaway data folder.
+[group('quality')]
+e2e-desktop: build-desktop
+    pnpm exec playwright test -c e2e/playwright.config.ts --project=desktop
+
 # Run the tests once (pass a file or -t "name" to narrow them).
 [group('quality')]
 test *args:
@@ -186,6 +207,7 @@ setup:
 clean:
     rm -rf apps/web/dist apps/desktop/out "{{ release }}" apps/desktop/node_modules/.cache/taskite-dev
     find . -name '*.tsbuildinfo' -not -path '*/node_modules/*' -delete
+    rm -rf .e2e-data .e2e-results .e2e-report .types-e2e
 
 # Remove build output and every node_modules (run `just setup` after).
 [group('housekeeping')]
