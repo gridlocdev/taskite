@@ -798,6 +798,7 @@ function ConflictDialog({ app, changed }: { readonly app: AppController; readonl
           <button
             type="button"
             class="tk-button"
+            disabled={s.choosing.value}
             onClick={() =>
               void s
                 .reload()
@@ -810,6 +811,7 @@ function ConflictDialog({ app, changed }: { readonly app: AppController; readonl
           <button
             type="button"
             class="tk-button"
+            disabled={s.choosing.value}
             onClick={() =>
               void s
                 .keepMine()
@@ -823,10 +825,11 @@ function ConflictDialog({ app, changed }: { readonly app: AppController; readonl
             type="button"
             class="tk-button tk-button-primary"
             data-autofocus
+            disabled={s.choosing.value}
             onClick={() =>
               void s
                 .saveCopyAndReload()
-                .then((name) => app.say(`Saved your version as ${name}, then loaded theirs.`))
+                .then((name) => name && app.say(`Saved your version as ${name}, then loaded theirs.`))
                 .catch(failed)
             }
           >

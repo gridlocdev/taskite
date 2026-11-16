@@ -133,6 +133,11 @@ check-arch:
 arch-baseline:
     ARCH_BASELINE=write pnpm vitest run test/architecture.test.ts
 
+# Redraw the save-session diagram in docs/architecture.md from the table in saveChart.ts.
+[group('quality')]
+diagram:
+    WRITE_DIAGRAM=1 pnpm vitest run packages/ui/test/saveChart.test.ts -t "is drawn"
+
 # Random-operation tests on many seeds (FUZZ_SEED=<n> just fuzz repeats one; FUZZ_SEED_BASE picks where to start).
 [group('quality')]
 fuzz runs="500":

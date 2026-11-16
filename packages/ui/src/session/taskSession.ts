@@ -1,7 +1,8 @@
 /**
  * One open tasks file: the TaskList, the store it came from, and the saving around it (PRD §3.2–§3.5).
  * Every change saves at once; saves never overlap; failures retry, then wait for "Try again"; a conflict stops
- * saving until the user picks Use Theirs, Keep Mine or Save Mine as a Copy.
+ * saving until the user picks Use Theirs, Keep Mine or Save Mine as a Copy. What happens when is decided by
+ * the table in `saveChart.ts`; this class keeps the state and does the reading and writing.
  */
 import { signal } from '@preact/signals';
 import {
@@ -14,6 +15,7 @@ import {
   type TaskListOptions,
 } from '@taskite/core';
 import { wait } from '../schedule.ts';
+import { step, type Effect, type SaveEvent, type SaveState } from './saveChart.ts';
 import { ConflictError, type TaskStore } from '../store/taskStore.ts';
 
 export type SaveStatus = 'saved' | 'saving' | 'failed' | 'conflict';
@@ -94,19 +96,27 @@ export class TaskSession {
   readonly store: TaskStore;
   readonly status = signal<SaveStatus>('saved');
   readonly conflict = signal<Conflict | null>(null);
+  /** A conflict choice is reading the file; the dialog's buttons wait for it. */
+  readonly choosing = signal(false);
   /** Unsaved data from last time that differs from the file; the UI offers Restore or Discard (PRD §3.5). */
   readonly recoverable = signal<string | null>(null);
   /** False when the last save's data couldn't be kept in the recovery slot (PRD §3.5). */
   readonly backedUp = signal(true);
 
+  #state: SaveState = 'clean';
   #version: string | null;
   readonly #recovery: RecoveryStorage;
   readonly #wait: (ms: number) => Promise<void>;
   readonly #now: () => number;
-  #dirty = false;
-  /** Finished saves, so a refresh can tell its read is older than a save made while it waited. */
-  #saves = 0;
-  #running: Promise<void> | null = null;
+  /** The write in progress, then the conflict count if it found one; `flush` waits for both. */
+  #writing: Promise<void> | null = null;
+  #counting: Promise<void> | null = null;
+  /** Bumped by `dropRead`, so a read that started before it is ignored when it finishes. */
+  #reads = 0;
+  /** The file a refresh or Reload read, for `takeFile` and `replaceWithFile`. */
+  #read: { version: string | null; data: AppData | null } | null = null;
+  /** Tasks the last `takeFile` changed, for `refresh` to return. */
+  #taken: number | null = null;
 
   private constructor(store: TaskStore, data: AppData, version: string | null, opts: SessionOptions) {
     this.store = store;
@@ -116,7 +126,7 @@ export class TaskSession {
     this.#wait = opts.wait ?? wait;
     this.#now = opts.now ?? Date.now;
     this.list.onChange((kind) => {
-      if (kind !== 'load' && kind !== 'outside') this.#kick();
+      if (kind !== 'load' && kind !== 'outside') this.#fire('edit');
     });
   }
 
@@ -148,7 +158,7 @@ export class TaskSession {
       else recovery.clear();
     }
     // Replace the unreadable file now, so the next start doesn't keep another copy.
-    if (corrupt) session.#kick();
+    if (corrupt) session.#fire('edit');
     session.list.purgeExpired(now());
     return { session, notice };
   }
@@ -158,54 +168,110 @@ export class TaskSession {
     return this.#version;
   }
 
+  /** Where saving stands, as in the table in `saveChart.ts`. */
+  get state(): SaveState {
+    return this.#state;
+  }
+
   /** Resolves once nothing is waiting to be saved (or saving has stopped on a failure or conflict). */
   async flush(): Promise<void> {
-    while (this.#running) await this.#running;
+    while (this.#writing || this.#counting) await (this.#writing ?? this.#counting);
   }
 
   /** "Try again" after a failed save. */
   retry(): void {
-    if (this.status.value === 'failed') this.#kick();
+    this.#fire('retry');
   }
 
-  #kick(): void {
-    this.#dirty = true;
-    if (this.conflict.value) return;
-    this.#running ??= this.#run().finally(() => {
-      this.#running = null;
-    });
+  /** Reads the state fresh, past what TypeScript remembers from before an `await`. */
+  #is(state: SaveState): boolean {
+    return this.#state === state;
   }
 
-  async #run(): Promise<void> {
-    while (this.#dirty && !this.conflict.value) {
-      this.#dirty = false;
-      const text = serialize(this.list.data);
-      // While last time's unsaved data waits for Restore or Discard, it keeps the recovery slot.
-      const keepsSlot = this.recoverable.value === null;
-      if (keepsSlot) {
-        const kept = this.#recovery.set(text);
+  #fire(event: SaveEvent): void {
+    const { to, effects } = step(this.#state, event);
+    this.#state = to;
+    const asking = to === 'conflict' || to === 'choosing';
+    this.status.value =
+      to === 'clean' || to === 'refreshing'
+        ? 'saved'
+        : to === 'savingDirty'
+          ? 'saving'
+          : asking
+            ? 'conflict'
+            : to;
+    if (!asking) this.conflict.value = null;
+    this.choosing.value = to === 'choosing';
+    for (const effect of effects) this.#run(effect);
+  }
+
+  #run(effect: Effect): void {
+    switch (effect) {
+      case 'snapshot': {
+        // While last time's unsaved data waits for Restore or Discard, it keeps the recovery slot.
+        if (this.recoverable.value !== null) return;
+        const kept = this.#recovery.set(serialize(this.list.data));
         // An older backup left in the slot would offer to restore stale data next time.
         if (!kept) this.#recovery.clear();
         this.backedUp.value = kept;
+        return;
       }
-      this.status.value = 'saving';
-      try {
-        this.#version = await this.#saveWithRetry(text);
-        this.#saves++;
-        if (!this.#dirty && keepsSlot && this.recoverable.value === null) this.#recovery.clear();
-        this.status.value = 'saved';
-      } catch (e) {
-        if (e instanceof ConflictError) {
-          this.#dirty = true;
-          this.status.value = 'conflict';
-          this.conflict.value = { changed: await this.#changedOnDisk() };
-        } else {
-          console.error(e);
-          this.status.value = 'failed';
-        }
+      case 'clearSnapshot':
+        if (this.recoverable.value === null) this.#recovery.clear();
+        return;
+      case 'writeFile': {
+        const writing: Promise<void> = this.#write(serialize(this.list.data)).finally(() => {
+          if (this.#writing === writing) this.#writing = null;
+        });
+        this.#writing = writing;
+        return;
+      }
+      case 'readFile':
+        this.#read = null;
+        return;
+      case 'dropRead':
+        this.#reads++;
+        return;
+      case 'takeFile': {
+        const read = this.#read;
+        this.#taken = null;
+        if (!read?.data || read.version === this.#version) return;
+        this.#taken = countChanged(this.list.data, read.data);
+        this.#version = read.version;
+        this.list.takeOutside(read.data);
+        return;
+      }
+      case 'replaceWithFile': {
+        const read = this.#read;
+        if (!read) return;
+        this.#version = read.version;
+        this.list.replace(read.data ?? emptyData());
+        return;
+      }
+      case 'showConflict': {
+        const counting: Promise<void> = this.#changedOnDisk().then((changed) => {
+          if (this.#state === 'conflict' || this.#state === 'choosing') this.conflict.value = { changed };
+          if (this.#counting === counting) this.#counting = null;
+        });
+        this.#counting = counting;
         return;
       }
     }
+  }
+
+  async #write(text: string): Promise<void> {
+    try {
+      this.#version = await this.#saveWithRetry(text);
+    } catch (e) {
+      if (e instanceof ConflictError) {
+        this.#fire('versionChanged');
+      } else {
+        console.error(e);
+        this.#fire('failed');
+      }
+      return;
+    }
+    this.#fire('saved');
   }
 
   async #saveWithRetry(text: string): Promise<string> {
@@ -236,28 +302,73 @@ export class TaskSession {
    * With unsaved changes it leaves the file alone: the next save finds the conflict and asks.
    */
   async refresh(): Promise<number | null> {
-    if (this.#running || this.#dirty || this.conflict.value || this.status.value !== 'saved') return null;
-    const saves = this.#saves;
-    let file;
-    try {
-      file = await this.store.load();
-    } catch {
-      return null;
-    }
-    // A change made here while the file was being read wins; its save will see the conflict.
-    // So does one that finished meanwhile: the file read may be from before it.
-    if (this.#running || this.#dirty || saves !== this.#saves) return null;
-    if (file.version === this.#version || file.text === null) return null;
-    const parsed = parseDataFile(file.text, this.#now());
-    if (!parsed.ok) return null;
-    const changed = countChanged(this.list.data, parsed.data);
-    this.#version = file.version;
-    this.list.takeOutside(parsed.data);
-    return changed;
+    if (this.#state !== 'clean') return null;
+    this.#fire('refresh');
+    const reads = this.#reads;
+    // A file that can't be read or parsed leaves nothing to take; the next refresh tries again.
+    const read = await this.store.load().then(
+      (file) => {
+        const parsed = file.text === null ? null : parseDataFile(file.text, this.#now());
+        return { version: file.version, data: parsed?.ok ? parsed.data : null };
+      },
+      () => ({ version: this.#version, data: null }),
+    );
+    // A change made here while the file was being read wins: its save will see the conflict.
+    if (reads !== this.#reads || !this.#is('refreshing')) return null;
+    this.#read = read;
+    this.#fire('refreshRead');
+    return this.#taken;
   }
 
-  /** Conflict → Reload: take the file on disk; this window's unsaved changes are dropped. */
+  /** Conflict → Use Theirs: take the file on disk; this window's unsaved changes are dropped. */
   async reload(): Promise<string | null> {
+    if (!this.#is('conflict')) return null;
+    this.#fire('choose');
+    return this.#choosing(() => this.#takeTheirs());
+  }
+
+  /** Conflict → Keep Mine: save this window's data over the file. */
+  async keepMine(): Promise<void> {
+    if (!this.#is('conflict')) return;
+    this.#fire('choose');
+    await this.#choosing(async () => {
+      const file = await this.store.load();
+      // A file from a newer Taskite stays as it is (PRD §3.2); the conflict waits for another choice.
+      if (file.text !== null) {
+        const parsed = parseDataFile(file.text, this.#now());
+        if (!parsed.ok && parsed.reason === 'newer') throw new Error(NEWER_FILE_MESSAGE);
+      }
+      this.#version = file.version;
+      this.#fire('keepMine');
+    });
+    await this.flush();
+  }
+
+  /**
+   * Conflict → Save Mine as a Copy: keep this window's data as a dated copy, then take the file. Returns the
+   * copy's name, or null when another choice is already under way.
+   */
+  async saveCopyAndReload(): Promise<string | null> {
+    if (!this.#is('conflict')) return null;
+    this.#fire('choose');
+    return this.#choosing(async () => {
+      const name = await this.store.saveCopy(serialize(this.list.data), 'copy');
+      await this.#takeTheirs();
+      return name;
+    });
+  }
+
+  /** Runs a conflict choice; if it fails, the dialog comes back for another. */
+  async #choosing<T>(choice: () => Promise<T>): Promise<T> {
+    try {
+      return await choice();
+    } catch (e) {
+      this.#fire('chooseFailed');
+      throw e;
+    }
+  }
+
+  async #takeTheirs(): Promise<string | null> {
     const file = await this.store.load();
     let notice: string | null = null;
     let data = emptyData();
@@ -270,35 +381,11 @@ export class TaskSession {
         notice = `Your tasks file couldn't be read. It was kept as ${name}.`;
       }
     }
-    this.#version = file.version;
-    this.#dirty = false;
-    this.conflict.value = null;
-    this.status.value = 'saved';
-    this.#recovery.clear();
-    this.list.replace(data);
-    if (notice) this.#kick();
+    this.#read = { version: file.version, data };
+    this.#fire('takeTheirs');
+    // The unreadable file is replaced with the empty data, as when opening one.
+    if (notice) this.#fire('edit');
     return notice;
-  }
-
-  /** Conflict → Keep mine: save this window's data over the file. */
-  async keepMine(): Promise<void> {
-    const file = await this.store.load();
-    // A file from a newer Taskite stays as it is (PRD §3.2); the conflict waits for another choice.
-    if (file.text !== null) {
-      const parsed = parseDataFile(file.text, this.#now());
-      if (!parsed.ok && parsed.reason === 'newer') throw new Error(NEWER_FILE_MESSAGE);
-    }
-    this.#version = file.version;
-    this.conflict.value = null;
-    this.#kick();
-    await this.flush();
-  }
-
-  /** Conflict → Save a copy: keep this window's data as a dated copy, then reload. Returns the copy's name. */
-  async saveCopyAndReload(): Promise<string> {
-    const name = await this.store.saveCopy(serialize(this.list.data), 'copy');
-    await this.reload();
-    return name;
   }
 
   /** Recovery → Restore: put last time's unsaved data back, and save it. */
@@ -309,7 +396,7 @@ export class TaskSession {
     const parsed = parseDataFile(text, this.#now());
     if (!parsed.ok) return;
     this.list.replace(parsed.data);
-    this.#kick();
+    this.#fire('edit');
   }
 
   /** Recovery → Discard. */

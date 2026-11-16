@@ -108,6 +108,33 @@ describe('a task session', () => {
     expect(store.text).toContain('changed elsewhere');
   });
 
+  it('keeps changes made while the conflict dialog is up in the recovery slot', async () => {
+    const store = new MemoryStore(serialize(withTask('a')));
+    const recovery = memoryRecovery();
+    const { session } = await TaskSession.open(store, opts({ recovery }));
+    store.text = serialize(withTask('changed elsewhere'));
+    session.list.addTask({ title: 'mine' });
+    await session.flush();
+    session.list.addTask({ title: 'typed during the conflict' });
+    expect(recovery.text).toContain('typed during the conflict');
+  });
+
+  it('takes one conflict choice at a time, so a second click never acts on a later conflict', async () => {
+    // Found by the random session test (FUZZ_SEED=270): Use Theirs, then Keep Mine before it finished.
+    const store = new MemoryStore(serialize(withTask('a')));
+    const { session } = await TaskSession.open(store, opts());
+    store.text = serialize(withTask('theirs'));
+    session.list.addTask({ title: 'mine' });
+    await session.flush();
+    const theirs = session.reload();
+    expect(session.choosing.value).toBe(true);
+    await session.keepMine();
+    await theirs;
+    expect(session.list.data.tasks.map((t) => t.title)).toEqual(['theirs']);
+    expect(store.text).toBe(serialize(withTask('theirs')));
+    expect([session.status.value, session.choosing.value]).toEqual(['saved', false]);
+  });
+
   it('takes a change made elsewhere when nothing is unsaved, as one undo step', async () => {
     const store = new MemoryStore(serialize(withTask('a')));
     const { session } = await TaskSession.open(store, opts());
@@ -172,7 +199,7 @@ describe('a task session', () => {
 
     await conflict();
     const name = await session.saveCopyAndReload();
-    expect(store.copies.get(name)).toContain('mine');
+    expect(store.copies.get(name ?? '')).toContain('mine');
     expect(session.list.data.tasks.map((t) => t.title)).toEqual(['theirs']);
   });
 

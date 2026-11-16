@@ -27,6 +27,15 @@ export {
   type SessionOptions,
 } from './session/taskSession.ts';
 export {
+  SAVE_TRANSITIONS,
+  step,
+  toMermaid,
+  type Effect,
+  type SaveEvent,
+  type SaveState,
+  type Transition,
+} from './session/saveChart.ts';
+export {
   COMMAND_GROUPS,
   CommandCatalog,
   MAX_RECENT,

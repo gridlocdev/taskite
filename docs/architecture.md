@@ -42,9 +42,43 @@ Taskite is one TypeScript code base with three hosts and a CLI. The browser, the
 ## UI (`packages/ui`)
 
 - `store/`: the `TaskStore` contract and its four adapters. A version is the SHA-256 of the file's text; a save sends the version it last saw and fails with `ConflictError` if the file changed (PRD §3.4).
-- `session/taskSession.ts`: one open file. It saves every change at once, never two saves at a time, retries a failed save, keeps unsaved text for recovery, and stops on a conflict until the user chooses.
+- `session/taskSession.ts`: one open file. It saves every change at once, never two saves at a time, retries a failed save, keeps unsaved text for recovery, and stops on a conflict until the user chooses. What happens when is the table in `session/saveChart.ts`, drawn below.
 - `commands/`: the `CommandCatalog`. Shortcuts are parsed once; `forEvent` turns a key press into a command, a wait for the second key of a sequence, or nothing (PRD §8).
 - `components/`: `Dialog` (modal, focus trap, Esc), `ListPopup` and the `Icon` set.
+
+### Saving
+
+Every move the save session can make, from `toMermaid()` in `session/saveChart.ts`; a test checks this drawing matches the table. An event with no arrow from the current state changes nothing. To review a change to saving, read this diagram's diff and ask what happens to typing in each state.
+
+```mermaid
+stateDiagram-v2
+  [*] --> clean
+  clean --> saving : edit / snapshot, writeFile
+  clean --> refreshing : refresh / readFile
+  refreshing --> saving : edit / snapshot, dropRead, writeFile
+  refreshing --> clean : refreshRead / takeFile
+  saving --> savingDirty : edit / snapshot
+  saving --> clean : saved / clearSnapshot
+  saving --> failed : failed
+  saving --> conflict : versionChanged / showConflict
+  savingDirty --> savingDirty : edit / snapshot
+  savingDirty --> saving : saved / writeFile
+  savingDirty --> failed : failed
+  savingDirty --> conflict : versionChanged / showConflict
+  failed --> saving : edit / snapshot, writeFile
+  failed --> saving : retry / writeFile
+  conflict --> conflict : edit / snapshot
+  conflict --> choosing : choose
+  choosing --> choosing : edit / snapshot
+  choosing --> conflict : chooseFailed
+  choosing --> saving : keepMine / writeFile
+  choosing --> clean : takeTheirs / replaceWithFile, clearSnapshot
+```
+
+- `snapshot` keeps the data in the recovery slot at every edit, so a crash or a conflict never loses typing.
+- `dropRead`: an edit during a refresh wins; the file read is ignored and the save finds any conflict.
+- `takeFile` takes an outside change as one undo step; `replaceWithFile` (Use Theirs) drops this window's changes.
+- `choosing`: a conflict choice is reading the file. The dialog's buttons wait, so a second click can't apply an old read to a later conflict; if the read fails, the dialog is back.
 
 ## Web (`apps/web`)
 
