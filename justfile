@@ -167,7 +167,9 @@ soak runs="1000": build-web
     base=$(date +%s)
     echo "Seeds start at $base (FUZZ_SEED=<n> replays one)."
     FUZZ_RUNS={{ runs }} FUZZ_SEED_BASE=$base pnpm vitest run -t random --testTimeout=0 --silent=passed-only
-    FUZZ_RUNS=25 FUZZ_SEED_BASE=$base pnpm exec playwright test -c e2e/playwright.config.ts --project=web -g random
+    # Its own folder: a replay or the next soak clears .e2e-results, not this run's screenshots and traces.
+    echo "Random-use failures keep their screenshots and traces in .e2e-soak/$base."
+    FUZZ_RUNS=25 FUZZ_SEED_BASE=$base pnpm exec playwright test -c e2e/playwright.config.ts --project=web -g random --output=".e2e-soak/$base"
 
 # Desktop smoke test: the built Electron app, headless, with a throwaway data folder.
 [group('quality')]
@@ -217,7 +219,7 @@ setup:
 clean:
     rm -rf apps/web/dist apps/desktop/out "{{ release }}" apps/desktop/node_modules/.cache/taskite-dev
     find . -name '*.tsbuildinfo' -not -path '*/node_modules/*' -delete
-    rm -rf .e2e-data .e2e-results .e2e-report .types-e2e
+    rm -rf .e2e-data .e2e-results .e2e-report .e2e-soak .types-e2e
 
 # Remove build output and every node_modules (run `just setup` after).
 [group('housekeeping')]
