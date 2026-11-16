@@ -65,7 +65,8 @@ export class BrowserStore implements TaskStore {
   #serial<T>(task: () => Promise<T>): Promise<T> {
     const locks = this.#locks;
     const locked = locks ? () => locks.request('taskite-tasks-file', task) : task;
-    const run = this.#queue.catch(() => undefined).then(locked);
+    // Runs after the one before it either way; that one's failure went to its own caller.
+    const run = this.#queue.then(locked, locked);
     this.#queue = run;
     return run;
   }

@@ -47,7 +47,9 @@ function rememberWindow(w: BrowserWindow): void {
   if (headless || w.isDestroyed() || w.isMinimized()) return;
   const b = w.getNormalBounds();
   lastWindow = { ...b, maximized: w.isMaximized() };
-  void saveWindow(windowFile, lastWindow).catch(() => undefined);
+  void saveWindow(windowFile, lastWindow).catch((e: unknown) =>
+    console.warn('Could not remember the window position:', e),
+  );
 }
 
 function createWindow(): BrowserWindow {

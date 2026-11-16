@@ -7,7 +7,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { constants } from 'node:fs';
 import { mkdir, open, readFile, realpath, rename, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { copyFileName, type CopyLabel } from '@taskite/core';
+import { copyFileName, ignoreError, type CopyLabel } from '@taskite/core';
 
 /** What a read found: the text and its version, or nulls when there is no file yet. */
 export interface DataFileRead {
@@ -94,7 +94,10 @@ async function syncFolder(dir: string): Promise<void> {
   if (process.platform === 'win32') return;
   const handle = await open(dir, 'r').catch(() => null);
   if (!handle) return;
-  await handle.sync().catch(() => undefined);
+  await ignoreError(
+    handle.sync(),
+    'some file systems cannot flush a folder; the rename itself already happened',
+  );
   await handle.close();
 }
 
@@ -134,7 +137,8 @@ const queues = new Map<string, Promise<unknown>>();
 
 function serialized<T>(file: string, task: () => Promise<T>): Promise<T> {
   const key = path.resolve(file);
-  const run = (queues.get(key) ?? Promise.resolve()).catch(() => undefined).then(task);
+  // The task runs after the one before it either way; that one's failure went to its own caller.
+  const run = (queues.get(key) ?? Promise.resolve()).then(task, task);
   queues.set(key, run);
   void run.finally(() => {
     if (queues.get(key) === run) queues.delete(key);

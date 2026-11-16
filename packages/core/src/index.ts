@@ -19,6 +19,7 @@ export {
   todayISO,
   type Recurrence,
 } from './dates.ts';
+export { ignoreError } from './errors.ts';
 export {
   DAY_MS,
   FORMAT_VERSION,
