@@ -527,7 +527,8 @@ export function buildCommands(app: AppController): CommandCatalog {
       id: 'select.nextSection',
       title: 'Next Section',
       keywords: 'jump skip heading group down',
-      description: 'Moves to the first task of the next section in a list.',
+      description:
+        'Moves to the first task of the next section in a list, or its Add task button when it is empty.',
       group: 'Select',
       shortcuts: ['shift+alt+down'],
       keysOnly: true,
@@ -538,7 +539,8 @@ export function buildCommands(app: AppController): CommandCatalog {
       id: 'select.prevSection',
       title: 'Previous Section',
       keywords: 'jump skip heading group up',
-      description: 'Moves to the first task of the previous section in a list.',
+      description:
+        'Moves to the first task of the previous section in a list, or its Add task button when it is empty.',
       group: 'Select',
       shortcuts: ['shift+alt+up'],
       keysOnly: true,
@@ -549,7 +551,8 @@ export function buildCommands(app: AppController): CommandCatalog {
       id: 'select.nextColumn',
       title: 'Next Column',
       keywords: 'jump board kanban section right',
-      description: 'Moves to the first task of the next column on a board.',
+      description:
+        'Moves to the first task of the next column on a board, or its Add task button when it is empty.',
       group: 'Select',
       shortcuts: ['shift+alt+right'],
       keysOnly: true,
@@ -560,7 +563,8 @@ export function buildCommands(app: AppController): CommandCatalog {
       id: 'select.prevColumn',
       title: 'Previous Column',
       keywords: 'jump board kanban section left',
-      description: 'Moves to the first task of the previous column on a board.',
+      description:
+        'Moves to the first task of the previous column on a board, or its Add task button when it is empty.',
       group: 'Select',
       shortcuts: ['shift+alt+left'],
       keysOnly: true,
@@ -571,7 +575,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       id: 'select.columnRight',
       title: 'Task to the Right',
       keywords: 'board kanban column section beside',
-      description: 'Moves to the task level with this one in the next column on a board.',
+      description: 'Moves to the task or Add task button level with this one in the next column on a board.',
       group: 'Select',
       shortcuts: ['right'],
       keysOnly: true,
@@ -582,7 +586,8 @@ export function buildCommands(app: AppController): CommandCatalog {
       id: 'select.columnLeft',
       title: 'Task to the Left',
       keywords: 'board kanban column section beside',
-      description: 'Moves to the task level with this one in the previous column on a board.',
+      description:
+        'Moves to the task or Add task button level with this one in the previous column on a board.',
       group: 'Select',
       shortcuts: ['left'],
       keysOnly: true,

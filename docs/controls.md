@@ -21,9 +21,9 @@ In a browser tab, the browser keeps **⌘N** and **⇧⌘N** (**Ctrl+N** and **C
 | --- | --- | --- |
 | Next / previous task (and the Add task button after each section) | **↓** / **↑** (or **J** / **K**) | **Down** / **Up** (or **J** / **K**) |
 | Add the task below / above | **⇧↓** / **⇧↑** (or **⇧J** / **⇧K**) | **Shift+Down** / **Shift+Up** (or **Shift+J** / **Shift+K**) |
-| First task of the next / previous section (list) | **⌥⇧↓** / **⌥⇧↑** | **Alt+Shift+Down** / **Alt+Shift+Up** |
-| Task level with this one in the next / previous column (board) | **→** / **←** | **Right** / **Left** |
-| First task of the next / previous column (board) | **⌥⇧→** / **⌥⇧←** | **Alt+Shift+Right** / **Alt+Shift+Left** |
+| First task (or Add task button) of the next / previous section (list) | **⌥⇧↓** / **⌥⇧↑** | **Alt+Shift+Down** / **Alt+Shift+Up** |
+| Task or Add task button level with this one in the next / previous column (board) | **→** / **←** | **Right** / **Left** |
+| First task (or Add task button) of the next / previous column (board) | **⌥⇧→** / **⌥⇧←** | **Alt+Shift+Right** / **Alt+Shift+Left** |
 | Add or remove one task | **⌘-click** | **Ctrl-click** |
 | Choose a range | **Shift-click** | **Shift-click** |
 | Choose all tasks in the list | **⌘A** | **Ctrl+A** |

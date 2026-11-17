@@ -5,6 +5,7 @@ import { MENUS, TASK_MENU, closestTo, dynamicEntries } from '../src/app/commands
 import { nativeMenu } from '../src/app/nativeMenu.ts';
 import { shortcutGroups } from '../src/app/shortcuts.ts';
 import { makeApp } from './helpers.ts';
+import { addStop } from '../src/app/controller.ts';
 
 const key = (k: string, more: Partial<KeyboardEvent> = {}) =>
   ({ key: k, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, ...more }) as KeyboardEvent;
@@ -207,7 +208,7 @@ describe('commands', () => {
     app.go({ type: 'project', id: INBOX_ID });
     const a = app.list.addTask({ title: 'Loose' });
     const one = app.list.addSection(INBOX_ID, 'One')!;
-    app.list.addSection(INBOX_ID, 'Empty');
+    const empty = app.list.addSection(INBOX_ID, 'Empty')!;
     const three = app.list.addSection(INBOX_ID, 'Three')!;
     const b1 = app.list.addTask({ title: 'B1', sectionId: one.id });
     app.list.addTask({ title: 'B2', sectionId: one.id });
@@ -224,10 +225,14 @@ describe('commands', () => {
     press(down);
     expect(app.cursor.value).toBe(b1.id);
     expect(app.selectedIds()).toEqual([b1.id]);
-    // The empty section is skipped.
+    // The empty section isn't skipped: its Add task button, with nothing chosen.
+    press(down);
+    expect(app.cursor.value).toBe(addStop(`section:${empty.id}`));
+    expect(app.selectedIds()).toEqual([]);
     press(down);
     expect(app.cursor.value).toBe(c1.id);
     expect(press(down)).toBeNull();
+    press(up);
     press(up);
     expect(app.cursor.value).toBe(b1.id);
     // A list's sections aren't columns.
@@ -239,7 +244,7 @@ describe('commands', () => {
     const { app, catalog } = await makeApp();
     app.go({ type: 'project', id: INBOX_ID });
     const one = app.list.addSection(INBOX_ID, 'One')!;
-    app.list.addSection(INBOX_ID, 'Empty');
+    const empty = app.list.addSection(INBOX_ID, 'Empty')!;
     const three = app.list.addSection(INBOX_ID, 'Three')!;
     const [a1, a2, a3] = ['A1', 'A2', 'A3'].map((title) => app.list.addTask({ title, sectionId: one.id }));
     const [b1, b2] = ['B1', 'B2'].map((title) => app.list.addTask({ title, sectionId: three.id }));
@@ -250,18 +255,28 @@ describe('commands', () => {
       return r?.kind === 'run' ? r.command.id : null;
     };
     app.click(a2!.id);
-    // Without a screen to measure, the same place in the next column that has tasks.
+    // Without a screen to measure, the same place in the next column, else its last stop: the empty column's
+    // Add task button.
+    const addEmpty = addStop(`section:${empty.id}`);
     expect(press(key('ArrowRight'))).toBe('select.columnRight');
-    expect(app.cursor.value).toBe(b2!.id);
+    expect(app.cursor.value).toBe(addEmpty);
+    expect(app.selectedIds()).toEqual([]);
+    press(key('ArrowRight'));
+    expect(app.cursor.value).toBe(b1!.id);
     expect(press(key('ArrowRight'))).toBeNull();
     press(key('ArrowLeft'));
-    expect(app.cursor.value).toBe(a2!.id);
-    app.click(a3!.id);
+    press(key('ArrowLeft'));
+    expect(app.cursor.value).toBe(a1!.id);
+    app.click(a2!.id);
     press(key('ArrowRight'));
-    expect(app.cursor.value).toBe(b2!.id);
+    press(key('ArrowRight'));
     app.click(a3!.id);
     expect(press(key('ArrowRight', { shiftKey: true, altKey: true }))).toBe('select.nextColumn');
+    expect(app.cursor.value).toBe(addEmpty);
+    press(key('ArrowRight', { shiftKey: true, altKey: true }));
     expect(app.cursor.value).toBe(b1!.id);
+    app.click(b2!.id);
+    press(key('ArrowLeft', { shiftKey: true, altKey: true }));
     press(key('ArrowLeft', { shiftKey: true, altKey: true }));
     expect(app.cursor.value).toBe(a1!.id);
     expect(press(key('ArrowDown', { shiftKey: true, altKey: true }))).toBeNull();

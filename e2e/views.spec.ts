@@ -100,8 +100,12 @@ test.describe('Views', () => {
     await page.keyboard.press('ArrowRight');
     await expect(plan).toBeFocused();
     await expect(plan).toHaveAttribute('aria-selected', 'true');
-    // The empty Done column is skipped, so there is nowhere further right.
+    // The empty Done column isn't skipped: Right lands on its Add task button, with nothing chosen.
     await page.keyboard.press('ArrowRight');
+    const addDone = page.getByRole('region', { name: 'Done' }).getByRole('button', { name: 'Add task' });
+    await expect(addDone).toBeFocused();
+    await expect(page.locator('[aria-selected="true"]')).toHaveCount(0);
+    await page.keyboard.press('Alt+Shift+ArrowLeft');
     await expect(plan).toBeFocused();
     await page.keyboard.press('Alt+Shift+ArrowLeft');
     await expect(draft).toBeFocused();

@@ -195,13 +195,7 @@ export class AppController {
 
   readonly ids = computed(() => visibleIds(this.content.value));
   /** Where ↑ and ↓ go: each section's tasks, then its Add task button. */
-  readonly stops = computed(() =>
-    this.content.value.sections.flatMap((s) =>
-      s.addSlot === null
-        ? s.rows.map((r) => r.task.id)
-        : [...s.rows.map((r) => r.task.id), addStop(s.addSlot)],
-    ),
-  );
+  readonly stops = computed(() => this.content.value.sections.flatMap(sectionStops));
 
   constructor(session: TaskSession, opts: ControllerOptions = {}) {
     this.session = session;
@@ -421,43 +415,43 @@ export class AppController {
     return this.content.value.sections.filter((s) => s.heading !== null);
   }
 
-  /** The nearest section `delta` places from the cursor's (or from the top or bottom) that has tasks. */
-  #filledSection(delta: 1 | -1): Section | undefined {
+  /** The nearest section `delta` places from the cursor's (or from the top or bottom) with a task or an Add task button. */
+  #nextSection(delta: 1 | -1): Section | undefined {
     const sections = this.content.value.sections;
     const cursor = this.cursor.value;
     const at = cursor === null ? -1 : sections.findIndex((s) => holds(s, cursor));
     const from = at !== -1 ? at : delta > 0 ? -1 : sections.length;
     for (let i = from + delta; i >= 0 && i < sections.length; i += delta) {
       const s = sections[i]!;
-      if (s.rows.length) return s;
+      if (sectionStops(s).length) return s;
     }
     return undefined;
   }
 
-  /** Whether the next or previous section (a list) or column (a board) has a task to move to. */
+  /** Whether the next or previous section (a list) or column (a board) has a task or Add task button to move to. */
   canJumpSection(delta: 1 | -1, board: boolean): boolean {
-    return (this.content.value.board === true) === board && this.#filledSection(delta) !== undefined;
+    return (this.content.value.board === true) === board && this.#nextSection(delta) !== undefined;
   }
 
   /**
    * ⇧⌥↓ / ⇧⌥↑ in a list, ⇧⌥→ / ⇧⌥← on a board: the cursor goes to the first task of the next or previous
-   * section that has tasks. With `near` (← → on a board), it goes to the task `near` picks instead; without
-   * one, to the row at the same place in the column, else the column's last.
+   * section, or to its Add task button when it has none. With `near` (← → on a board), it goes to the stop
+   * `near` picks instead; without one, to the stop at the same place in the column, else the column's last.
    */
   jumpSection(delta: 1 | -1, near?: (ids: readonly string[]) => string | undefined): void {
-    const target = this.#filledSection(delta);
+    const target = this.#nextSection(delta);
     if (!target) return;
-    const ids = target.rows.map((r) => r.task.id);
-    let next = ids[0]!;
+    const stops = sectionStops(target);
+    let next = stops[0]!;
     if (near) {
       const cursor = this.cursor.value;
       const from = cursor === null ? undefined : this.content.value.sections.find((s) => holds(s, cursor));
-      // The Add task button is below the last row.
-      const row = from ? from.rows.findIndex((r) => r.task.id === cursor) : 0;
-      const place = row === -1 ? (from?.rows.length ?? 0) : row;
-      next = near(ids) ?? ids[Math.min(place, ids.length - 1)]!;
+      const place = from && cursor !== null ? Math.max(sectionStops(from).indexOf(cursor), 0) : 0;
+      next = near(stops) ?? stops[Math.min(place, stops.length - 1)]!;
     }
-    this.#moveTo(next);
+    const slot = stopSlot(next);
+    if (slot === undefined) this.#moveTo(next);
+    else this.cursorToAdd(slot);
   }
 
   /** Go to Section…: the cursor goes to the section's first task, or the add-task row opens in an empty one. */
@@ -1171,6 +1165,12 @@ export class AppController {
 }
 
 /** Whether `id` is one of the section's tasks or its Add task button. */
+/** A section's stops for ↑ and ↓: its tasks, then its Add task button. */
+function sectionStops(section: Section): string[] {
+  const ids = section.rows.map((r) => r.task.id);
+  return section.addSlot === null ? ids : [...ids, addStop(section.addSlot)];
+}
+
 function holds(section: Section, id: string): boolean {
   return (
     section.rows.some((r) => r.task.id === id) ||
