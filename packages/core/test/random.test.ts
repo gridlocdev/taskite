@@ -19,7 +19,7 @@ import {
   type TaskPatch,
 } from '../src/index.ts';
 import { checkInvariants } from './support/invariants.ts';
-import { runRandomOps, type Op, type Random } from './support/randomOps.ts';
+import { RANDOM_TIMEOUT, runRandomOps, type Op, type Random } from './support/randomOps.ts';
 
 const DAY = 86_400_000;
 const START = new Date(2026, 0, 1, 9).getTime();
@@ -382,27 +382,31 @@ const ops: Op<State>[] = [
 ];
 
 describe('the engine', () => {
-  it('random edits keep the task rules, save and reload unchanged, and undo back to the start', async () => {
-    let n = 0;
-    await runRandomOps<State>({
-      steps: 80,
-      setup: () => {
-        const state: State = {
-          list: null as unknown as TaskList,
-          clock: START,
-          start: emptyData(),
-          outside: 0,
-        };
-        state.list = new TaskList(emptyData(), { now: () => state.clock, newId: () => `id${++n}` });
-        state.start = copy(state.list.data);
-        return state;
-      },
-      ops,
-      check: (s) => {
-        checkInvariants(s.list.data);
-        const parsed = parseDataFile(serialize(s.list.data), s.clock);
-        expect(parsed.ok && parsed.data, 'the saved file loads back the same').toEqual(copy(s.list.data));
-      },
-    });
-  });
+  it(
+    'random edits keep the task rules, save and reload unchanged, and undo back to the start',
+    async () => {
+      let n = 0;
+      await runRandomOps<State>({
+        steps: 80,
+        setup: () => {
+          const state: State = {
+            list: null as unknown as TaskList,
+            clock: START,
+            start: emptyData(),
+            outside: 0,
+          };
+          state.list = new TaskList(emptyData(), { now: () => state.clock, newId: () => `id${++n}` });
+          state.start = copy(state.list.data);
+          return state;
+        },
+        ops,
+        check: (s) => {
+          checkInvariants(s.list.data);
+          const parsed = parseDataFile(serialize(s.list.data), s.clock);
+          expect(parsed.ok && parsed.data, 'the saved file loads back the same').toEqual(copy(s.list.data));
+        },
+      });
+    },
+    RANDOM_TIMEOUT,
+  );
 });

@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { SAVE_TRANSITIONS, step, toMermaid, type SaveEvent, type SaveState } from '../src/index.ts';
-import { runRandomOps, type Op } from './support/randomOps.ts';
+import { RANDOM_TIMEOUT, runRandomOps, type Op } from './support/randomOps.ts';
 
 /** The chart's state, plus a model of the file and the user's typing around it. */
 interface World {
@@ -138,27 +138,32 @@ const ops: Op<World>[] = [
 ];
 
 describe('the save chart', () => {
-  it('random events never write twice at once or during a conflict, keep every edit, and refresh only when saved', async () => {
-    await runRandomOps<World>({
-      steps: 200,
-      setup: () => ({
-        state: 'clean',
-        writes: 0,
-        writesDone: 0,
-        reads: [],
-        unsaved: false,
-        editedSinceWrite: false,
-        unkept: false,
-        asking: false,
-      }),
-      ops,
-      check: (w) => {
-        if (w.state === 'clean' || w.state === 'refreshing')
-          expect(w.unsaved, 'saved means the file has every edit').toBe(false);
-        if (w.state === 'saving' || w.state === 'savingDirty') expect(w.writes, 'a write is running').toBe(1);
-      },
-    });
-  });
+  it(
+    'random events never write twice at once or during a conflict, keep every edit, and refresh only when saved',
+    async () => {
+      await runRandomOps<World>({
+        steps: 200,
+        setup: () => ({
+          state: 'clean',
+          writes: 0,
+          writesDone: 0,
+          reads: [],
+          unsaved: false,
+          editedSinceWrite: false,
+          unkept: false,
+          asking: false,
+        }),
+        ops,
+        check: (w) => {
+          if (w.state === 'clean' || w.state === 'refreshing')
+            expect(w.unsaved, 'saved means the file has every edit').toBe(false);
+          if (w.state === 'saving' || w.state === 'savingDirty')
+            expect(w.writes, 'a write is running').toBe(1);
+        },
+      });
+    },
+    RANDOM_TIMEOUT,
+  );
 
   it('lists each move once', () => {
     const keys = SAVE_TRANSITIONS.map((t) => `${t.from} ${t.on}`);

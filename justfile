@@ -145,13 +145,15 @@ fuzz runs="500":
 
 # Browser scenarios against the built client and the NAS server, on fixture data in ./.e2e-data.
 [group('quality')]
+[positional-arguments]
 e2e *args: build-web
-    pnpm exec playwright test -c e2e/playwright.config.ts --project=web {{ args }}
+    pnpm exec playwright test -c e2e/playwright.config.ts --project=web "$@"
 
 # Accept the current screenshots as the new baseline (macOS; look at the diff in .e2e-results first).
 [group('quality')]
+[positional-arguments]
 e2e-update *args: build-web
-    pnpm exec playwright test -c e2e/playwright.config.ts --project=web --update-snapshots {{ args }}
+    pnpm exec playwright test -c e2e/playwright.config.ts --project=web --update-snapshots "$@"
 
 # Drive the app headlessly for a quick look: just drive cmd:"Go to Inbox" key:KeyQ type:"Buy milk" shot:after aria
 [group('quality')]
@@ -163,13 +165,16 @@ drive *steps: build-web
 [group('quality')]
 soak runs="1000": build-web
     #!/usr/bin/env bash
-    set -euo pipefail
+    # Both halves run even when the first fails, and the recipe fails if either did.
+    set -uo pipefail
+    status=0
     base=$(date +%s)
     echo "Seeds start at $base (FUZZ_SEED=<n> replays one)."
-    FUZZ_RUNS={{ runs }} FUZZ_SEED_BASE=$base pnpm vitest run -t random --testTimeout=0 --silent=passed-only
+    FUZZ_RUNS={{ runs }} FUZZ_SEED_BASE=$base pnpm vitest run -t random --testTimeout=0 --silent=passed-only || status=1
     # Its own folder: a replay or the next soak clears .e2e-results, not this run's screenshots and traces.
     echo "Random-use failures keep their screenshots and traces in .e2e-soak/$base."
-    FUZZ_RUNS=25 FUZZ_SEED_BASE=$base pnpm exec playwright test -c e2e/playwright.config.ts --project=web -g random --output=".e2e-soak/$base"
+    FUZZ_RUNS=25 FUZZ_SEED_BASE=$base pnpm exec playwright test -c e2e/playwright.config.ts --project=web -g random --output=".e2e-soak/$base" || status=1
+    exit $status
 
 # Desktop smoke test: the built Electron app, headless, with a throwaway data folder.
 [group('quality')]

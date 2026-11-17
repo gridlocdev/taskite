@@ -141,3 +141,10 @@ export async function runRandomOps<S>(run: RandomRun<S>): Promise<void> {
     }
   }
 }
+
+/**
+ * The test's own timeout. Vitest's 5-second default fails 20 seeds in a loaded `just check`, but a timeout given
+ * to the test beats `--testTimeout=0`, so with FUZZ_RUNS or FUZZ_SEED set (`just fuzz`, `just soak`, a replay)
+ * there is none.
+ */
+export const RANDOM_TIMEOUT = process.env.FUZZ_RUNS || process.env.FUZZ_SEED ? 0 : 60_000;

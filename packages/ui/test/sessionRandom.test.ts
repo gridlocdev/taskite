@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { emptyData, parseDataFile, serialize, type CopyLabel } from '@taskite/core';
 import { describe, expect, it } from 'vitest';
 import { ConflictError, TaskSession, memoryRecovery, type StoredFile, type TaskStore } from '../src/index.ts';
-import { runRandomOps, type Op } from './support/randomOps.ts';
+import { RANDOM_TIMEOUT, runRandomOps, type Op } from './support/randomOps.ts';
 
 /** A store whose reads and writes wait until the test lets each one through, in any order. */
 class GatedStore implements TaskStore {
@@ -180,40 +180,44 @@ function sample() {
 }
 
 describe('a task session', () => {
-  it('random edits, refreshes, outside writes and slow or failing saves never lose a change or go back to an older file', async () => {
-    let n = 0;
-    await runRandomOps<World>({
-      steps: 120,
-      setup: async () => {
-        const store = new GatedStore();
-        const opening = TaskSession.open(store, {
-          recovery: memoryRecovery(),
-          wait: () => Promise.resolve(),
-          now: () => 0,
-          newId: () => `id${++n}`,
-        });
-        await settle();
-        store.waiting.shift()?.let(false, false);
-        const { session } = await opening;
-        return { store, session, errors: [], seq: -1 };
-      },
-      ops,
-      check: (w) => {
-        expect(w.errors, 'no conflict choice or refresh throws').toEqual([]);
-        expect(
-          w.store.waiting.filter((c) => c.kind === 'save').length,
-          'never two writes at once',
-        ).toBeLessThanOrEqual(1);
-        const version = w.session.version;
-        if (version === null) return;
-        const held = w.store.history.get(version);
-        expect(held, 'the window holds a version the file had').toBeDefined();
-        if (!held) return;
-        expect(held.seq, 'the window never goes back to an older file').toBeGreaterThanOrEqual(w.seq);
-        w.seq = held.seq;
-        if (w.session.state === 'clean')
-          expect(serialize(w.session.list.data), 'saved means the file has every change').toBe(held.text);
-      },
-    });
-  });
+  it(
+    'random edits, refreshes, outside writes and slow or failing saves never lose a change or go back to an older file',
+    async () => {
+      let n = 0;
+      await runRandomOps<World>({
+        steps: 120,
+        setup: async () => {
+          const store = new GatedStore();
+          const opening = TaskSession.open(store, {
+            recovery: memoryRecovery(),
+            wait: () => Promise.resolve(),
+            now: () => 0,
+            newId: () => `id${++n}`,
+          });
+          await settle();
+          store.waiting.shift()?.let(false, false);
+          const { session } = await opening;
+          return { store, session, errors: [], seq: -1 };
+        },
+        ops,
+        check: (w) => {
+          expect(w.errors, 'no conflict choice or refresh throws').toEqual([]);
+          expect(
+            w.store.waiting.filter((c) => c.kind === 'save').length,
+            'never two writes at once',
+          ).toBeLessThanOrEqual(1);
+          const version = w.session.version;
+          if (version === null) return;
+          const held = w.store.history.get(version);
+          expect(held, 'the window holds a version the file had').toBeDefined();
+          if (!held) return;
+          expect(held.seq, 'the window never goes back to an older file').toBeGreaterThanOrEqual(w.seq);
+          w.seq = held.seq;
+          if (w.session.state === 'clean')
+            expect(serialize(w.session.list.data), 'saved means the file has every change').toBe(held.text);
+        },
+      });
+    },
+    RANDOM_TIMEOUT,
+  );
 });

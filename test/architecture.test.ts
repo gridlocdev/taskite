@@ -31,7 +31,10 @@ const LAYERS: Record<string, readonly string[]> = {
   'apps/desktop': ['packages/core', 'packages/node-files'],
 };
 
-/** The pure engine packages: no DOM, Node or Preact, in source or tests. */
+/**
+ * The pure engine packages: no DOM, Node or Preact in their source. Their tests run in Node and may read
+ * fixtures with node:fs and settings from process.env (randomOps.ts does), so the engine rules skip them.
+ */
 const ENGINE = ['packages/core'];
 const ENGINE_BANNED = [/^node:/, /^preact/, /^@preact\//];
 const ENGINE_BANNED_GLOBALS = [
@@ -41,7 +44,14 @@ const ENGINE_BANNED_GLOBALS = [
   'localStorage',
   'sessionStorage',
   'indexedDB',
+  'process',
 ];
+
+/**
+ * The names code calls fetch by. Add the name a store adapter gives a fetch passed in to it, so its calls need a
+ * timeout too. Only the global `fetch` counts for the `fetch` rule.
+ */
+const FETCH_NAMES = ['fetch'];
 
 /** The parts that run in the page. */
 const RENDERER = ['packages/ui', 'apps/web'];
@@ -212,7 +222,7 @@ function imports(source: ts.SourceFile): { spec: string; node: ts.Node }[] {
 function checkImports(file: string, source: ts.SourceFile, report: Report): void {
   const part = partOf(file);
   if (!part) return;
-  const engine = ENGINE.includes(part);
+  const engine = ENGINE.includes(part) && !isTest(file);
   for (const { spec, node } of imports(source)) {
     const line = report.line(node);
     if (engine && ENGINE_BANNED.some((pattern) => pattern.test(spec))) {
@@ -313,18 +323,20 @@ function stringArg(node: ts.Expression | undefined): string | null {
   return node && ts.isStringLiteralLike(node) ? node.text : null;
 }
 
-/** `fetch(url)` or `fetch(url, { … })` with no `signal`. An options value built elsewhere can't be checked here. */
+/**
+ * `fetch(url)` or `fetch(url, { … })` with no `signal`. A spread (`{ ...init }`) doesn't count as one: write
+ * `signal` out. An options value built elsewhere can't be checked here; the store's contract test covers it.
+ */
 function fetchWithoutSignal(call: ts.CallExpression): boolean {
   const options = call.arguments[1];
   if (!options) return true;
   if (!ts.isObjectLiteralExpression(options)) return false;
-  if (options.properties.some((p) => ts.isSpreadAssignment(p))) return false;
   return !options.properties.some((p) => p.name && ts.isIdentifier(p.name) && p.name.text === 'signal');
 }
 
 function checkCode(file: string, source: ts.SourceFile, report: Report): void {
   const part = partOf(file) ?? '';
-  const engine = ENGINE.includes(part);
+  const engine = ENGINE.includes(part) && !isTest(file);
   const renderer = RENDERER.includes(part);
   const test = isTest(file);
   const declared = declaredNames(source);
@@ -344,11 +356,11 @@ function checkCode(file: string, source: ts.SourceFile, report: Report): void {
         confined('effect', node, `uses ${effectNames.get(node.expression.text)}`);
       }
       const first = node.arguments[0];
-      if (name === 'fetch' && isGlobalCall(node, declared)) {
-        confined('fetch', node, 'calls fetch');
-        if (!test && fetchWithoutSignal(node)) {
-          report.add('fetch-timeout', null, 'calls fetch with no timeout', report.line(node));
-        }
+      const globalFetch = name === 'fetch' && isGlobalCall(node, declared);
+      if (globalFetch) confined('fetch', node, 'calls fetch');
+      const anyFetch = globalFetch || (name !== 'fetch' && !!name && FETCH_NAMES.includes(name));
+      if (anyFetch && !test && fetchWithoutSignal(node)) {
+        report.add('fetch-timeout', null, `calls ${name} with no timeout`, report.line(node));
       }
       if (name && TIMERS.has(name) && isGlobalCall(node, declared)) confined('timer', node, `calls ${name}`);
       if (renderer && !test && name && NATIVE_DIALOGS.has(name) && isGlobalCall(node, declared)) {
