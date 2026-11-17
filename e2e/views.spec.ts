@@ -125,6 +125,8 @@ test.describe('Views', () => {
     await page.keyboard.press('ArrowDown');
     const add = page.getByRole('main').getByRole('button', { name: 'Add task' });
     await expect(add).toBeFocused();
+    // Highlighted like a chosen task, even though the row before it was clicked with the mouse.
+    await expect(add).toHaveClass(/tk-chosen/);
     await page.keyboard.press('Enter');
     await expect(page.getByRole('textbox', { name: 'New task' })).toBeFocused();
     await page.keyboard.press('Escape');

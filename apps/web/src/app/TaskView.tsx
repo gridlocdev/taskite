@@ -320,7 +320,7 @@ function SectionView({
         slot !== null && (
           <button
             type="button"
-            class="tk-add-row"
+            class={`tk-add-row${app.cursor.value === addStop(slot) ? ' tk-chosen' : ''}`}
             data-id={addStop(slot)}
             onClick={() => (app.composer.value = slot)}
           >
