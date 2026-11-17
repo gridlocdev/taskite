@@ -3,8 +3,10 @@
  * data in memory and tells listeners after each change; saving is the caller's job.
  */
 import {
+  addDoneRules,
   automationDueDate,
   cleanAutomations,
+  isDoneName,
   renameLabelInRules,
   type AutomationRun,
   type AutomationTrigger,
@@ -50,7 +52,7 @@ export interface TaskListOptions {
   weekStart?: number;
 }
 
-/** Something that sets off a section's rules: a task entering it, or being completed in it (PRD §6.1). */
+/** Something that sets off a section's rules: a task entering it, leaving it, or being completed in it (PRD §6.1). */
 interface Trigger {
   task: Task;
   on: AutomationTrigger;
@@ -104,8 +106,18 @@ function removeTasks(data: AppData, ids: ReadonlySet<string>): void {
 }
 
 /** Where a task sits, as one string to compare. */
-function placeOf(task: Task): string {
-  return `${task.projectId}/${task.sectionId ?? ''}`;
+/**
+ * What a task's move sets off: leaving the section it was in, then entering the one it's in now. Nothing when
+ * it stayed where it was.
+ */
+function moveTriggers(task: Task, from: { projectId: string; sectionId?: string | undefined }): Trigger[] {
+  if (from.projectId === task.projectId && from.sectionId === task.sectionId) return [];
+  const triggers: Trigger[] = [];
+  if (from.sectionId)
+    triggers.push({ task, on: 'leave', projectId: from.projectId, sectionId: from.sectionId });
+  if (task.sectionId)
+    triggers.push({ task, on: 'enter', projectId: task.projectId, sectionId: task.sectionId });
+  return triggers;
 }
 
 /** Whether an edit changed anything: an edit that leaves the data as it was records no undo step. */
@@ -386,7 +398,7 @@ export class TaskList {
     const { sectionId, ...fields } = patch;
     const setsSection = 'sectionId' in patch;
     this.#edit(() => {
-      const was = new Map(tasks.map((t) => [t, placeOf(t)]));
+      const was = new Map(tasks.map((t) => [t, { projectId: t.projectId, sectionId: t.sectionId }]));
       for (const task of tasks) {
         const moved = fields.projectId !== undefined && fields.projectId !== task.projectId;
         // A date or repeat set by hand starts a new day of the month.
@@ -405,14 +417,7 @@ export class TaskList {
           task.parentId = null;
       }
       this.#automate(
-        tasks
-          .filter((t) => !t.parentId && t.deletedAt === null && t.sectionId && placeOf(t) !== was.get(t))
-          .map((t) => ({
-            task: t,
-            on: 'enter' as const,
-            projectId: t.projectId,
-            sectionId: t.sectionId ?? '',
-          })),
+        tasks.filter((t) => !t.parentId && t.deletedAt === null).flatMap((t) => moveTriggers(t, was.get(t)!)),
       );
     });
   }
@@ -497,11 +502,11 @@ export class TaskList {
         if (rule.on !== on) continue;
         for (const action of rule.do) {
           if (task.deletedAt !== null) break;
+          const from = { projectId: task.projectId, sectionId: task.sectionId };
           const changed = this.#apply(task, action, now, today);
           if (!changed) continue;
           this.#automated.push({ taskId: task.id, projectId, sectionId, action });
-          if ('moveTo' in action && task.sectionId)
-            queue.push({ task, on: 'enter', projectId: task.projectId, sectionId: task.sectionId });
+          if ('moveTo' in action) queue.push(...moveTriggers(task, from));
           if ('complete' in action && task.completed && task.sectionId)
             queue.push({ task, on: 'complete', projectId: task.projectId, sectionId: task.sectionId });
         }
@@ -738,6 +743,7 @@ export class TaskList {
     if (!project || !trimmed) return undefined;
     const section: ProjectSection = { id: this.#newId(), name: trimmed };
     this.#edit(() => {
+      this.#doneRules(section);
       const sections = project.sections ?? [];
       const at = afterId ? sections.findIndex((s) => s.id === afterId) : -1;
       sections.splice(at < 0 ? sections.length : at + 1, 0, section);
@@ -752,7 +758,15 @@ export class TaskList {
     if (!section || !trimmed || section.name === trimmed) return;
     this.#edit(() => {
       section.name = trimmed;
+      this.#doneRules(section);
     });
+  }
+
+  /** A section made or renamed Done gets the Done rules it lacks, unless the setting is off (PRD §6.1). */
+  #doneRules(section: ProjectSection): void {
+    if (this.#data.settings.doneRules === false || !isDoneName(section.name)) return;
+    const rules = section.automations ?? [];
+    if (addDoneRules(rules)) section.automations = rules;
   }
 
   /** Moves a section one place left (-1) or right (1). */

@@ -48,7 +48,7 @@ export interface FileTask {
 export function readTasks(): {
   projects: { id: string; name: string; sections?: { id: string; name: string; automations?: unknown }[] }[];
   tasks: FileTask[];
-  settings: { showCompleted?: boolean };
+  settings: { showCompleted?: boolean; doneRules?: boolean };
 } {
   return JSON.parse(readFileSync(`${DATA}/tasks.json`, 'utf8'));
 }

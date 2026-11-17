@@ -4,6 +4,8 @@ export {
   MAX_RULES,
   automationDueDate,
   cleanAutomations,
+  doneRules,
+  isDoneName,
   type AutomationAction,
   type AutomationRun,
   type AutomationDue,

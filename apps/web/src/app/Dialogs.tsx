@@ -795,6 +795,19 @@ function SettingsDialog({ app }: { readonly app: AppController }) {
           </label>
         ))}
       </fieldset>
+      <label class="tk-check-field">
+        <input
+          type="checkbox"
+          checked={app.doneRules.value}
+          onChange={(e) => app.setDoneRules((e.target as HTMLInputElement).checked)}
+        />
+        <span>
+          A new section named Done completes tasks moved into it
+          <small class="tk-muted">
+            and reopens tasks moved out. You can change its rules in Section Automations….
+          </small>
+        </span>
+      </label>
       <div class="tk-field">
         <span>Your tasks</span>
         <p class="tk-muted">{app.location}</p>

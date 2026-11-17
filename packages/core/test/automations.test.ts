@@ -20,6 +20,8 @@ let list: TaskList;
 beforeEach(() => {
   let n = 0;
   list = new TaskList(emptyData(), { newId: () => `id${++n}`, now: () => 5 });
+  // Sections here are named Done without getting the Done rules; those have their own tests.
+  list.updateSettings({ doneRules: false });
 });
 
 const anywhere = () => true;
@@ -60,7 +62,7 @@ describe('section automations in the file (PRD §6.1)', () => {
           on: 'enter',
           do: [{ ring: 'bell' }, { priority: 7 }, { due: '+0' }, { due: '+999' }, { due: 'soon' }],
         },
-        { on: 'leave', do: [{ complete: true }] },
+        { on: 'exit', do: [{ complete: true }] },
         { on: 'complete', do: [{ addLabel: '  ' }, { complete: 'yes' }, { complete: false, extra: 1 }] },
         { on: 'complete', do: [{ moveTo: { projectId: 'gone', sectionId: null } }] },
         'nonsense',
@@ -213,6 +215,7 @@ describe('running section automations (PRD §6.1)', () => {
       now: () => new Date(2026, 9, 9, 12).getTime(),
       weekStart: 1,
     });
+    list.updateSettings({ doneRules: false });
     doing = list.addSection(INBOX_ID, 'Doing')?.id ?? '';
     done = list.addSection(INBOX_ID, 'Done')?.id ?? '';
   });
@@ -243,6 +246,39 @@ describe('running section automations (PRD §6.1)', () => {
     expect(task(t.id)).toMatchObject({ sectionId: doing, completed: false, labels: ['focus'] });
     list.updateTasks(t.id, { title: 'Ship it' });
     expect(list.automated).toEqual([]);
+  });
+
+  it("moving a task out of a section runs its leave rules before the next section's enter rules", () => {
+    rules(doing, { on: 'leave', do: [{ addLabel: 'was-doing' }, { priority: 1 }] });
+    rules(done, { on: 'enter', do: [{ removeLabel: 'was-doing' }] });
+    const t = list.addTask({ title: 'Ship', sectionId: doing });
+    list.updateTasks(t.id, { sectionId: done });
+    expect(task(t.id)).toMatchObject({ priority: 1, labels: [] });
+    expect(list.automated.map((r) => [r.sectionId, r.action])).toEqual([
+      [doing, { addLabel: 'was-doing' }],
+      [doing, { priority: 1 }],
+      [done, { removeLabel: 'was-doing' }],
+    ]);
+    // Out to the project's top, or another project, is leaving too; reordering within it isn't.
+    const u = list.addTask({ title: 'Plan', sectionId: doing });
+    list.updateTasks(u.id, { order: 99 });
+    expect(list.automated).toEqual([]);
+    list.updateTasks(u.id, { sectionId: undefined });
+    expect(task(u.id)?.labels).toEqual(['was-doing']);
+  });
+
+  it('a move by a rule sets off the leave rules of the section it left', () => {
+    rules(
+      doing,
+      { on: 'complete', do: [{ moveTo: { projectId: INBOX_ID, sectionId: done } }] },
+      {
+        on: 'leave',
+        do: [{ addLabel: 'left' }],
+      },
+    );
+    const t = list.addTask({ title: 'Ship', sectionId: doing });
+    list.completeTasks([t.id], TODAY);
+    expect(task(t.id)).toMatchObject({ sectionId: done, labels: ['left'] });
   });
 
   it('only actions that change something are reported', () => {
@@ -408,5 +444,60 @@ describe('a rule as one line (PRD §6.1)', () => {
     ).toBe(
       'When a task is completed: reopen it, remove its date, remove @y, move it to Work › Later, move it to Work',
     );
+  });
+});
+
+describe('Done sections (PRD §6.1)', () => {
+  beforeEach(() => list.updateSettings({ doneRules: true }));
+  const DONE = [
+    { on: 'enter', do: [{ complete: true }] },
+    { on: 'leave', do: [{ complete: false }] },
+  ];
+
+  it('a section made or renamed Done, in any capitals, gets rules to complete and reopen, in the same step', () => {
+    const made = list.addSection(INBOX_ID, ' DONE ')!;
+    expect(section(INBOX_ID, made.id)?.automations).toEqual(DONE);
+    list.undo();
+    expect(list.getProject(INBOX_ID)?.sections).toBeUndefined();
+    const later = list.addSection(INBOX_ID, 'Later')!;
+    expect(section(INBOX_ID, later.id)?.automations).toBeUndefined();
+    list.renameSection(INBOX_ID, later.id, 'done');
+    expect(section(INBOX_ID, later.id)?.automations).toEqual(DONE);
+    list.undo();
+    expect(section(INBOX_ID, later.id)?.automations).toBeUndefined();
+  });
+
+  it('keeps rules already there and adds only the ones missing; renaming away keeps them', () => {
+    const s = list.addSection(INBOX_ID, 'Later')!;
+    list.setSectionAutomations(INBOX_ID, s.id, [
+      { on: 'enter', do: [{ complete: true }] },
+      { on: 'complete', do: [{ priority: 4 }] },
+    ]);
+    list.renameSection(INBOX_ID, s.id, 'Done');
+    expect(section(INBOX_ID, s.id)?.automations).toEqual([
+      { on: 'enter', do: [{ complete: true }] },
+      { on: 'complete', do: [{ priority: 4 }] },
+      { on: 'leave', do: [{ complete: false }] },
+    ]);
+    list.renameSection(INBOX_ID, s.id, 'Shipped');
+    expect(section(INBOX_ID, s.id)?.automations).toHaveLength(3);
+  });
+
+  it('completes a task moved in and reopens it when moved out', () => {
+    const doing = list.addSection(INBOX_ID, 'Doing')!;
+    const done = list.addSection(INBOX_ID, 'Done')!;
+    const t = list.addTask({ title: 'Ship', sectionId: doing.id });
+    list.updateTasks(t.id, { sectionId: done.id });
+    expect(list.getTask(t.id)?.completed).toBe(true);
+    list.updateTasks(t.id, { sectionId: doing.id });
+    expect(list.getTask(t.id)?.completed).toBe(false);
+    checkInvariants(list.data);
+  });
+
+  it('not while the setting is off, which the file keeps', () => {
+    list.updateSettings({ doneRules: false });
+    const s = list.addSection(INBOX_ID, 'Done')!;
+    expect(section(INBOX_ID, s.id)?.automations).toBeUndefined();
+    expect(normalize(JSON.parse(serialize(list.data))).settings.doneRules).toBe(false);
   });
 });

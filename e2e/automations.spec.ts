@@ -75,6 +75,40 @@ test.describe('Automations', () => {
     expect(rulesOf('s2')).toBeUndefined();
   });
 
+  test('a new section named Done completes tasks moved in and reopens them moved out, unless Settings says not', async ({
+    page,
+  }) => {
+    await workAsBoard(page);
+    await page.getByRole('button', { name: /^Work/ }).click();
+    await page.getByRole('button', { name: 'Add section' }).click();
+    const name = page.getByRole('dialog', { name: 'Add section' }).getByRole('textbox', { name: 'Name' });
+    await expect(name).toBeFocused();
+    await page.keyboard.type('done');
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('button', { name: 'done automations: 2 rules' })).toBeVisible();
+
+    await page.getByRole('option', { name: /Plan team offsite/ }).click();
+    await page.keyboard.press('Alt+ArrowRight');
+    await expect(page.getByRole('status')).toContainText('Moved to done. Automation: completed it.');
+    await expect.poll(() => fileTask('Plan team offsite')?.completed).toBe(true);
+    // It stays on the board, struck through, and moving it back reopens it.
+    await page.keyboard.press('Alt+ArrowLeft');
+    await expect.poll(() => fileTask('Plan team offsite')?.completed).toBe(false);
+    expect(fileTask('Plan team offsite')?.sectionId).toBe('s2');
+
+    await page.keyboard.press('ControlOrMeta+Comma');
+    const settings = page.getByRole('dialog', { name: 'Settings' });
+    await settings.getByRole('checkbox', { name: /A new section named Done/ }).uncheck();
+    await expect.poll(() => readTasks().settings.doneRules).toBe(false);
+    await page.keyboard.press('Escape');
+    await runCommand(page, 'Add Section');
+    await expect(name).toBeFocused();
+    await page.keyboard.type('Done');
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('region', { name: 'Done', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Done automations/ })).toHaveCount(0);
+  });
+
   test('a section with rules shows ⚡ and their count; hovering lists them and a click opens the editor', async ({
     page,
   }) => {

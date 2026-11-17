@@ -28,6 +28,7 @@ describe('the automations editor (PRD §6.1)', () => {
           { removeLabel: 'waiting' },
         ],
       },
+      { on: 'leave', do: [{ complete: false }] },
       { on: 'complete', do: [{ moveTo: { projectId: 'p2', sectionId: null } }] },
       { on: 'complete', do: [{ moveTo: { projectId: 'p2', sectionId: 's9' } }] },
     ];

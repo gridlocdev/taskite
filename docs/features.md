@@ -33,11 +33,12 @@ Drop a task on a project, a label, Today or the Trash in the sidebar to move it 
 
 ## Automations
 
-- **Section Automations…** gives a project section rules that change a task when it enters the section or is completed there: complete or reopen it, set its due date or priority, add or remove a label, or move it somewhere else. Open it from a section heading's ⋯ menu or right-click menu, or from ⌘K for the section you're in.
+- **Section Automations…** gives a project section rules that change a task when it enters the section, leaves it, or is completed there: complete or reopen it, set its due date or priority, add or remove a label, or move it somewhere else. Open it from a section heading's ⋯ menu or right-click menu, or from ⌘K for the section you're in.
 - Each rule reads as a sentence: _When a task enters this section, then complete it and add @shipped._ A section holds up to 10 rules of up to 5 actions each.
 - When a rule runs, the notice says what it did, and one **Undo** takes back your change and the rule's together. A move by a rule can set off the next section's rules, but never the same section twice.
 - A section with rules shows ⚡ and how many after its task count. Hover over it to read the rules, or click it to edit them.
 - Saving a new rule for tasks entering a section that already has tasks asks whether to apply it to them.
+- A section you name **Done** (in any capitals) gets two rules of its own: a task moved into it is completed, and a task moved out is reopened. They're ordinary rules you can change or remove. Turn this off in **Settings**.
 - Rules run everywhere the tasks file is changed: the app, the NAS server and the `taskite` CLI.
 
 ## Working on tasks

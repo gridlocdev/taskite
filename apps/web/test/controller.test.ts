@@ -50,7 +50,7 @@ describe('AppController', () => {
 
   it('saves section automations, and Apply runs new enters rules on the open tasks there, as one step', async () => {
     const { app } = await makeApp();
-    const done = app.list.addSection(INBOX_ID, 'Done')?.id ?? '';
+    const done = app.list.addSection(INBOX_ID, 'Shipped')?.id ?? '';
     const a = app.list.addTask({ title: 'A', sectionId: done });
     const b = app.list.addTask({ title: 'B', sectionId: done });
     app.list.completeTasks([b.id]);

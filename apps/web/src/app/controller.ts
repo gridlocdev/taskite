@@ -186,6 +186,12 @@ export class AppController {
     return this.list.data.settings.showCompleted === true;
   });
 
+  /** A new section named Done gets the Done rules (PRD §6.1). */
+  readonly doneRules = computed(() => {
+    void this.rev.value;
+    return this.list.data.settings.doneRules !== false;
+  });
+
   readonly content = computed(() => {
     void this.rev.value;
     return viewContent(this.list, this.shown.value, this.today.value, {
@@ -1087,6 +1093,11 @@ export class AppController {
     const on = !this.showCompleted.peek();
     this.list.updateSettings({ showCompleted: on });
     this.say(on ? 'Showing completed tasks.' : 'Hiding completed tasks.');
+  }
+
+  /** Settings: whether a section named Done gets the Done rules (PRD §6.1). */
+  setDoneRules(on: boolean): void {
+    this.list.updateSettings({ doneRules: on });
   }
 
   // ---------- Dialogs ----------

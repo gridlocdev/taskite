@@ -5,8 +5,10 @@
 import { addDays, startOfWeek } from './dates.ts';
 import type { Priority } from './parser.ts';
 
-/** What sets a rule off: a task entering the section, or a task in it being completed. */
-export type AutomationTrigger = 'enter' | 'complete';
+/** What sets a rule off: a task entering the section, leaving it, or being completed in it. */
+export type AutomationTrigger = 'enter' | 'leave' | 'complete';
+
+const TRIGGERS: readonly unknown[] = ['enter', 'leave', 'complete'] satisfies AutomationTrigger[];
 
 /** A date a rule sets: relative to the day it runs, or none. `+N` is N days on. */
 export type AutomationDue = 'today' | 'tomorrow' | 'nextWeek' | `+${number}` | null;
@@ -86,16 +88,47 @@ export function cleanAutomations(raw: unknown, exists: PlaceExists): SectionAuto
   const rules: SectionAutomation[] = [];
   for (const rule of raw) {
     if (rules.length === MAX_RULES) break;
-    if (!isObject(rule) || (rule['on'] !== 'enter' && rule['on'] !== 'complete')) continue;
+    if (!isObject(rule) || !TRIGGERS.includes(rule['on'])) continue;
     const actions = Array.isArray(rule['do'])
       ? (rule['do'] as unknown[])
           .map((a) => cleanAction(a, exists))
           .filter((a) => a !== undefined)
           .slice(0, MAX_ACTIONS)
       : [];
-    if (actions.length) rules.push({ on: rule['on'], do: actions });
+    if (actions.length) rules.push({ on: rule['on'] as AutomationTrigger, do: actions });
   }
   return rules;
+}
+
+/**
+ * The rules a section named Done gets when it's made or renamed, while the setting is on (PRD §6.1): a task
+ * that enters is completed, and one that leaves is reopened.
+ */
+export function doneRules(): SectionAutomation[] {
+  return [
+    { on: 'enter', do: [{ complete: true }] },
+    { on: 'leave', do: [{ complete: false }] },
+  ];
+}
+
+/** Whether a section's name makes it a Done section: "Done" in any capitals. */
+export function isDoneName(name: string): boolean {
+  return name.trim().toLowerCase() === 'done';
+}
+
+/**
+ * Gives a Done section the Done rules it doesn't have yet, within the rule limit. Says whether anything
+ * changed.
+ */
+export function addDoneRules(rules: SectionAutomation[]): boolean {
+  const have = new Set(rules.map((r) => JSON.stringify(r)));
+  let changed = false;
+  for (const rule of doneRules())
+    if (!have.has(JSON.stringify(rule)) && rules.length < MAX_RULES) {
+      rules.push(rule);
+      changed = true;
+    }
+  return changed;
 }
 
 /**

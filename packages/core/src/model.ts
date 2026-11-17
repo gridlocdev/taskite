@@ -88,6 +88,11 @@ export interface Settings {
   lastView: SavedView | null;
   /** Views list checked-off tasks too. Left out of the file until it is first turned on. */
   showCompleted?: boolean;
+  /**
+   * A section named Done gets rules that complete tasks entering it and reopen ones leaving it (PRD §6.1).
+   * On unless it's false; left out of the file until it is first turned off.
+   */
+  doneRules?: boolean;
 }
 
 export interface AppData {
@@ -219,6 +224,7 @@ export function normalize(raw: unknown, now: number = Date.now()): AppData {
       theme: theme === 'light' || theme === 'dark' ? theme : 'auto',
       lastView: normalizeView(settings['lastView']),
       ...('showCompleted' in settings ? { showCompleted: settings['showCompleted'] === true } : {}),
+      ...('doneRules' in settings ? { doneRules: settings['doneRules'] !== false } : {}),
     },
   };
 }

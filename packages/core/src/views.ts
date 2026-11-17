@@ -515,7 +515,11 @@ export function describeAutomations(list: TaskList, runs: readonly AutomationRun
  * Moves name the section alone when it is in `projectId`, else the project too.
  */
 export function describeRule(list: TaskList, projectId: string, rule: SectionAutomation): string {
-  const when = rule.on === 'enter' ? 'When a task enters' : 'When a task is completed';
+  const when = {
+    enter: 'When a task enters',
+    leave: 'When a task leaves',
+    complete: 'When a task is completed',
+  }[rule.on];
   return `${when}: ${rule.do.map((action) => ruleAction(list, projectId, action)).join(', ')}`;
 }
 

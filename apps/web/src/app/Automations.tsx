@@ -114,7 +114,8 @@ export function AutomationsDialog({
     >
       {rules.length === 0 && (
         <p class="tk-muted">
-          No automations yet. A rule changes a task when it enters this section or is completed here.
+          No automations yet. A rule changes a task when it enters this section, leaves it, or is completed
+          here.
         </p>
       )}
       <datalist id={labelsId}>

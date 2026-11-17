@@ -26,6 +26,7 @@ export const ACTION_NAMES: Readonly<Record<ActionKind, string>> = {
 
 export const TRIGGER_NAMES: Readonly<Record<AutomationTrigger, string>> = {
   enter: 'enters this section',
+  leave: 'leaves this section',
   complete: 'is completed here',
 };
 
