@@ -21,7 +21,7 @@ The row previews the date, project and labels while you type. Press Enter to add
 ## Views
 
 - **Inbox** and each **project** list their open tasks in the order you choose. Drag a task to reorder it.
-- **Sections** split a project into named groups, such as To do, Doing and Done. Add one from the project's ⋯ menu; right-click a section's heading to rename, move or delete it. **View as Board** shows the sections as columns side by side. Drag tasks between sections, or use `⌥←` and `⌥→`.
+- **Sections** split a project into named groups, such as To do, Doing and Done. Add one from the project's ⋯ menu; right-click a section's heading to rename, move or delete it. **View as Board** shows the sections as columns side by side. Drag tasks between sections, or use `⌥←` and `⌥→`. Jump between sections with `⇧⌥↓` and `⇧⌥↑` in a list, or `→`, `←`, `⇧⌥→` and `⇧⌥←` on a board, and go to one by name with **Go to Section…** (`G` then `S`).
 - **Today** lists what's due today, with anything overdue above it.
 - **Upcoming** shows the rest of this week one day at a time, then next week, then everything later. Weeks start on the day your system's region starts them.
 - **Labels** list every open task with that label. Right-click a label to rename it or give it a colour.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { INBOX_ID } from '@taskite/core';
 import { filterEntries } from '@taskite/ui';
-import { MENUS, TASK_MENU, dynamicEntries } from '../src/app/commands.ts';
+import { MENUS, TASK_MENU, closestTo, dynamicEntries } from '../src/app/commands.ts';
 import { nativeMenu } from '../src/app/nativeMenu.ts';
 import { shortcutGroups } from '../src/app/shortcuts.ts';
 import { makeApp } from './helpers.ts';
@@ -200,6 +200,106 @@ describe('commands', () => {
     app.cursor.value = later.id;
     catalog.run('task.new');
     expect(app.composer.value).toBe('day:2026-03-12');
+  });
+
+  it('Shift+Option+Down and Up go to the first task of the next and previous section in a list', async () => {
+    const { app, catalog } = await makeApp();
+    app.go({ type: 'project', id: INBOX_ID });
+    const a = app.list.addTask({ title: 'Loose' });
+    const one = app.list.addSection(INBOX_ID, 'One')!;
+    app.list.addSection(INBOX_ID, 'Empty');
+    const three = app.list.addSection(INBOX_ID, 'Three')!;
+    const b1 = app.list.addTask({ title: 'B1', sectionId: one.id });
+    app.list.addTask({ title: 'B2', sectionId: one.id });
+    const c1 = app.list.addTask({ title: 'C1', sectionId: three.id });
+    const down = key('ArrowDown', { shiftKey: true, altKey: true });
+    const up = key('ArrowUp', { shiftKey: true, altKey: true });
+    const press = (e: KeyboardEvent) => {
+      const r = catalog.forEvent(e, 'list', 0, true);
+      if (r?.kind === 'run') catalog.run(r.command.id);
+      return r?.kind === 'run' ? r.command.id : null;
+    };
+    expect(press(down)).toBe('select.nextSection');
+    expect(app.cursor.value).toBe(a.id);
+    press(down);
+    expect(app.cursor.value).toBe(b1.id);
+    expect(app.selectedIds()).toEqual([b1.id]);
+    // The empty section is skipped.
+    press(down);
+    expect(app.cursor.value).toBe(c1.id);
+    expect(press(down)).toBeNull();
+    press(up);
+    expect(app.cursor.value).toBe(b1.id);
+    // A list's sections aren't columns.
+    expect(press(key('ArrowRight'))).toBeNull();
+    expect(press(key('ArrowRight', { shiftKey: true, altKey: true }))).toBeNull();
+  });
+
+  it('on a board, Left and Right keep the place in the column and Shift+Option goes to the top', async () => {
+    const { app, catalog } = await makeApp();
+    app.go({ type: 'project', id: INBOX_ID });
+    const one = app.list.addSection(INBOX_ID, 'One')!;
+    app.list.addSection(INBOX_ID, 'Empty');
+    const three = app.list.addSection(INBOX_ID, 'Three')!;
+    const [a1, a2, a3] = ['A1', 'A2', 'A3'].map((title) => app.list.addTask({ title, sectionId: one.id }));
+    const [b1, b2] = ['B1', 'B2'].map((title) => app.list.addTask({ title, sectionId: three.id }));
+    app.setBoard(true);
+    const press = (e: KeyboardEvent) => {
+      const r = catalog.forEvent(e, 'list', 0, true);
+      if (r?.kind === 'run') catalog.run(r.command.id);
+      return r?.kind === 'run' ? r.command.id : null;
+    };
+    app.click(a2!.id);
+    // Without a screen to measure, the same place in the next column that has tasks.
+    expect(press(key('ArrowRight'))).toBe('select.columnRight');
+    expect(app.cursor.value).toBe(b2!.id);
+    expect(press(key('ArrowRight'))).toBeNull();
+    press(key('ArrowLeft'));
+    expect(app.cursor.value).toBe(a2!.id);
+    app.click(a3!.id);
+    press(key('ArrowRight'));
+    expect(app.cursor.value).toBe(b2!.id);
+    app.click(a3!.id);
+    expect(press(key('ArrowRight', { shiftKey: true, altKey: true }))).toBe('select.nextColumn');
+    expect(app.cursor.value).toBe(b1!.id);
+    press(key('ArrowLeft', { shiftKey: true, altKey: true }));
+    expect(app.cursor.value).toBe(a1!.id);
+    expect(press(key('ArrowDown', { shiftKey: true, altKey: true }))).toBeNull();
+  });
+
+  it('closestTo picks the row level with the one the cursor leaves', () => {
+    const rows = [
+      { id: 'a', y: 10 },
+      { id: 'b', y: 50 },
+      { id: 'c', y: undefined },
+      { id: 'd', y: 90 },
+    ];
+    expect(closestTo(55, rows)).toBe('b');
+    expect(closestTo(500, rows)).toBe('d');
+    expect(closestTo(30, rows)).toBe('a');
+    expect(closestTo(0, [])).toBeUndefined();
+  });
+
+  it('Go to Section goes to a named section, or opens the add-task row in an empty one', async () => {
+    const { app, catalog } = await makeApp();
+    app.go({ type: 'project', id: INBOX_ID });
+    app.list.addTask({ title: 'Loose' });
+    const one = app.list.addSection(INBOX_ID, 'One')!;
+    const empty = app.list.addSection(INBOX_ID, 'Empty')!;
+    const t = app.list.addTask({ title: 'T', sectionId: one.id });
+    expect(app.namedSections().map((s) => s.heading)).toEqual(['One', 'Empty']);
+    catalog.run('go.section');
+    expect(app.dialog.value).toEqual({ kind: 'sections' });
+    app.close();
+    const entry = (title: string) => dynamicEntries(app).find((e) => e.title === title)!;
+    entry('Go to Section: One').run();
+    expect(app.cursor.value).toBe(t.id);
+    entry('Go to Section: Empty').run();
+    expect(app.composer.value).toBe(`section:${empty.id}`);
+    expect(app.cursor.value).toBeNull();
+    // Today with nothing overdue has no headings to go to.
+    app.go({ type: 'today' });
+    expect(catalog.isEnabled(catalog.get('go.section')!)).toBe(false);
   });
 
   it('every menu only names real commands', async () => {

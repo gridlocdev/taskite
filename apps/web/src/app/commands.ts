@@ -506,6 +506,72 @@ export function buildCommands(app: AppController): CommandCatalog {
       run: () => app.step(-1),
     },
     {
+      id: 'select.nextSection',
+      title: 'Next Section',
+      keywords: 'jump skip heading group down',
+      description: 'Moves to the first task of the next section in a list.',
+      group: 'Select',
+      shortcuts: ['shift+alt+down'],
+      keysOnly: true,
+      enabled: () => app.canJumpSection(1, false),
+      run: () => app.jumpSection(1),
+    },
+    {
+      id: 'select.prevSection',
+      title: 'Previous Section',
+      keywords: 'jump skip heading group up',
+      description: 'Moves to the first task of the previous section in a list.',
+      group: 'Select',
+      shortcuts: ['shift+alt+up'],
+      keysOnly: true,
+      enabled: () => app.canJumpSection(-1, false),
+      run: () => app.jumpSection(-1),
+    },
+    {
+      id: 'select.nextColumn',
+      title: 'Next Column',
+      keywords: 'jump board kanban section right',
+      description: 'Moves to the first task of the next column on a board.',
+      group: 'Select',
+      shortcuts: ['shift+alt+right'],
+      keysOnly: true,
+      enabled: () => app.canJumpSection(1, true),
+      run: () => app.jumpSection(1),
+    },
+    {
+      id: 'select.prevColumn',
+      title: 'Previous Column',
+      keywords: 'jump board kanban section left',
+      description: 'Moves to the first task of the previous column on a board.',
+      group: 'Select',
+      shortcuts: ['shift+alt+left'],
+      keysOnly: true,
+      enabled: () => app.canJumpSection(-1, true),
+      run: () => app.jumpSection(-1),
+    },
+    {
+      id: 'select.columnRight',
+      title: 'Task to the Right',
+      keywords: 'board kanban column section beside',
+      description: 'Moves to the task level with this one in the next column on a board.',
+      group: 'Select',
+      shortcuts: ['right'],
+      keysOnly: true,
+      enabled: () => app.canJumpSection(1, true),
+      run: () => app.jumpSection(1, (ids) => nearestRow(app.cursor.value, ids)),
+    },
+    {
+      id: 'select.columnLeft',
+      title: 'Task to the Left',
+      keywords: 'board kanban column section beside',
+      description: 'Moves to the task level with this one in the previous column on a board.',
+      group: 'Select',
+      shortcuts: ['left'],
+      keysOnly: true,
+      enabled: () => app.canJumpSection(-1, true),
+      run: () => app.jumpSection(-1, (ids) => nearestRow(app.cursor.value, ids)),
+    },
+    {
       id: 'select.extendDown',
       title: 'Choose Next Too',
       keywords: 'select extend shift down range multiple',
@@ -566,6 +632,17 @@ export function buildCommands(app: AppController): CommandCatalog {
       'open show view done finished history logbook',
     ),
     go('go.trash', 'Go to Trash', 'g x', { type: 'trash' }, 'open show view deleted bin'),
+    {
+      id: 'go.section',
+      title: 'Go to Section…',
+      keywords: 'jump heading column group board find',
+      description: 'Moves to a section of this view by name.',
+      group: 'Go',
+      shortcuts: ['g s'],
+      keysOnly: true,
+      enabled: () => app.namedSections().length > 0,
+      run: () => app.open({ kind: 'sections' }),
+    },
     {
       id: 'go.search',
       title: 'Search',
@@ -678,6 +755,14 @@ export function dynamicEntries(app: AppController): DynamicEntry[] {
       keywords: 'label tag open show view filter',
       run: () => app.go({ type: 'label', name }),
     });
+  for (const s of app.namedSections())
+    entries.push({
+      id: `go.section:${s.key}`,
+      title: `Go to Section: ${s.heading}`,
+      group: 'Go',
+      keywords: 'jump heading column group board',
+      run: () => app.goToSection(s.key),
+    });
   const ids = app.shown.value.type === 'trash' ? [] : app.targetIds();
   if (ids.length)
     for (const p of list.data.projects)
@@ -689,4 +774,34 @@ export function dynamicEntries(app: AppController): DynamicEntry[] {
         run: () => app.moveTo(ids, p.id),
       });
   return entries;
+}
+
+/** Of `ids`, the row whose middle is level with the middle of the `from` row on screen. */
+function nearestRow(from: string | null, ids: readonly string[]): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const middle = (id: string) => {
+    const box = document.querySelector(`[data-id="${CSS.escape(id)}"]`)?.getBoundingClientRect();
+    return box ? box.top + box.height / 2 : undefined;
+  };
+  const y = from === null ? undefined : middle(from);
+  if (y === undefined) return undefined;
+  return closestTo(
+    y,
+    ids.map((id) => ({ id, y: middle(id) })),
+  );
+}
+
+/** The id whose `y` is closest to `y` (the first on a tie), ignoring ones with no `y`. */
+export function closestTo(
+  y: number,
+  rows: readonly { readonly id: string; readonly y: number | undefined }[],
+): string | undefined {
+  let best: string | undefined;
+  let gap = Infinity;
+  for (const r of rows)
+    if (r.y !== undefined && Math.abs(r.y - y) < gap) {
+      best = r.id;
+      gap = Math.abs(r.y - y);
+    }
+  return best;
 }

@@ -21,6 +21,9 @@ In a browser tab, the browser keeps **⌘N** and **⇧⌘N** (**Ctrl+N** and **C
 | --- | --- | --- |
 | Next / previous task | **↓** / **↑** (or **J** / **K**) | **Down** / **Up** (or **J** / **K**) |
 | Add the task below / above | **⇧↓** / **⇧↑** (or **⇧J** / **⇧K**) | **Shift+Down** / **Shift+Up** (or **Shift+J** / **Shift+K**) |
+| First task of the next / previous section (list) | **⌥⇧↓** / **⌥⇧↑** | **Alt+Shift+Down** / **Alt+Shift+Up** |
+| Task level with this one in the next / previous column (board) | **→** / **←** | **Right** / **Left** |
+| First task of the next / previous column (board) | **⌥⇧→** / **⌥⇧←** | **Alt+Shift+Right** / **Alt+Shift+Left** |
 | Add or remove one task | **⌘-click** | **Ctrl-click** |
 | Choose a range | **Shift-click** | **Shift-click** |
 | Choose all tasks in the list | **⌘A** | **Ctrl+A** |
@@ -47,14 +50,15 @@ In a browser tab, the browser keeps **⌘N** and **⇧⌘N** (**Ctrl+N** and **C
 
 ## Going places
 
-| Action             | macOS                      | Windows / Linux                |
-| ------------------ | -------------------------- | ------------------------------ |
-| Inbox              | **G** then **I**           | **G** then **I**               |
-| Today              | **G** then **T**           | **G** then **T**               |
-| Upcoming           | **G** then **U**           | **G** then **U**               |
-| Completed          | **G** then **C**           | **G** then **C**               |
-| Trash              | **G** then **X**           | **G** then **X**               |
-| Search             | **/** or **⌘F**            | **/** or **Ctrl+F**            |
+| Action | macOS | Windows / Linux |
+| --- | --- | --- |
+| Inbox | **G** then **I** | **G** then **I** |
+| Today | **G** then **T** | **G** then **T** |
+| Upcoming | **G** then **U** | **G** then **U** |
+| Completed | **G** then **C** | **G** then **C** |
+| Trash | **G** then **X** | **G** then **X** |
+| A section of this view | **G** then **S**, or **⌘K** then type its name | **G** then **S**, or **Ctrl+K** then type its name |
+| Search | **/** or **⌘F** | **/** or **Ctrl+F** |
 | A project or label | **⌘K**, then type its name | **Ctrl+K**, then type its name |
 
 ## Settings and help

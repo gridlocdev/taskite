@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from 'node:fs';
+import type { Page } from '@playwright/test';
 import { DATA, expect, openApp, readTasks, runCommand, test } from './fixtures.ts';
 
 test.describe('Views', () => {
@@ -55,20 +56,7 @@ test.describe('Views', () => {
   });
 
   test('Tab reaches every board column, and lands on the cursor row in a list', async ({ page }) => {
-    // Work as a board: Draft quarterly report in To do, Plan team offsite in Doing.
-    const file = `${DATA}/tasks.json`;
-    const data = JSON.parse(readFileSync(file, 'utf8'));
-    const work = data.projects.find((p: { name: string }) => p.name === 'Work');
-    work.view = 'board';
-    work.sections = [
-      { id: 's1', name: 'To do' },
-      { id: 's2', name: 'Doing' },
-    ];
-    for (const t of data.tasks)
-      if (t.projectId === work.id) t.sectionId = t.title.startsWith('Draft') ? 's1' : 's2';
-    writeFileSync(file, JSON.stringify(data, null, 2));
-    await page.reload();
-
+    await workAsBoard(page);
     await page.getByRole('button', { name: /^Work/ }).click();
     const draft = page.getByRole('option', { name: /Draft quarterly report/ });
     const plan = page.getByRole('option', { name: /Plan team offsite/ });
@@ -92,4 +80,57 @@ test.describe('Views', () => {
     await page.keyboard.press('Tab');
     await expect(page.getByRole('main').getByRole('button', { name: 'Add task' })).toBeFocused();
   });
+
+  test('keys and Go to Section move between sections in a list and on a board', async ({ page }) => {
+    // A list: Shift+Option+Down goes from Overdue to the first task due today.
+    await page.getByRole('region', { name: 'Overdue' }).getByRole('option').first().click();
+    await page.keyboard.press('Alt+Shift+ArrowDown');
+    const todays = page
+      .getByRole('region', { name: /^Today ·/ })
+      .getByRole('option')
+      .first();
+    await expect(todays).toBeFocused();
+    await expect(todays).toHaveAttribute('aria-selected', 'true');
+    await page.keyboard.press('Alt+Shift+ArrowUp');
+    await expect(page.getByRole('region', { name: 'Overdue' }).getByRole('option').first()).toBeFocused();
+
+    await workAsBoard(page, true);
+    await page.getByRole('button', { name: /^Work/ }).click();
+    const draft = page.getByRole('option', { name: /Draft quarterly report/ });
+    const plan = page.getByRole('option', { name: /Plan team offsite/ });
+    await draft.click();
+    await page.keyboard.press('ArrowRight');
+    await expect(plan).toBeFocused();
+    await expect(plan).toHaveAttribute('aria-selected', 'true');
+    // The empty Done column is skipped, so there is nowhere further right.
+    await page.keyboard.press('ArrowRight');
+    await expect(plan).toBeFocused();
+    await page.keyboard.press('Alt+Shift+ArrowLeft');
+    await expect(draft).toBeFocused();
+
+    // Go to Section… in an empty column opens the add-task row there.
+    await page.keyboard.press('g');
+    await page.keyboard.press('s');
+    await expect(page.getByRole('dialog').getByRole('combobox')).toBeFocused();
+    await page.keyboard.type('done');
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('region', { name: 'Done' }).getByRole('textbox')).toBeFocused();
+  });
 });
+
+/** Work as a board: Draft quarterly report in To do, Plan team offsite in Doing, and (with `done`) an empty Done. */
+async function workAsBoard(page: Page, done = false): Promise<void> {
+  const file = `${DATA}/tasks.json`;
+  const data = JSON.parse(readFileSync(file, 'utf8'));
+  const work = data.projects.find((p: { name: string }) => p.name === 'Work');
+  work.view = 'board';
+  work.sections = [
+    { id: 's1', name: 'To do' },
+    { id: 's2', name: 'Doing' },
+    ...(done ? [{ id: 's3', name: 'Done' }] : []),
+  ];
+  for (const t of data.tasks)
+    if (t.projectId === work.id) t.sectionId = t.title.startsWith('Draft') ? 's1' : 's2';
+  writeFileSync(file, JSON.stringify(data, null, 2));
+  await page.reload();
+}

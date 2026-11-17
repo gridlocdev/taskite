@@ -13,6 +13,8 @@
 - **Show completed tasks in any view.** **Show Completed Tasks** (View menu or ⌘K) lists finished tasks after the open ones in the Inbox, projects, labels, Today and Upcoming, so you can see what you've done and reopen it with Space.
 - **More right-click menus.** The empty part of a list, sidebar projects and labels, Completed, the Trash and the Projects heading now have menus with the actions that fit them, such as **Add Task Here**, **Edit Project…** and **Empty Trash…**.
 
+- **Jump between sections.** In a list, `⇧⌥↓` and `⇧⌥↑` go to the first task of the next or previous section. On a board, `→` and `←` go to the task beside this one in the next column, and `⇧⌥→` / `⇧⌥←` to the top of it. **Go to Section…** (`G` then `S`, or ⌘K and the section's name) goes straight to any section; in an empty one it opens the add-task row.
+
 ### Improvements
 
 - **New Task adds beside the task you're on**: in its section or board column, or on its day in Upcoming. With no task chosen it adds at the end of the list (the first column on a board, today in Upcoming).

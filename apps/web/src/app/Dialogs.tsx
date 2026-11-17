@@ -74,6 +74,8 @@ export function Dialogs({ app, catalog }: { readonly app: AppController; readonl
       );
     case 'move':
       return <MoveDialog app={app} ids={d.ids} />;
+    case 'sections':
+      return <GoToSectionDialog app={app} />;
     case 'commands':
       return <CommandMenu app={app} catalog={catalog} initial={d.query} />;
     case 'settings':
@@ -683,6 +685,56 @@ function MoveDialog({ app, ids }: { readonly app: AppController; readonly ids: r
         >
           <span class="tk-dot" style={{ background: PROJECT_COLORS[p.color] }} />
           <span class="tk-palette-title">{p.title}</span>
+        </li>
+      ))}
+    </ListPopup>
+  );
+}
+
+/** Go to Section… (G then S): pick a section of the view on screen by typing. */
+function GoToSectionDialog({ app }: { readonly app: AppController }) {
+  const [query, setQuery] = useState('');
+  const [index, setIndex] = useState(0);
+  const sections = app.namedSections().map((s) => ({
+    id: s.key,
+    title: s.heading ?? '',
+    group: '',
+    count: s.rows.filter((r) => !r.isSubtask).length,
+  }));
+  const results = filterEntries(sections, query);
+  const pick = (i: number) => {
+    const s = results[i];
+    if (!s) return;
+    app.close();
+    // Let the picker close (and focus go back) first, or an add-task row it opens loses focus and closes.
+    queueMicrotask(() => app.goToSection(s.id));
+  };
+  return (
+    <ListPopup
+      label="Go to section"
+      placeholder="Go to section…"
+      query={query}
+      onQuery={(q) => {
+        setQuery(q);
+        setIndex(0);
+      }}
+      index={index}
+      onIndex={setIndex}
+      count={results.length}
+      onPick={pick}
+      onClose={() => app.close()}
+    >
+      {results.map((s, i) => (
+        <li
+          key={s.id}
+          id={`tk-palette-${i}`}
+          role="option"
+          aria-selected={i === index}
+          onPointerMove={() => setIndex(i)}
+          onClick={() => pick(i)}
+        >
+          <span class="tk-palette-title">{s.title}</span>
+          <span class="tk-palette-group">{s.count ? plural(s.count, 'task') : 'Empty'}</span>
         </li>
       ))}
     </ListPopup>

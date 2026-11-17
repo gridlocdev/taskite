@@ -25,6 +25,7 @@ import {
   type ProjectColor,
   type Recurrence,
   type SavedView,
+  type Section,
   type Task,
   type TaskPatch,
   type Theme,
@@ -82,6 +83,7 @@ export type DialogState =
       readonly run: () => void;
     }
   | { readonly kind: 'move'; readonly ids: readonly string[] }
+  | { readonly kind: 'sections' }
   | { readonly kind: 'commands'; readonly query: string }
   | { readonly kind: 'settings' }
   | { readonly kind: 'about' }
@@ -365,6 +367,78 @@ export class AppController {
         this.#anchor = next;
       }
       this.cursor.value = next;
+    });
+    this.#announceSelection();
+  }
+
+  // ---------- Going to a section (PRD §7) ----------
+
+  /** The view's sections with a heading: what Go to Section… and the command menu offer. */
+  namedSections(): Section[] {
+    return this.content.value.sections.filter((s) => s.heading !== null);
+  }
+
+  /** The nearest section `delta` places from the cursor's (or from the top or bottom) that has tasks. */
+  #filledSection(delta: 1 | -1): Section | undefined {
+    const sections = this.content.value.sections;
+    const cursor = this.cursor.value;
+    const at = cursor === null ? -1 : sections.findIndex((s) => s.rows.some((r) => r.task.id === cursor));
+    const from = at !== -1 ? at : delta > 0 ? -1 : sections.length;
+    for (let i = from + delta; i >= 0 && i < sections.length; i += delta) {
+      const s = sections[i]!;
+      if (s.rows.length) return s;
+    }
+    return undefined;
+  }
+
+  /** Whether the next or previous section (a list) or column (a board) has a task to move to. */
+  canJumpSection(delta: 1 | -1, board: boolean): boolean {
+    return (this.content.value.board === true) === board && this.#filledSection(delta) !== undefined;
+  }
+
+  /**
+   * ⇧⌥↓ / ⇧⌥↑ in a list, ⇧⌥→ / ⇧⌥← on a board: the cursor goes to the first task of the next or previous
+   * section that has tasks. With `near` (← → on a board), it goes to the task `near` picks instead; without
+   * one, to the row at the same place in the column, else the column's last.
+   */
+  jumpSection(delta: 1 | -1, near?: (ids: readonly string[]) => string | undefined): void {
+    const target = this.#filledSection(delta);
+    if (!target) return;
+    const ids = target.rows.map((r) => r.task.id);
+    let next = ids[0]!;
+    if (near) {
+      const cursor = this.cursor.value;
+      const from = this.content.value.sections.find((s) => s.rows.some((r) => r.task.id === cursor));
+      const place = from ? from.rows.findIndex((r) => r.task.id === cursor) : 0;
+      next = near(ids) ?? ids[Math.min(place, ids.length - 1)]!;
+    }
+    this.#moveTo(next);
+  }
+
+  /** Go to Section…: the cursor goes to the section's first task, or the add-task row opens in an empty one. */
+  goToSection(key: string): void {
+    const section = this.content.value.sections.find((s) => s.key === key);
+    if (!section) return;
+    const first = section.rows[0]?.task.id;
+    if (first) {
+      this.#moveTo(first);
+      this.focusList.value++;
+    } else if (section.addSlot !== null) {
+      batch(() => {
+        this.#select([]);
+        this.cursor.value = null;
+        this.#anchor = null;
+        this.composer.value = section.addSlot;
+      });
+    }
+  }
+
+  /** Puts the cursor on one row and chooses it alone. */
+  #moveTo(id: string): void {
+    batch(() => {
+      this.#select([id]);
+      this.#anchor = id;
+      this.cursor.value = id;
     });
     this.#announceSelection();
   }
