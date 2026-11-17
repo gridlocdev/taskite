@@ -642,8 +642,9 @@ export class AppController {
     }
     const open = live.filter((id) => !this.list.getTask(id)?.completed);
     const type = this.shown.peek().type;
-    // Checked-off rows stay in view while completed tasks are shown.
-    if (type !== 'search' && type !== 'completed' && !this.showCompleted.peek()) this.#fallBack(open);
+    // Checked-off rows stay in view while completed tasks are shown, and on a board.
+    const stays = type === 'search' || type === 'completed' || this.showCompleted.peek();
+    if (!stays && !this.content.peek().board) this.#fallBack(open);
     const still = await this.#leave(open, 'completing', COMPLETE_MS);
     if (!still.length) return;
     const results = this.list.completeTasks(still, this.today.peek());

@@ -1,4 +1,4 @@
-import { expect, openApp, readTasks, runCommand, test, workAsBoard } from './fixtures.ts';
+import { expect, fileTask, openApp, readTasks, runCommand, test, workAsBoard } from './fixtures.ts';
 
 test.describe('Views', () => {
   test.beforeEach(async ({ seed, page }) => {
@@ -77,6 +77,23 @@ test.describe('Views', () => {
     await page.getByRole('option').first().click();
     await page.keyboard.press('Tab');
     await expect(page.getByRole('main').getByRole('button', { name: 'Add task' })).toBeFocused();
+  });
+
+  test('a board shows each task as a card in a full-height column, and checked-off cards stay', async ({
+    page,
+  }) => {
+    await workAsBoard(page, true);
+    await page.getByRole('button', { name: /^Work/ }).click();
+    const draft = page.getByRole('option', { name: /Draft quarterly report/ });
+    await expect(draft).toContainText('P2');
+    await page.getByRole('checkbox', { name: 'Complete "Plan team offsite"' }).click();
+    await expect.poll(() => fileTask('Plan team offsite')?.completed).toBe(true);
+    const plan = page
+      .getByRole('region', { name: 'Doing' })
+      .getByRole('option', { name: /Plan team offsite/ });
+    await expect(plan).toBeVisible();
+    await expect(plan.getByRole('checkbox')).toHaveAttribute('aria-checked', 'true');
+    await expect(page.getByRole('main')).toHaveScreenshot('board-cards.png');
   });
 
   test('keys and Go to Section move between sections in a list and on a board', async ({ page }) => {

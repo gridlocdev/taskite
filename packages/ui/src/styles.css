@@ -538,23 +538,69 @@ kbd {
   color: var(--tk-accent);
 }
 
-/* A project as a board: one column per section (PRD §6). */
+/* A project as a board: full-height columns, one per section, each task a card (PRD §6). */
 .tk-main-inner:has(.tk-board) {
   max-width: none;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
 }
 .tk-board {
+  flex: 1;
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 14px;
   overflow-x: auto;
   padding-bottom: 12px;
 }
 .tk-board > .tk-section {
   flex: 0 0 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin: 0;
-  padding: 2px 8px 6px;
-  border-radius: 10px;
+  padding: 4px 8px 8px;
+  border-radius: 12px;
   background: var(--tk-hover);
+}
+.tk-board .tk-row {
+  padding: 10px 10px 10px 8px;
+  border: 1px solid var(--tk-border);
+  border-radius: 10px;
+  background: var(--tk-bg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+}
+.tk-board .tk-row:hover {
+  border-color: var(--tk-border-strong);
+  background: var(--tk-bg);
+}
+.tk-board .tk-row.tk-chosen {
+  border-color: var(--tk-accent);
+  background: var(--tk-chosen);
+  box-shadow: none;
+}
+.tk-board .tk-row.tk-done {
+  box-shadow: none;
+  background: transparent;
+}
+.tk-board .tk-row-meta {
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.tk-board .tk-add-row {
+  border-radius: 10px;
+}
+.tk-main-inner:has(.tk-board) {
+  padding-bottom: 20px;
+}
+.tk-priority.tk-p1 {
+  color: var(--tk-p1);
+}
+.tk-priority.tk-p2 {
+  color: var(--tk-p2);
+}
+.tk-priority.tk-p3 {
+  color: var(--tk-p3);
 }
 .tk-board > .tk-section.tk-drop-into {
   outline-offset: -2px;
@@ -564,7 +610,9 @@ kbd {
 }
 .tk-board > .tk-add-section {
   flex: 0 0 auto;
+  align-self: flex-start;
   margin-top: 4px;
+  white-space: nowrap;
 }
 .tk-section-heading.tk-overdue {
   color: var(--tk-due-overdue);

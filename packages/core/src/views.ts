@@ -171,8 +171,10 @@ export function viewContent(list: TaskList, view: View, today: string, opts: Vie
       const project = list.getProject(view.id);
       const projectSections = project?.sections ?? [];
       const board = project?.view === 'board';
+      // A board always shows its checked-off cards, at the bottom of their column (PRD §6).
+      const finished = board && !showCompleted ? list.liveTasks().filter((t) => t.completed) : done;
       const tasks = openFirst(
-        [...active, ...done]
+        [...active, ...finished]
           .filter((t) => t.projectId === view.id && !t.parentId)
           .sort((a, b) => a.order - b.order),
       );
@@ -181,6 +183,8 @@ export function viewContent(list: TaskList, view: View, today: string, opts: Vie
         for (const task of tasks) {
           if (task.sectionId !== sectionId) continue;
           rows.push({ task, isSubtask: false });
+          // A board card counts its subtasks instead of listing them.
+          if (board) continue;
           for (const sub of list.getSubtasks(task.id))
             if (showCompleted || !sub.completed) rows.push({ task: sub, isSubtask: true });
         }

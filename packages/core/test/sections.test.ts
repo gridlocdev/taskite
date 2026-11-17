@@ -97,6 +97,22 @@ describe('project sections', () => {
     expect(list.getProject(INBOX_ID)).not.toHaveProperty('view');
   });
 
+  it('a board lists checked-off cards last in their column, and no subtask rows', () => {
+    const s = list.addSection(INBOX_ID, 'Doing')!;
+    const a = list.addTask({ title: 'A', sectionId: s.id });
+    list.addTask({ title: 'A1', parentId: a.id });
+    const b = list.addTask({ title: 'B', sectionId: s.id });
+    list.addTask({ title: 'C', sectionId: s.id });
+    list.completeTasks([b.id]);
+    // A list leaves it out unless completed tasks are shown.
+    expect(shape(INBOX_ID)).toEqual([
+      [null, []],
+      ['Doing', ['A', 'A1', 'C']],
+    ]);
+    list.setProjectView(INBOX_ID, 'board');
+    expect(shape(INBOX_ID)).toEqual([['Doing', ['A', 'C', 'B']]]);
+  });
+
   it('Add task under a section adds into it', () => {
     const s = list.addSection(INBOX_ID, 'S');
     const draft = resolveDraft('Write it', { type: 'project', id: INBOX_ID }, `section:${s?.id}`, TODAY);

@@ -298,6 +298,7 @@ function SectionView({
           row={row}
           showContext={showContext}
           tabStop={row.task.id === tabStop}
+          card={board}
         />
       ))}
       {composerHere ? (
@@ -337,11 +338,14 @@ function TaskRow({
   row,
   showContext,
   tabStop,
+  card,
 }: {
   readonly app: AppController;
   readonly row: Row;
   readonly showContext: boolean;
   readonly tabStop: boolean;
+  /** A board card: its priority shows as a chip too. */
+  readonly card: boolean;
 }) {
   const { task, isSubtask } = row;
   const list = app.list;
@@ -459,6 +463,11 @@ function TaskRow({
                   <Icon name="repeat" />
                 </span>
               )}
+            </span>
+          )}
+          {card && task.priority < 4 && (
+            <span class={`tk-priority tk-p${task.priority}`} title={`Priority ${task.priority}`}>
+              <Icon name="flag" />P{task.priority}
             </span>
           )}
           {subs.length > 0 && (
