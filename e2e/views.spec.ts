@@ -79,7 +79,7 @@ test.describe('Views', () => {
     await expect(page.getByRole('main').getByRole('button', { name: 'Add task' })).toBeFocused();
   });
 
-  test('a board shows each task as a card in a full-height column, and checked-off cards stay', async ({
+  test('a board shows each task as a card in a column as tall as its cards, and checked-off cards stay', async ({
     page,
   }) => {
     await workAsBoard(page, true);

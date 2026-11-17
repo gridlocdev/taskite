@@ -34,7 +34,7 @@ export function SectionHeading({
       }}
     >
       <span class="tk-section-name">{heading}</span>
-      {section.count !== null && <span class="tk-count">{section.count}</span>}
+      {section.count !== null && section.count > 0 && <span class="tk-count">{section.count}</span>}
       {target && rules.length > 0 && (
         // ⚡ and the rule count; hovering lists the rules, a click opens the editor (PRD §6.1).
         <button

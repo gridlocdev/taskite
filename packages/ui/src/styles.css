@@ -5,6 +5,9 @@
   --tk-raised: #ffffff;
   --tk-hover: rgba(0, 0, 0, 0.045);
   --tk-chosen: #fff4f2;
+  /* A board column, and a card on it. */
+  --tk-column: #f5f5f4;
+  --tk-card: #ffffff;
   --tk-border: #e6e6e6;
   --tk-border-strong: #cfcfcf;
   --tk-text: #202020;
@@ -35,6 +38,10 @@
     --tk-raised: #2a2a2a;
     --tk-hover: rgba(255, 255, 255, 0.06);
     --tk-chosen: #3a2826;
+    --tk-column: #252525;
+    --tk-card: #2d2d2d;
+    --tk-column: #252525;
+    --tk-card: #2d2d2d;
     --tk-border: #353535;
     --tk-border-strong: #4a4a4a;
     --tk-text: #e8e8e8;
@@ -538,17 +545,13 @@ kbd {
   color: var(--tk-accent);
 }
 
-/* A project as a board: full-height columns, one per section, each task a card (PRD §6). */
+/* A project as a board: one column per section, as tall as its cards, each task a card (PRD §6). */
 .tk-main-inner:has(.tk-board) {
   max-width: none;
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
 }
 .tk-board {
-  flex: 1;
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
   gap: 14px;
   overflow-x: auto;
   padding-bottom: 12px;
@@ -561,37 +564,28 @@ kbd {
   margin: 0;
   padding: 4px 8px 8px;
   border-radius: 12px;
-  background: var(--tk-hover);
+  background: var(--tk-column);
 }
 .tk-board .tk-row {
   padding: 10px 10px 10px 8px;
   border: 1px solid var(--tk-border);
-  border-radius: 10px;
-  background: var(--tk-bg);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+  border-radius: 8px;
+  background: var(--tk-card);
 }
 .tk-board .tk-row:hover {
   border-color: var(--tk-border-strong);
-  background: var(--tk-bg);
+  background: var(--tk-card);
 }
 .tk-board .tk-row.tk-chosen {
-  border-color: var(--tk-accent);
+  border-color: color-mix(in srgb, var(--tk-accent) 45%, var(--tk-border));
   background: var(--tk-chosen);
-  box-shadow: none;
-}
-.tk-board .tk-row.tk-done {
-  box-shadow: none;
-  background: transparent;
 }
 .tk-board .tk-row-meta {
   flex-wrap: wrap;
   margin-top: 6px;
 }
 .tk-board .tk-add-row {
-  border-radius: 10px;
-}
-.tk-main-inner:has(.tk-board) {
-  padding-bottom: 20px;
+  border-radius: 8px;
 }
 .tk-priority.tk-p1 {
   color: var(--tk-p1);
@@ -643,7 +637,7 @@ kbd {
 /* The chosen tint already shows where the keyboard is, so it doesn't get the focus ring as well. */
 .tk-row.tk-chosen {
   background: var(--tk-chosen);
-  box-shadow: inset 3px 0 0 var(--tk-accent);
+  box-shadow: none;
 }
 .tk-row.tk-subtask {
   padding-left: 34px;
@@ -799,7 +793,6 @@ kbd {
 }
 .tk-add-row.tk-chosen:focus {
   background: var(--tk-chosen);
-  box-shadow: inset 3px 0 0 var(--tk-accent);
 }
 /* The chosen tint already shows where the keyboard is, so it doesn't get the focus ring as well. */
 .tk-add-row.tk-chosen:focus-visible {
@@ -809,12 +802,6 @@ kbd {
 .tk-add-row.tk-chosen:focus,
 .tk-add-row:focus-visible {
   color: var(--tk-accent);
-}
-.tk-add-row:hover .tk-add-plus,
-.tk-add-row.tk-chosen:focus .tk-add-plus,
-.tk-add-row:focus-visible .tk-add-plus {
-  background: var(--tk-accent);
-  color: var(--tk-accent-text);
 }
 .tk-composer {
   margin: 8px 0;
