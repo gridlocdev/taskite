@@ -184,11 +184,23 @@ const ops: Op<State>[] = [
   },
   {
     name: 'setSectionAutomations',
+    weight: 2,
     when: (s) => sectioned(s).length > 0,
     run: (s, r) => {
       const p = r.pick(sectioned(s));
       const section = r.pick(p.sections ?? []);
       s.list.setSectionAutomations(p.id, section.id, randomRules(s, r));
+      return section.id;
+    },
+  },
+  {
+    name: 'applyEnterRules',
+    weight: 0.3,
+    when: (s) => sectioned(s).length > 0,
+    run: (s, r) => {
+      const p = r.pick(sectioned(s));
+      const section = r.pick(p.sections ?? []);
+      s.list.applyEnterRules(p.id, section.id);
       return section.id;
     },
   },

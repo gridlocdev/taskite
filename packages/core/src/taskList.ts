@@ -2,8 +2,15 @@
  * The task list engine: every edit to tasks, projects and labels, with undo (PRD §4, §6). It holds the
  * data in memory and tells listeners after each change; saving is the caller's job.
  */
-import { cleanAutomations, renameLabelInRules, type SectionAutomation } from './automations.ts';
-import { nextOccurrence, parseISODate, todayISO } from './dates.ts';
+import {
+  automationDueDate,
+  cleanAutomations,
+  renameLabelInRules,
+  type AutomationRun,
+  type AutomationTrigger,
+  type SectionAutomation,
+} from './automations.ts';
+import { firstDayOfWeek, nextOccurrence, parseISODate, todayISO } from './dates.ts';
 import {
   INBOX_ID,
   PROJECT_COLOR_NAMES,
@@ -39,6 +46,16 @@ export interface TaskListOptions {
   now?: () => number;
   /** Id maker, for tests. */
   newId?: () => string;
+  /** The day weeks start on (0 = Sunday), for automations that date a task next week. The locale's by default. */
+  weekStart?: number;
+}
+
+/** Something that sets off a section's rules: a task entering it, or being completed in it (PRD §6.1). */
+interface Trigger {
+  task: Task;
+  on: AutomationTrigger;
+  projectId: string;
+  sectionId: string;
 }
 
 type Ids = string | readonly string[];
@@ -86,6 +103,11 @@ function removeTasks(data: AppData, ids: ReadonlySet<string>): void {
   for (const t of data.tasks) if (t.parentId && ids.has(t.parentId)) t.parentId = null;
 }
 
+/** Where a task sits, as one string to compare. */
+function placeOf(task: Task): string {
+  return `${task.projectId}/${task.sectionId ?? ''}`;
+}
+
 /** Whether an edit changed anything: an edit that leaves the data as it was records no undo step. */
 function sameData(a: AppData, b: AppData): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
@@ -104,11 +126,19 @@ export class TaskList {
   #index: Lookup | null = null;
   #changing = false;
   #lastEditChanged = false;
+  #weekStart: number | undefined;
+  #automated: AutomationRun[] = [];
 
   constructor(data: AppData, options: TaskListOptions = {}) {
     this.#data = data;
     this.#now = options.now ?? Date.now;
     this.#newId = options.newId ?? (() => crypto.randomUUID());
+    this.#weekStart = options.weekStart;
+  }
+
+  /** What automations changed in the last edit (empty when none ran), for its notice (PRD §6.1). */
+  get automated(): readonly AutomationRun[] {
+    return this.#automated;
   }
 
   /** The live data. Treat it as read-only; change it through the methods. */
@@ -156,6 +186,7 @@ export class TaskList {
       return;
     }
     const before = structuredClone(this.#data);
+    this.#automated = [];
     if (this.#run(change) === false || sameData(before, this.#data)) {
       this.#lastEditChanged = false;
       return;
@@ -188,6 +219,7 @@ export class TaskList {
   batch<T>(fn: () => T): T {
     if (this.#batching) return fn();
     const before = structuredClone(this.#data);
+    this.#automated = [];
     this.#batching = true;
     this.#batchChanged = false;
     try {
@@ -224,6 +256,7 @@ export class TaskList {
 
   /** Goes back one change. Settings stay as they are (PRD §4.7). */
   undo(): void {
+    this.#automated = [];
     const previous = this.#undo.pop();
     if (!previous) return;
     this.#redo.push(structuredClone(this.#data));
@@ -232,6 +265,7 @@ export class TaskList {
   }
 
   redo(): void {
+    this.#automated = [];
     const next = this.#redo.pop();
     if (!next) return;
     this.#undo.push(structuredClone(this.#data));
@@ -332,6 +366,8 @@ export class TaskList {
       const orders = data.tasks.filter((t) => t.projectId === projectId).map((t) => t.order);
       task.order = Math.max(-1, ...orders) + 1;
       data.tasks.push(task);
+      if (!parent && task.sectionId)
+        this.#automate([{ task, on: 'enter', projectId, sectionId: task.sectionId }]);
     });
     return task;
   }
@@ -350,25 +386,17 @@ export class TaskList {
     const { sectionId, ...fields } = patch;
     const setsSection = 'sectionId' in patch;
     this.#edit(() => {
+      const was = new Map(tasks.map((t) => [t, placeOf(t)]));
       for (const task of tasks) {
         const moved = fields.projectId !== undefined && fields.projectId !== task.projectId;
         // A date or repeat set by hand starts a new day of the month.
         const redated =
           (fields.due !== undefined && fields.due !== task.due) ||
           (fields.recurrence !== undefined && fields.recurrence !== task.recurrence);
-        Object.assign(task, fields);
+        const { projectId, ...rest } = fields;
+        Object.assign(task, rest);
         if (redated) delete task.repeatDay;
-        if (setsSection || moved) {
-          if (sectionId && this.getSection(task.projectId, sectionId)) task.sectionId = sectionId;
-          else delete task.sectionId;
-        }
-        if (!setsSection && fields.projectId === undefined) continue;
-        // Subtasks in the Trash move too, so a restored one comes back beside its parent.
-        for (const sub of this.#data.tasks.filter((t) => t.parentId === task.id)) {
-          sub.projectId = task.projectId;
-          if (task.sectionId) sub.sectionId = task.sectionId;
-          else delete sub.sectionId;
-        }
+        if (setsSection || moved) this.#place(task, projectId ?? task.projectId, sectionId ?? null);
       }
       // A subtask moved away from its parent on its own leaves it (PRD §6).
       for (const task of tasks) {
@@ -376,7 +404,32 @@ export class TaskList {
         if (parent && (parent.projectId !== task.projectId || parent.sectionId !== task.sectionId))
           task.parentId = null;
       }
+      this.#automate(
+        tasks
+          .filter((t) => !t.parentId && t.deletedAt === null && t.sectionId && placeOf(t) !== was.get(t))
+          .map((t) => ({
+            task: t,
+            on: 'enter' as const,
+            projectId: t.projectId,
+            sectionId: t.sectionId ?? '',
+          })),
+      );
     });
+  }
+
+  /**
+   * Puts a task in a project and section (or the project's top when the section isn't there), with its
+   * subtasks. Subtasks in the Trash move too, so a restored one comes back beside its parent.
+   */
+  #place(task: Task, projectId: string, sectionId: string | null): void {
+    task.projectId = projectId;
+    if (sectionId && this.getSection(projectId, sectionId)) task.sectionId = sectionId;
+    else delete task.sectionId;
+    for (const sub of this.#data.tasks.filter((t) => t.parentId === task.id)) {
+      sub.projectId = task.projectId;
+      if (task.sectionId) sub.sectionId = task.sectionId;
+      else delete sub.sectionId;
+    }
   }
 
   /** Checks tasks off as one undo step; a repeating task with a date moves to its next date (PRD §4.3). */
@@ -388,26 +441,115 @@ export class TaskList {
     const results: CompleteResult[] = [];
     this.#edit(() => {
       const now = this.#now();
-      for (const task of tasks) {
-        if (task.recurrence && task.due) {
-          const day = task.repeatDay ?? parseISODate(task.due).getDate();
-          task.due = nextOccurrence(task.due, task.recurrence, today, day);
-          // Remember the day only while a short month has moved the date off it.
-          const monthly = task.recurrence === 'monthly' || task.recurrence === 'yearly';
-          if (monthly && parseISODate(task.due).getDate() !== day) task.repeatDay = day;
-          else delete task.repeatDay;
-          results.push({ id: task.id, repeated: true, nextDue: task.due });
-          continue;
-        }
-        task.completed = true;
-        task.completedAt = now;
-        for (const sub of this.getSubtasks(task.id)) {
-          if (!sub.completed) Object.assign(sub, { completed: true, completedAt: now });
-        }
-        results.push({ id: task.id, repeated: false, nextDue: null });
-      }
+      for (const task of tasks) results.push(this.#completeOne(task, now, today));
+      this.#automate(
+        tasks
+          .filter((t) => t.completed && !t.parentId && t.sectionId)
+          .map((t) => ({
+            task: t,
+            on: 'complete' as const,
+            projectId: t.projectId,
+            sectionId: t.sectionId ?? '',
+          })),
+        today,
+      );
     });
     return results;
+  }
+
+  /** Checks one open task off, or moves a repeating one to its next date (PRD §4.3). */
+  #completeOne(task: Task, now: number, today: string): CompleteResult {
+    if (task.recurrence && task.due) {
+      const day = task.repeatDay ?? parseISODate(task.due).getDate();
+      task.due = nextOccurrence(task.due, task.recurrence, today, day);
+      // Remember the day only while a short month has moved the date off it.
+      const monthly = task.recurrence === 'monthly' || task.recurrence === 'yearly';
+      if (monthly && parseISODate(task.due).getDate() !== day) task.repeatDay = day;
+      else delete task.repeatDay;
+      return { id: task.id, repeated: true, nextDue: task.due };
+    }
+    task.completed = true;
+    task.completedAt = now;
+    for (const sub of this.getSubtasks(task.id)) {
+      if (!sub.completed) Object.assign(sub, { completed: true, completedAt: now });
+    }
+    return { id: task.id, repeated: false, nextDue: null };
+  }
+
+  /**
+   * Runs the rules the triggers set off, inside the edit that caused them (PRD §6.1). A rule that moves a task
+   * into another section, or completes it, sets off that section's rules in turn, but each section and
+   * trigger runs at most once per task, so rules can't loop.
+   */
+  #automate(triggers: readonly Trigger[], today: string = todayISO(new Date(this.#now()))): void {
+    const queue = [...triggers];
+    const seen = new Map<Task, Set<string>>();
+    const now = this.#now();
+    for (let next = queue.shift(); next; next = queue.shift()) {
+      const { task, on, projectId, sectionId } = next;
+      const done = seen.get(task) ?? new Set<string>();
+      seen.set(task, done);
+      const key = `${on} ${projectId}/${sectionId}`;
+      if (done.has(key)) continue;
+      done.add(key);
+      const rules = this.getSection(projectId, sectionId)?.automations ?? [];
+      for (const rule of rules) {
+        if (rule.on !== on) continue;
+        for (const action of rule.do) {
+          if (task.deletedAt !== null) break;
+          const changed = this.#apply(task, action, now, today);
+          if (!changed) continue;
+          this.#automated.push({ taskId: task.id, projectId, sectionId, action });
+          if ('moveTo' in action && task.sectionId)
+            queue.push({ task, on: 'enter', projectId: task.projectId, sectionId: task.sectionId });
+          if ('complete' in action && task.completed && task.sectionId)
+            queue.push({ task, on: 'complete', projectId: task.projectId, sectionId: task.sectionId });
+        }
+      }
+    }
+  }
+
+  /** Does one action to a task. Says whether it changed anything. */
+  #apply(task: Task, action: SectionAutomation['do'][number], now: number, today: string): boolean {
+    const before = JSON.stringify(task);
+    if ('complete' in action) {
+      if (action.complete && !task.completed) this.#completeOne(task, now, today);
+      if (!action.complete && task.completed) Object.assign(task, { completed: false, completedAt: null });
+    } else if ('due' in action) {
+      const due = automationDueDate(action.due, today, this.#weekStart ?? firstDayOfWeek());
+      if (due !== task.due) {
+        task.due = due;
+        delete task.repeatDay;
+      }
+    } else if ('priority' in action) {
+      task.priority = action.priority;
+    } else if ('addLabel' in action) {
+      if (!hasLabel(task, action.addLabel)) task.labels = [...task.labels, action.addLabel];
+    } else if ('removeLabel' in action) {
+      task.labels = task.labels.filter((l) => labelKey(l) !== labelKey(action.removeLabel));
+    } else {
+      const { projectId, sectionId } = action.moveTo;
+      if (this.getProject(projectId)) this.#place(task, projectId, sectionId);
+    }
+    return JSON.stringify(task) !== before;
+  }
+
+  /**
+   * Runs a section's "enters" rules on the tasks already in it, as one undo step: what the editor's "Apply to
+   * the N tasks already here?" does (PRD §6.1).
+   */
+  applyEnterRules(projectId: string, sectionId: string): void {
+    if (!this.getSection(projectId, sectionId)?.automations?.some((r) => r.on === 'enter')) return;
+    this.#edit((data) => {
+      this.#automate(
+        data.tasks
+          .filter(
+            (t) =>
+              t.deletedAt === null && !t.parentId && t.projectId === projectId && t.sectionId === sectionId,
+          )
+          .map((task) => ({ task, on: 'enter' as const, projectId, sectionId })),
+      );
+    });
   }
 
   /** Un-checks tasks, and their parents so they show again. */

@@ -198,3 +198,142 @@ describe('editing section automations', () => {
     expect(section(INBOX_ID, doing.id)?.automations?.[0]?.do[0]).toEqual({ addLabel: 'Focus' });
   });
 });
+
+describe('running section automations (PRD §6.1)', () => {
+  const TODAY = '2026-10-09'; // a Friday
+  let doing: string;
+  let done: string;
+
+  beforeEach(() => {
+    let n = 0;
+    list = new TaskList(emptyData(), {
+      newId: () => `id${++n}`,
+      now: () => new Date(2026, 9, 9, 12).getTime(),
+      weekStart: 1,
+    });
+    doing = list.addSection(INBOX_ID, 'Doing')?.id ?? '';
+    done = list.addSection(INBOX_ID, 'Done')?.id ?? '';
+  });
+
+  const rules = (sectionId: string, ...r: SectionAutomation[]) =>
+    list.setSectionAutomations(INBOX_ID, sectionId, r);
+  const task = (id: string) => list.getTask(id);
+
+  it('a task made in a section runs its enter rules, in the same undo step', () => {
+    rules(doing, { on: 'enter', do: [{ due: 'today' }, { priority: 1 }, { addLabel: 'focus' }] });
+    const t = list.addTask({ title: 'Write', sectionId: doing });
+    expect(task(t.id)).toMatchObject({ due: TODAY, priority: 1, labels: ['focus'] });
+    expect(list.automated.map((r) => r.action)).toEqual([
+      { due: 'today' },
+      { priority: 1 },
+      { addLabel: 'focus' },
+    ]);
+    list.undo();
+    expect(task(t.id)).toBeUndefined();
+  });
+
+  it('moving a task into a section runs its enter rules; moving within it or editing does not', () => {
+    rules(done, { on: 'enter', do: [{ complete: true }, { removeLabel: 'FOCUS' }] });
+    const t = list.addTask({ title: 'Ship', sectionId: doing, labels: ['focus'] });
+    list.updateTasks(t.id, { sectionId: done });
+    expect(task(t.id)).toMatchObject({ completed: true, labels: [] });
+    list.undo();
+    expect(task(t.id)).toMatchObject({ sectionId: doing, completed: false, labels: ['focus'] });
+    list.updateTasks(t.id, { title: 'Ship it' });
+    expect(list.automated).toEqual([]);
+  });
+
+  it('only actions that change something are reported', () => {
+    rules(doing, { on: 'enter', do: [{ priority: 4 }, { addLabel: 'x' }, { removeLabel: 'nope' }] });
+    list.addTask({ title: 'A', sectionId: doing });
+    expect(list.automated.map((r) => r.action)).toEqual([{ addLabel: 'x' }]);
+  });
+
+  it('dates count from today: tomorrow, in N days, next week, none', () => {
+    const cases: [SectionAutomation['do'][number], string | null][] = [
+      [{ due: 'tomorrow' }, '2026-10-10'],
+      [{ due: '+10' }, '2026-10-19'],
+      [{ due: 'nextWeek' }, '2026-10-12'],
+      [{ due: null }, null],
+    ];
+    for (const [action, want] of cases) {
+      rules(doing, { on: 'enter', do: [action] });
+      const t = list.addTask({ title: 'A', sectionId: doing, due: '2026-01-01' });
+      expect(task(t.id)?.due).toBe(want);
+    }
+  });
+
+  it('completing a task in a section runs its complete rules, and a move chains into the next section', () => {
+    rules(doing, { on: 'complete', do: [{ moveTo: { projectId: INBOX_ID, sectionId: done } }] });
+    rules(done, { on: 'enter', do: [{ addLabel: 'shipped' }] });
+    const t = list.addTask({ title: 'Ship', sectionId: doing });
+    list.completeTasks(t.id, TODAY);
+    expect(task(t.id)).toMatchObject({ completed: true, sectionId: done, labels: ['shipped'] });
+    expect(list.automated.map((r) => r.sectionId)).toEqual([doing, done]);
+    list.undo();
+    expect(task(t.id)).toMatchObject({ completed: false, sectionId: doing, labels: [] });
+  });
+
+  it('a repeating task that moves to its next date is not completed, so complete rules do not run', () => {
+    rules(doing, { on: 'complete', do: [{ addLabel: 'x' }] });
+    const t = list.addTask({ title: 'Water', sectionId: doing, due: TODAY, recurrence: 'daily' });
+    list.completeTasks(t.id, TODAY);
+    expect(task(t.id)?.labels).toEqual([]);
+  });
+
+  it("a complete action sets off the section's complete rules", () => {
+    rules(done, { on: 'enter', do: [{ complete: true }] }, { on: 'complete', do: [{ priority: 2 }] });
+    const t = list.addTask({ title: 'A', sectionId: done });
+    expect(task(t.id)).toMatchObject({ completed: true, priority: 2 });
+  });
+
+  it('rules that move a task back and forth stop after each section has run once', () => {
+    rules(doing, {
+      on: 'enter',
+      do: [{ moveTo: { projectId: INBOX_ID, sectionId: done } }, { addLabel: 'a' }],
+    });
+    rules(done, {
+      on: 'enter',
+      do: [{ moveTo: { projectId: INBOX_ID, sectionId: doing } }, { addLabel: 'b' }],
+    });
+    const t = list.addTask({ title: 'Loop', sectionId: doing });
+    expect(task(t.id)).toMatchObject({ sectionId: doing, labels: ['a', 'b'] });
+  });
+
+  it("a move to another project brings the subtasks, and runs that section's rules", () => {
+    const work = list.addProject('Work');
+    const later = list.addSection(work.id, 'Later')?.id ?? '';
+    rules(doing, { on: 'enter', do: [{ moveTo: { projectId: work.id, sectionId: later } }] });
+    list.setSectionAutomations(work.id, later, [{ on: 'enter', do: [{ priority: 3 }] }]);
+    const parent = list.addTask({ title: 'P' });
+    const sub = list.addTask({ title: 'S', parentId: parent.id });
+    list.updateTasks(parent.id, { sectionId: doing });
+    expect(task(parent.id)).toMatchObject({ projectId: work.id, sectionId: later, priority: 3 });
+    expect(task(sub.id)).toMatchObject({
+      projectId: work.id,
+      sectionId: later,
+      parentId: parent.id,
+      priority: 4,
+    });
+    checkInvariants(list.data);
+  });
+
+  it('subtasks do not set off rules', () => {
+    rules(doing, { on: 'enter', do: [{ addLabel: 'x' }] }, { on: 'complete', do: [{ addLabel: 'y' }] });
+    const parent = list.addTask({ title: 'P', sectionId: doing });
+    const sub = list.addTask({ title: 'S', parentId: parent.id });
+    list.completeTasks(sub.id, TODAY);
+    expect(task(sub.id)?.labels).toEqual([]);
+  });
+
+  it('Apply runs enter rules on the tasks already in the section, as one undo step', () => {
+    const a = list.addTask({ title: 'A', sectionId: done });
+    const b = list.addTask({ title: 'B', sectionId: done });
+    const other = list.addTask({ title: 'C', sectionId: doing });
+    rules(done, { on: 'enter', do: [{ complete: true }] });
+    list.applyEnterRules(INBOX_ID, done);
+    expect([a, b, other].map((t) => task(t.id)?.completed)).toEqual([true, true, false]);
+    list.undo();
+    expect([a, b].map((t) => task(t.id)?.completed)).toEqual([false, false]);
+  });
+});

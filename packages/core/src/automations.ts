@@ -2,6 +2,7 @@
  * Section automations (PRD §6.1): the rules a project section holds, and how they are checked when read from
  * the file or saved from the editor. Running them is a separate step.
  */
+import { addDays, startOfWeek } from './dates.ts';
 import type { Priority } from './parser.ts';
 
 /** What sets a rule off: a task entering the section, or a task in it being completed. */
@@ -116,4 +117,22 @@ export function renameLabelInRules(rules: SectionAutomation[], from: string, to:
       }
     }
   return changed;
+}
+
+/** The date a rule's due action sets, from the day it runs. Next week is that week's first day. */
+export function automationDueDate(due: AutomationDue, today: string, weekStart: number): string | null {
+  if (due === null) return null;
+  if (due === 'today') return today;
+  if (due === 'tomorrow') return addDays(today, 1);
+  if (due === 'nextWeek') return addDays(startOfWeek(today, weekStart), 7);
+  return addDays(today, Number(due.slice(1)));
+}
+
+/** One action an automation changed something with, for the notice that says what ran (PRD §6.1). */
+export interface AutomationRun {
+  taskId: string;
+  /** The section whose rule it was. */
+  projectId: string;
+  sectionId: string;
+  action: AutomationAction;
 }
