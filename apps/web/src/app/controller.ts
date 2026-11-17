@@ -146,6 +146,7 @@ export class AppController {
   #anchor: string | null = null;
   /** Where the add-task row is open: `end`, or `day:YYYY-MM-DD` in Upcoming. */
   readonly composer = signal<string | null>(null);
+  #seed = '';
   readonly dialog = signal<DialogState | null>(null);
   readonly menu = signal<ContextMenuState | null>(null);
   readonly notice = signal<Notice | null>(null);
@@ -468,6 +469,18 @@ export class AppController {
     }
   }
 
+  /** Tab onto an Add task button puts the cursor there, as the arrow keys would (PRD §7). */
+  cursorToAdd(slot: string): void {
+    const stop = addStop(slot);
+    if (this.cursor.value === stop || !this.stops.value.includes(stop)) return;
+    batch(() => {
+      this.#select([]);
+      this.#anchor = null;
+      this.cursor.value = stop;
+    });
+    this.#announceSelection();
+  }
+
   /** Puts the cursor on one row and chooses it alone. */
   #moveTo(id: string): void {
     batch(() => {
@@ -580,7 +593,24 @@ export class AppController {
     this.composer.value = this.defaultSlot();
   }
 
+  /**
+   * A character typed on an Add task button: opens the add-task row there starting with it (PRD §7). Keys typed
+   * before the row appears are kept, in order.
+   */
+  typeIntoSlot(slot: string, text: string): void {
+    this.#seed = this.composer.peek() === slot ? this.#seed + text : text;
+    this.composer.value = slot;
+  }
+
+  /** What the add-task row starts with when it opens; reading it empties it. */
+  takeSeed(): string {
+    const text = this.#seed;
+    this.#seed = '';
+    return text;
+  }
+
   closeComposer(): void {
+    this.#seed = '';
     this.composer.value = null;
     this.focusList.value++;
   }

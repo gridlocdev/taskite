@@ -17,7 +17,7 @@
 
 ### Improvements
 
-- **↑ and ↓ reach the Add task button** after each section's tasks, so you can add a task without the mouse: press Enter on it.
+- **↑ and ↓ reach the Add task button** after each section's tasks, so you can add a task without the mouse: press Enter on it, or just start typing the task. Tab onto it puts the cursor there too, and its highlight goes when the keyboard moves off it.
 - **New Task adds beside the task you're on**: in its section or board column, or on its day in Upcoming. With no task chosen it adds at the end of the list (the first column on a board, today in Upcoming).
 - **Tab reaches every board column.** Before, a board was one Tab stop, so the tasks in the other columns could only be reached with the mouse. Tab into a column chooses the task it lands on.
 - **New Task is ⌘N** (Ctrl+N), and **New Project… is ⇧⌘N** (Ctrl+Shift+N). `N` still adds a task; `Q` no longer does.

@@ -569,14 +569,10 @@ kbd {
 .tk-row:focus-visible {
   box-shadow: inset 0 0 0 2px var(--tk-focus);
 }
+/* The chosen tint already shows where the keyboard is, so it doesn't get the focus ring as well. */
 .tk-row.tk-chosen {
   background: var(--tk-chosen);
   box-shadow: inset 3px 0 0 var(--tk-accent);
-}
-.tk-row.tk-chosen:focus-visible {
-  box-shadow:
-    inset 3px 0 0 var(--tk-accent),
-    inset 0 0 0 2px var(--tk-focus);
 }
 .tk-row.tk-subtask {
   padding-left: 34px;
@@ -730,23 +726,21 @@ kbd {
   cursor: pointer;
   text-align: left;
 }
-.tk-add-row.tk-chosen {
+.tk-add-row.tk-chosen:focus {
   background: var(--tk-chosen);
   box-shadow: inset 3px 0 0 var(--tk-accent);
 }
+/* The chosen tint already shows where the keyboard is, so it doesn't get the focus ring as well. */
 .tk-add-row.tk-chosen:focus-visible {
   outline: none;
-  box-shadow:
-    inset 3px 0 0 var(--tk-accent),
-    inset 0 0 0 2px var(--tk-focus);
 }
 .tk-add-row:hover,
-.tk-add-row.tk-chosen,
+.tk-add-row.tk-chosen:focus,
 .tk-add-row:focus-visible {
   color: var(--tk-accent);
 }
 .tk-add-row:hover .tk-add-plus,
-.tk-add-row.tk-chosen .tk-add-plus,
+.tk-add-row.tk-chosen:focus .tk-add-plus,
 .tk-add-row:focus-visible .tk-add-plus {
   background: var(--tk-accent);
   color: var(--tk-accent-text);

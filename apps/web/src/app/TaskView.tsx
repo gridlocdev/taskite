@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import {
   PROJECT_COLORS,
   RECURRENCE_LABELS,
@@ -35,15 +35,21 @@ export function TaskView({
   const focusTick = app.focusList.value;
   const cursor = app.cursor.value;
 
-  // Keyboard focus follows the cursor while it's in the list, and comes back after a dialog closes.
+  // Keyboard focus follows the cursor while it's in the list or nowhere (↓ right after the page opens), and
+  // comes back after a dialog closes.
   const lastTick = useRef(focusTick);
-  useEffect(() => {
+  // Before paint, so a key pressed right after ↓ goes to the row or button the cursor moved to.
+  useLayoutEffect(() => {
     const list = listRef.current;
     if (!list) return;
     const asked = lastTick.current !== focusTick;
     lastTick.current = focusTick;
-    if (!asked && !list.contains(document.activeElement)) return;
+    const active = document.activeElement;
     const row = cursor ? list.querySelector<HTMLElement>(`[data-id="${CSS.escape(cursor)}"]`) : null;
+    const nowhere = active === null || active === document.body;
+    if (!asked && !list.contains(active) && !(nowhere && row)) return;
+    // An add-task row that opened in the same update keeps the keyboard (Go to Section… into an empty one).
+    if (active?.closest('.tk-composer')) return;
     (row ?? list).focus({ preventScroll: true });
     row?.scrollIntoView({ block: 'nearest' });
   }, [cursor, focusTick]);
@@ -323,6 +329,17 @@ function SectionView({
             class={`tk-add-row${app.cursor.value === addStop(slot) ? ' tk-chosen' : ''}`}
             data-id={addStop(slot)}
             onClick={() => (app.composer.value = slot)}
+            // Tab onto the button puts the cursor there; a click opens the add-task row itself.
+            onFocus={(e) => {
+              if ((e.currentTarget as HTMLElement).matches(':focus-visible')) app.cursorToAdd(slot);
+            }}
+            onKeyDown={(e) => {
+              // A character starts the task (Space still presses the button; ⌘ and Ctrl keys stay shortcuts).
+              if (isComposingKey(e) || e.key.length !== 1 || e.key === ' ') return;
+              if (e.metaKey || e.ctrlKey || e.altKey) return;
+              e.preventDefault();
+              app.typeIntoSlot(slot, e.key);
+            }}
           >
             <span class="tk-add-plus">
               <Icon name="plus" />
@@ -496,9 +513,16 @@ function TaskRow({
 
 /** The add-task row (PRD §4.1): Quick Add text with a live preview of what it will become. */
 function Composer({ app, slot }: { readonly app: AppController; readonly slot: string }) {
-  const [text, setText] = useState('');
+  const [text, setText] = useState(() => app.takeSeed());
   const input = useRef<HTMLInputElement>(null);
-  useEffect(() => input.current?.focus(), [slot]);
+  // Before paint, so keys typed fast on the Add task button land here and not on the page.
+  useLayoutEffect(() => {
+    const field = input.current;
+    if (!field) return;
+    field.focus();
+    // Typed on the Add task button: carry on after what's there.
+    field.setSelectionRange(field.value.length, field.value.length);
+  }, [slot]);
   const draft = text.trim() ? resolveDraft(text, app.shown.value, slot, app.today.value) : null;
   const project = draft?.projectName
     ? (app.list.findProjectByName(draft.projectName)?.name ?? `${draft.projectName} (new)`)

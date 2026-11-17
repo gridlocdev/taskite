@@ -321,6 +321,33 @@ describe('commands', () => {
     expect(app.cursor.value).toBe(b2.id);
   });
 
+  it('typing on an Add task button opens the add-task row there with what was typed', async () => {
+    const { app } = await makeApp();
+    app.go({ type: 'project', id: INBOX_ID });
+    app.typeIntoSlot('end', 'B');
+    // A key that lands before the row appears is kept.
+    app.typeIntoSlot('end', 'u');
+    expect(app.composer.value).toBe('end');
+    expect(app.takeSeed()).toBe('Bu');
+    expect(app.takeSeed()).toBe('');
+    app.typeIntoSlot('end', 'x');
+    app.closeComposer();
+    expect(app.takeSeed()).toBe('');
+  });
+
+  it('Tab onto an Add task button puts the cursor there and chooses nothing', async () => {
+    const { app } = await makeApp();
+    app.go({ type: 'project', id: INBOX_ID });
+    const a = app.list.addTask({ title: 'A' });
+    app.click(a.id);
+    app.cursorToAdd('end');
+    expect(app.cursor.value).toBe('add:end');
+    expect(app.selected.value.size).toBe(0);
+    // A slot the view doesn't show leaves the cursor alone.
+    app.cursorToAdd('section:nope');
+    expect(app.cursor.value).toBe('add:end');
+  });
+
   it('closestTo picks the row level with the one the cursor leaves', () => {
     const rows = [
       { id: 'a', y: 10 },

@@ -133,6 +133,46 @@ test.describe('Views', () => {
     await expect(add).toBeFocused();
     await page.keyboard.press('ArrowUp');
     await expect(page.getByRole('option').last()).toBeFocused();
+
+    // Typing on the button starts the task, even letters that are shortcuts elsewhere (N, D, M, J).
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.type('Need DMJ milk');
+    const field = page.getByRole('textbox', { name: 'New task' });
+    await expect(field).toBeFocused();
+    await expect(field).toHaveValue('Need DMJ milk');
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('option', { name: /Need DMJ milk/ })).toBeVisible();
+  });
+
+  test('with nothing focused, the arrow keys put the keyboard on the row or button they reach', async ({
+    page,
+  }) => {
+    await page.getByRole('button', { name: /^Home/ }).click();
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    // Up from nowhere goes to the last stop: the Add task button.
+    await page.keyboard.press('ArrowUp');
+    await expect(page.getByRole('main').getByRole('button', { name: 'Add task' })).toBeFocused();
+    await page.keyboard.type('Buy');
+    await expect(page.getByRole('textbox', { name: 'New task' })).toHaveValue('Buy');
+  });
+
+  test('the Add task highlight follows the keyboard when Tab moves off the button', async ({ page }) => {
+    await page.getByRole('button', { name: /^Home/ }).click();
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.keyboard.press('ArrowUp');
+    const add = page.getByRole('main').getByRole('button', { name: 'Add task' });
+    await expect(add).toBeFocused();
+    await expect(add).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await page.keyboard.press('Shift+Tab');
+    await expect(add).not.toBeFocused();
+    await expect(add).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await page.keyboard.press('Tab');
+    await expect(add).toBeFocused();
+    await expect(add).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    // Add section is in the list too, but the highlight still goes with the keyboard.
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Add section' })).toBeFocused();
+    await expect(add).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   });
 });
 
