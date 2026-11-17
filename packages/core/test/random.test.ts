@@ -14,7 +14,9 @@ import {
   serialize,
   todayISO,
   type AppData,
+  type AutomationAction,
   type Priority,
+  type SectionAutomation,
   type Task,
   type TaskPatch,
 } from '../src/index.ts';
@@ -79,6 +81,33 @@ function randomPatch(s: State, random: Random): TaskPatch {
       return section ? { projectId: project.id, sectionId: section.id } : { projectId: project.id };
     }
   }
+}
+
+/** Rules as the editor could save them, with now and then one it would refuse (no action, a bad value). */
+function randomRules(s: State, random: Random): SectionAutomation[] {
+  const action = (): AutomationAction => {
+    switch (random.int(7)) {
+      case 0:
+        return { complete: random.chance(0.5) };
+      case 1:
+        return { due: random.pick(['today', 'tomorrow', 'nextWeek', '+3', null] as const) };
+      case 2:
+        return { priority: random.pick(PRIORITIES) };
+      case 3:
+        return { addLabel: random.pick(LABELS) };
+      case 4:
+        return { removeLabel: random.chance(0.8) ? random.pick(LABELS) : ' ' };
+      default: {
+        const project = random.pick(projects(s));
+        const section = project.sections?.length && random.chance(0.7) ? random.pick(project.sections) : null;
+        return { moveTo: { projectId: project.id, sectionId: section?.id ?? null } };
+      }
+    }
+  };
+  return Array.from({ length: random.int(4) }, () => ({
+    on: random.chance(0.5) ? ('enter' as const) : ('complete' as const),
+    do: Array.from({ length: random.int(4) }, action),
+  }));
 }
 
 /** A project name as the app's dialog accepts it: never blank (it refuses those before the engine). */
@@ -150,6 +179,16 @@ const ops: Op<State>[] = [
       const p = r.pick(sectioned(s));
       const section = r.pick(p.sections ?? []);
       s.list.deleteSection(p.id, section.id, s.clock);
+      return section.id;
+    },
+  },
+  {
+    name: 'setSectionAutomations',
+    when: (s) => sectioned(s).length > 0,
+    run: (s, r) => {
+      const p = r.pick(sectioned(s));
+      const section = r.pick(p.sections ?? []);
+      s.list.setSectionAutomations(p.id, section.id, randomRules(s, r));
       return section.id;
     },
   },

@@ -1,4 +1,14 @@
 export {
+  MAX_ACTIONS,
+  MAX_DUE_DAYS,
+  MAX_RULES,
+  cleanAutomations,
+  type AutomationAction,
+  type AutomationDue,
+  type AutomationTrigger,
+  type SectionAutomation,
+} from './automations.ts';
+export {
   RECURRENCES,
   RECURRENCE_LABELS,
   addDays,
@@ -33,6 +43,7 @@ export {
   expiredTaskIds,
   normalize,
   parseDataFile,
+  pruneAutomations,
   serialize,
   type AppData,
   type ParseResult,

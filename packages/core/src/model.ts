@@ -2,6 +2,7 @@
  * The data file (PRD §3.1): types, defaults, repair of older or hand-edited files, and the exact text
  * written to disk.
  */
+import { cleanAutomations, type SectionAutomation } from './automations.ts';
 import { RECURRENCES, isISODate, type Recurrence } from './dates.ts';
 import type { Priority } from './parser.ts';
 
@@ -57,6 +58,8 @@ export const PROJECT_COLOR_NAMES = Object.keys(PROJECT_COLORS) as ProjectColor[]
 export interface ProjectSection {
   id: string;
   name: string;
+  /** Its rules (PRD §6.1). Left out of the file while it has none. */
+  automations?: SectionAutomation[];
 }
 
 export interface Project {
@@ -147,7 +150,7 @@ export function normalize(raw: unknown, now: number = Date.now()): AppData {
     .filter((p): p is Loose => isObject(p) && Boolean(p['id']) && Boolean(p['name']))
     .map((p) => {
       const { sections: rawSections, view, ...rest } = p;
-      const sections = Array.isArray(rawSections)
+      const sections: ProjectSection[] = Array.isArray(rawSections)
         ? (rawSections as unknown[])
             .filter((s): s is Loose => isObject(s) && Boolean(s['id']) && typeof s['name'] === 'string')
             .map((s) => ({ ...s, id: String(s['id']), name: s['name'] as string }))
@@ -162,6 +165,7 @@ export function normalize(raw: unknown, now: number = Date.now()): AppData {
       };
     });
   if (!projects.some((p) => p.id === INBOX_ID)) projects.unshift(...base.projects);
+  pruneAutomations(projects);
   const projectIds = new Set(projects.map((p) => p.id));
   const sectionIds = new Set(projects.flatMap((p) => (p.sections ?? []).map((s) => `${p.id}/${s.id}`)));
   const rawTasks = Array.isArray(raw['tasks']) ? (raw['tasks'] as unknown[]) : [];
@@ -217,6 +221,30 @@ export function normalize(raw: unknown, now: number = Date.now()): AppData {
       ...('showCompleted' in settings ? { showCompleted: settings['showCompleted'] === true } : {}),
     },
   };
+}
+
+/**
+ * Checks every section's rules against the projects and sections there are now (PRD §6.1): moves to a place
+ * that's gone are dropped, then rules left with no action, then `automations` when none are left. Runs on
+ * reading and after deleting a section or project. Says whether anything changed.
+ */
+export function pruneAutomations(projects: Project[]): boolean {
+  const places = new Set(
+    projects.flatMap((p) => [`${p.id}/`, ...(p.sections ?? []).map((s) => `${p.id}/${s.id}`)]),
+  );
+  const exists = (projectId: string, sectionId: string | null) =>
+    places.has(`${projectId}/${sectionId ?? ''}`);
+  let changed = false;
+  for (const project of projects)
+    for (const section of project.sections ?? []) {
+      if (!('automations' in section)) continue;
+      const before = JSON.stringify(section.automations);
+      const rules = cleanAutomations(section.automations, exists);
+      if (rules.length) section.automations = rules;
+      else delete section.automations;
+      if (JSON.stringify(section.automations) !== before) changed = true;
+    }
+  return changed;
 }
 
 /** The message for a file from a newer Taskite. */

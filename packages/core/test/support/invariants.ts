@@ -6,6 +6,26 @@ import type { AppData } from '../../src/index.ts';
  * parent's project and section; a live task's section exists in its project.
  */
 export function checkInvariants(data: AppData): void {
+  for (const project of data.projects)
+    for (const section of project.sections ?? []) {
+      if (!('automations' in section)) continue;
+      const rules = section.automations ?? [];
+      expect(rules.length, `${section.name} keeps automations only while it has some`).toBeGreaterThan(0);
+      for (const rule of rules) {
+        expect(rule.do.length, `a rule in ${section.name} has an action`).toBeGreaterThan(0);
+        for (const action of rule.do) {
+          if (!('moveTo' in action)) continue;
+          const { projectId, sectionId } = action.moveTo;
+          const to = data.projects.find((p) => p.id === projectId);
+          expect(to, `a rule in ${section.name} moves to a project that exists`).toBeDefined();
+          if (sectionId)
+            expect(
+              to?.sections?.some((s) => s.id === sectionId),
+              `a rule in ${section.name} moves to a section that exists`,
+            ).toBe(true);
+        }
+      }
+    }
   const byId = new Map(data.tasks.map((t) => [t.id, t]));
   for (const t of data.tasks) {
     if (t.deletedAt !== null) continue;

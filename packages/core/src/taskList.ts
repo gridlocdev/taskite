@@ -2,11 +2,13 @@
  * The task list engine: every edit to tasks, projects and labels, with undo (PRD §4, §6). It holds the
  * data in memory and tells listeners after each change; saving is the caller's job.
  */
+import { cleanAutomations, renameLabelInRules, type SectionAutomation } from './automations.ts';
 import { nextOccurrence, parseISODate, todayISO } from './dates.ts';
 import {
   INBOX_ID,
   PROJECT_COLOR_NAMES,
   expiredTaskIds,
+  pruneAutomations,
   type AppData,
   type Project,
   type ProjectSection,
@@ -570,6 +572,7 @@ export class TaskList {
         task.projectId = INBOX_ID;
         delete task.sectionId;
       }
+      pruneAutomations(data.projects);
     });
   }
 
@@ -628,6 +631,21 @@ export class TaskList {
         delete task.sectionId;
         if (task.deletedAt === null) task.deletedAt = now;
       }
+      pruneAutomations(data.projects);
+    });
+  }
+
+  /**
+   * Replaces a section's rules with what the editor saved (PRD §6.1), as one undo step. Rules are checked as
+   * they would be on reading: what this version can't run, or a move to a place that's gone, is dropped.
+   */
+  setSectionAutomations(projectId: string, sectionId: string, rules: readonly SectionAutomation[]): void {
+    const section = this.getSection(projectId, sectionId);
+    if (!section) return;
+    this.#edit((data) => {
+      // Cleaning builds new objects, so later changes to `rules` don't reach the data.
+      section.automations = cleanAutomations(rules, () => true);
+      pruneAutomations(data.projects);
     });
   }
 
@@ -684,6 +702,10 @@ export class TaskList {
           changed = true;
         }
         if (labelKey(next) !== labelKey(label)) changed = setColor(data, label, null) || changed;
+        for (const project of data.projects)
+          for (const section of project.sections ?? [])
+            if (section.automations)
+              changed = renameLabelInRules(section.automations, label, next) || changed;
       }
       return setColor(data, next, color) || changed;
     });
