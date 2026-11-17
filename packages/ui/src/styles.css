@@ -1459,6 +1459,46 @@ fieldset {
   right: 0;
 }
 
+/* A task's attachments in the editor: name and size open the file, × takes it off (PRD §4.8). */
+.tk-attachments {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+.tk-attachments li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--tk-border);
+}
+.tk-attachment {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 2px;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tk-attachment:hover .tk-attachment-name {
+  text-decoration: underline;
+}
+.tk-attachment-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Files dragged over the editor drop onto the task. */
+.tk-editor.tk-dropping {
+  outline: 2px dashed var(--tk-accent);
+  outline-offset: 6px;
+  border-radius: var(--tk-radius);
+}
+
 /* A checkbox setting: the box, then its name with a line of help under it. */
 .tk-check-field {
   display: flex;

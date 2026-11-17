@@ -42,6 +42,7 @@ export interface FileTask {
   labels: string[];
   completed: boolean;
   deletedAt: number | null;
+  attachments?: { id: string; name: string; size: number; type: string }[];
 }
 
 /** The tasks file as the server has it now. */

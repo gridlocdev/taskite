@@ -53,3 +53,16 @@ export function cleanAttachments(raw: unknown, taken: Set<string> = new Set()): 
 export function attachmentIds(data: AppData): Set<string> {
   return new Set(data.tasks.flatMap((t) => (t.attachments ?? []).map((a) => a.id)));
 }
+
+/** A file size as people read it: "800 B", "1.5 KB", "12 MB". */
+export function formatSize(bytes: number): string {
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let n = bytes;
+  let u = 0;
+  while (n >= 1024 && u < units.length - 1) {
+    n /= 1024;
+    u++;
+  }
+  const shown = u === 0 || n >= 10 ? Math.round(n) : Math.round(n * 10) / 10;
+  return `${shown} ${units[u]}`;
+}

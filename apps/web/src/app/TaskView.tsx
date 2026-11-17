@@ -4,6 +4,7 @@ import {
   RECURRENCE_LABELS,
   dueTone,
   formatDue,
+  plural,
   resolveDraft,
   trashAge,
   type Row,
@@ -362,6 +363,7 @@ function TaskRow({
   const parent = task.parentId ? list.getTask(task.parentId) : undefined;
   const project = list.getProject(task.projectId);
   const inTrash = task.deletedAt !== null;
+  const attached = task.attachments?.length ?? 0;
 
   const classes = ['tk-row'];
   if (isSubtask) classes.push('tk-subtask');
@@ -474,6 +476,12 @@ function TaskRow({
             <span title="Subtasks done">
               <Icon name="subtasks" />
               {subs.filter((s) => s.completed).length}/{subs.length}
+            </span>
+          )}
+          {attached > 0 && (
+            <span class="tk-attached" title={plural(attached, 'attachment')}>
+              <Icon name="paperclip" />
+              {attached}
             </span>
           )}
           {task.labels.map((l) => (

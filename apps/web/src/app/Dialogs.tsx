@@ -5,7 +5,9 @@ import {
   PROJECT_COLOR_NAMES,
   RECURRENCES,
   RECURRENCE_LABELS,
+  formatSize,
   plural,
+  type Attachment,
   type Priority,
   type ProjectColor,
   type Recurrence,
@@ -16,6 +18,7 @@ import {
   Dialog,
   Icon,
   ListPopup,
+  after,
   filterEntries,
   isComposingKey,
   isSubmitKey,
@@ -128,9 +131,15 @@ const EXTRAS: Readonly<Record<Extra, { readonly name: string; readonly icon: str
   subtasks: { name: 'Subtasks', icon: 'subtasks' },
 };
 
-/** The fields the task doesn't show yet, one button each: a click shows the field and puts the keyboard in it. */
-function AddFields(props: { readonly extras: readonly Extra[]; readonly onPick: (e: Extra) => void }) {
-  if (!props.extras.length) return null;
+/**
+ * The fields the task doesn't show yet, one button each: a click shows the field and puts the keyboard in it.
+ * Attachments comes last and stays, since a task can take more files.
+ */
+function AddFields(props: {
+  readonly extras: readonly Extra[];
+  readonly onPick: (e: Extra) => void;
+  readonly onAttach: () => void;
+}) {
   return (
     <div class="tk-add-fields" role="group" aria-label="Add to the task">
       {props.extras.map((x) => (
@@ -145,9 +154,75 @@ function AddFields(props: { readonly extras: readonly Extra[]; readonly onPick: 
           {EXTRAS[x].name}
         </button>
       ))}
+      <button
+        type="button"
+        class="tk-button tk-button-quiet tk-button-small"
+        data-add="attachments"
+        onClick={props.onAttach}
+      >
+        <Icon name="paperclip" />
+        Attachments
+      </button>
     </div>
   );
 }
+
+/** Saves an attachment's bytes under its name, which opens it or downloads it, as the browser does (PRD §4.8). */
+async function openAttachment(app: AppController, attachment: Attachment): Promise<void> {
+  const bytes = await app.readAttachment(attachment);
+  if (!bytes) return;
+  const blob = new Blob([bytes.slice()], { type: attachment.type || 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = attachment.name;
+  link.click();
+  after(60_000, () => URL.revokeObjectURL(url));
+}
+
+/** A task's attachments in the editor: a click opens one, × takes it off the task. */
+function Attachments(props: {
+  readonly app: AppController;
+  readonly taskId: string;
+  readonly attachments: readonly Attachment[];
+  readonly onEmptied: () => void;
+}) {
+  const { app, taskId, attachments } = props;
+  if (!attachments.length) return null;
+  return (
+    <ul class="tk-attachments" aria-label="Attachments">
+      {attachments.map((a) => (
+        <li key={a.id}>
+          <button
+            type="button"
+            class="tk-attachment"
+            title={`Open ${a.name}`}
+            onClick={() => void openAttachment(app, a)}
+          >
+            <Icon name="paperclip" />
+            <span class="tk-attachment-name">{a.name}</span>
+            <span class="tk-muted">{formatSize(a.size)}</span>
+          </button>
+          <button
+            type="button"
+            class="tk-icon-button tk-small"
+            aria-label={`Remove ${a.name}`}
+            title={`Remove ${a.name}`}
+            onClick={() => {
+              app.removeAttachment(taskId, a);
+              if (attachments.length === 1) props.onEmptied();
+            }}
+          >
+            <Icon name="x" />
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** The files a drag carries, if it carries any. */
+const carriesFiles = (e: DragEvent): boolean => e.dataTransfer?.types.includes('Files') ?? false;
 
 /** The × beside a field added from the buttons: takes away what it holds, and its button comes back. */
 function RemoveField(props: { readonly extra: Extra; readonly onRemove: (e: Extra) => void }) {
@@ -185,6 +260,9 @@ function TaskEditor({ app, id }: { readonly app: AppController; readonly id: str
   /** Where the keyboard goes after the next render: a field just added, or the button of one just taken away. */
   const [focusOn, setFocusOn] = useState<string | null>(null);
   const body = useRef<HTMLDivElement>(null);
+  const picker = useRef<HTMLInputElement>(null);
+  /** Files are being dragged over the editor. */
+  const [dropping, setDropping] = useState(false);
   useEffect(() => {
     if (!focusOn) return;
     body.current?.querySelector<HTMLElement>(focusOn)?.focus();
@@ -310,7 +388,24 @@ function TaskEditor({ app, id }: { readonly app: AppController; readonly id: str
         </>
       }
     >
-      <div ref={body} class="tk-editor">
+      <div
+        ref={body}
+        class={dropping ? 'tk-editor tk-dropping' : 'tk-editor'}
+        onDragOver={(e) => {
+          if (!carriesFiles(e)) return;
+          e.preventDefault();
+          setDropping(true);
+        }}
+        onDragLeave={(e) => {
+          if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) setDropping(false);
+        }}
+        onDrop={(e) => {
+          setDropping(false);
+          if (!carriesFiles(e)) return;
+          e.preventDefault();
+          void app.attachFiles(task.id, [...(e.dataTransfer?.files ?? [])]);
+        }}
+      >
         <input
           class="tk-editor-title"
           aria-label="Task name"
@@ -471,7 +566,26 @@ function TaskEditor({ app, id }: { readonly app: AppController; readonly id: str
             />
           </fieldset>
         )}
-        <AddFields extras={extras} onPick={addField} />
+        <Attachments
+          app={app}
+          taskId={task.id}
+          attachments={task.attachments ?? []}
+          onEmptied={() => setFocusOn('[data-add="attachments"]')}
+        />
+        <AddFields extras={extras} onPick={addField} onAttach={() => picker.current?.click()} />
+        <input
+          ref={picker}
+          type="file"
+          multiple
+          hidden
+          aria-label="Files to attach"
+          onChange={(e) => {
+            const input = e.target as HTMLInputElement;
+            const files = [...(input.files ?? [])];
+            input.value = '';
+            void app.attachFiles(task.id, files);
+          }}
+        />
       </div>
     </Dialog>
   );

@@ -2,6 +2,7 @@ export {
   MAX_ATTACHMENT_BYTES,
   attachmentIds,
   cleanAttachments,
+  formatSize,
   isAttachmentId,
   type Attachment,
 } from './attachments.ts';

@@ -1,4 +1,5 @@
-import { expect, fileTask, openApp, test } from './fixtures.ts';
+import { readFileSync } from 'node:fs';
+import { DATA, expect, fileTask, openApp, test } from './fixtures.ts';
 
 test.describe('Working on tasks', () => {
   test.beforeEach(async ({ seed, page }) => {
@@ -24,6 +25,53 @@ test.describe('Working on tasks', () => {
     await expect.poll(() => fileTask('Water the ferns')?.due).toBe('2027-01-15');
   });
 
+  test('files attach from the editor button or a drop, show their size, open, and come off with ×', async ({
+    page,
+  }) => {
+    await page.getByRole('option', { name: /Water the plants/ }).click();
+    await page.keyboard.press('Enter');
+    const editor = page.getByRole('dialog', { name: 'Task' });
+    const chooser = page.waitForEvent('filechooser');
+    await editor.getByRole('button', { name: 'Attachments' }).click();
+    await (
+      await chooser
+    ).setFiles([
+      { name: 'plant care.txt', mimeType: 'text/plain', buffer: Buffer.from('Water weekly.') },
+      { name: 'fern.png', mimeType: 'image/png', buffer: Buffer.alloc(2048) },
+    ]);
+    const files = editor.getByRole('list', { name: 'Attachments' });
+    await expect(files.getByRole('listitem')).toHaveText([/plant care\.txt\s*13 B/, /fern\.png\s*2 KB/]);
+    await expect(page.getByRole('status')).toContainText('Attached 2 files.');
+    await expect.poll(() => fileTask('Water the plants')?.attachments?.length).toBe(2);
+    const [care] = fileTask('Water the plants')?.attachments ?? [];
+    expect(readFileSync(`${DATA}/attachments/${care?.id}`, 'utf8')).toBe('Water weekly.');
+    await expect(editor).toHaveScreenshot('editor-attachments.png');
+
+    // Dropping a file on the editor attaches it too.
+    const dropped = await page.evaluateHandle(() => {
+      const transfer = new DataTransfer();
+      transfer.items.add(new File(['notes'], 'repotting.md', { type: 'text/markdown' }));
+      return transfer;
+    });
+    const body = editor.getByRole('textbox', { name: 'Description' });
+    await body.dispatchEvent('dragover', { dataTransfer: dropped });
+    await body.dispatchEvent('drop', { dataTransfer: dropped });
+    await expect(files.getByRole('listitem')).toHaveCount(3);
+
+    const download = page.waitForEvent('download');
+    await files.getByRole('button', { name: /^plant care\.txt/ }).click();
+    expect((await download).suggestedFilename()).toBe('plant care.txt');
+
+    await editor.getByRole('button', { name: 'Remove plant care.txt' }).click();
+    await expect
+      .poll(() => fileTask('Water the plants')?.attachments?.map((a) => a.name))
+      .toEqual(['fern.png', 'repotting.md']);
+    await page.keyboard.press('Escape');
+    await expect(
+      page.getByRole('option', { name: /Water the plants/ }).getByTitle('2 attachments'),
+    ).toHaveText('2');
+  });
+
   test('the editor adds a field from its button and focuses it; taking the value away brings the button back', async ({
     page,
   }) => {
@@ -32,7 +80,13 @@ test.describe('Working on tasks', () => {
     const editor = page.getByRole('dialog', { name: 'Task' });
     const buttons = editor.getByRole('group', { name: 'Add to the task' });
     // The task has a date, so Due date shows as a field, not a button.
-    await expect(buttons.getByRole('button')).toHaveText(['Repeat', 'Priority', 'Labels', 'Subtasks']);
+    await expect(buttons.getByRole('button')).toHaveText([
+      'Repeat',
+      'Priority',
+      'Labels',
+      'Subtasks',
+      'Attachments',
+    ]);
     await expect(editor).toHaveScreenshot('editor-add-buttons.png');
 
     await buttons.getByRole('button', { name: 'Priority' }).click();

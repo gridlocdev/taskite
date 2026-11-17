@@ -21,7 +21,7 @@ The row previews the date, project and labels while you type. Press Enter to add
 ## Views
 
 - **Inbox** and each **project** list their open tasks in the order you choose. Drag a task to reorder it.
-- **Sections** split a project into named groups, such as To do, Doing and Done. Add one from the project's ⋯ menu; right-click a section's heading to rename, move or delete it. **View as Board** shows the sections as columns side by side. Drag tasks between sections, or use `⌥←` and `⌥→`. Jump between sections with `⇧⌥↓` and `⇧⌥↑` in a list, or `→`, `←`, `⇧⌥→` and `⇧⌥←` on a board, and go to one by name with **Go to Section…** (`G` then `S`). On a board each task is a card showing its date, priority, labels and subtask count, and checked-off cards stay in their column, struck through.
+- **Sections** split a project into named groups, such as To do, Doing and Done. Add one from the project's ⋯ menu; right-click a section's heading to rename, move or delete it. **View as Board** shows the sections as columns side by side. Drag tasks between sections, or use `⌥←` and `⌥→`. Jump between sections with `⇧⌥↓` and `⇧⌥↑` in a list, or `→`, `←`, `⇧⌥→` and `⇧⌥←` on a board, and go to one by name with **Go to Section…** (`G` then `S`). On a board each task is a card showing its date, priority, labels, subtask count and attachments, and checked-off cards stay in their column, struck through.
 - **Today** lists what's due today, with anything overdue above it.
 - **Upcoming** shows the rest of this week one day at a time, then next week, then everything later. Weeks start on the day your system's region starts them.
 - **Labels** list every open task with that label. Right-click a label to rename it or give it a colour.
@@ -46,6 +46,7 @@ Drop a task on a project, a label, Today or the Trash in the sidebar to move it 
 - **Add** a task with **New Task** (`⌘N` or `N`). It opens beside the task you're on: in its section or board column, or on its day in Upcoming.
 - **Complete** a task with its circle or Space. A repeating task moves to its next date instead, and says when that is.
 - **Edit** a task (click it, or Enter) to change its name, description, date, repeat, priority, project, labels and subtasks. Changes apply as you make them (each one can be undone), and fields the task doesn't use stay out of the way: a row of buttons under them (Due date, Repeat, Priority, Labels, Subtasks) adds one and puts you in it, and taking its value away, or its ×, hides it again.
+- **Attach files** with the editor's **Attachments** button, or drop them on the editor. Each shows its name and size; click one to open or download it, or × to take it off (Undo brings it back). Files up to 25 MB are copied into an `attachments` folder beside `tasks.json`, and rows and board cards show a paperclip with the count.
 - **Set a due date** with `D`: type it ("fri", "jan 5") or pick a day on the month calendar, where today is ringed.
 - **Subtasks** are one level deep. Completing a task completes its subtasks; reopening a subtask reopens its parent.
 - **Choose several tasks** with Shift and the arrow keys, ⌘-click or Shift-click, then complete, date, prioritise, move or delete them all at once.

@@ -3,6 +3,7 @@ import {
   TaskList,
   attachmentIds,
   emptyData,
+  formatSize,
   isAttachmentId,
   normalize,
   parseDataFile,
@@ -142,5 +143,18 @@ describe('attachments (PRD §4.8)', () => {
     expect(unusedAttachmentFiles(null, files, now)).toEqual([]);
     expect(unusedAttachmentFiles('not json', files, now)).toEqual([]);
     expect(unusedAttachmentFiles('{"version":99}', files, now)).toEqual([]);
+  });
+
+  it('shows sizes as people read them', () => {
+    expect([0, 800, 1023, 1024, 1536, 10_240, 1_048_576 * 12.34, 25 * 1_048_576].map(formatSize)).toEqual([
+      '0 B',
+      '800 B',
+      '1023 B',
+      '1 KB',
+      '1.5 KB',
+      '10 KB',
+      '12 MB',
+      '25 MB',
+    ]);
   });
 });

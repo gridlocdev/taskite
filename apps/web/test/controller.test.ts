@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { INBOX_ID } from '@taskite/core';
+import { INBOX_ID, MAX_ATTACHMENT_BYTES } from '@taskite/core';
 import { makeApp } from './helpers.ts';
 
 describe('AppController', () => {
@@ -397,5 +397,48 @@ describe('AppController', () => {
     await app.toggleComplete([d!]);
     expect([...app.selected.value]).toEqual([a, b, c]);
     expect(app.cursor.value).toBe(c);
+  });
+
+  it('writes attached files before the task names them, as one undo step, and says what it refused (PRD §4.8)', async () => {
+    const { app, store } = await makeApp();
+    app.addTask('Report', 'end');
+    const [id] = app.ids.value as [string];
+    const step = app.list.step;
+    await app.attachFiles(id, [
+      new File(['hello'], 'a.txt', { type: 'text/plain' }),
+      new File(['x'], 'b.png'),
+    ]);
+    const attached = app.list.getTask(id)?.attachments ?? [];
+    expect(attached.map((a) => [a.name, a.size, a.type])).toEqual([
+      ['a.txt', 5, 'text/plain'],
+      ['b.png', 1, ''],
+    ]);
+    expect(app.list.step).toBe(step + 1);
+    expect(app.notice.value?.text).toBe('Attached 2 files.');
+    expect(new TextDecoder().decode((await app.readAttachment(attached[0]!)) ?? undefined)).toBe('hello');
+
+    const big = {
+      name: 'film.mov',
+      size: MAX_ATTACHMENT_BYTES + 1,
+      type: '',
+      arrayBuffer: () => Promise.reject(new Error('read')),
+    };
+    store.putFile = () => Promise.reject(new Error('disk full'));
+    await app.attachFiles(id, [big, new File(['y'], 'c.txt')]);
+    expect(app.notice.value?.text).toBe(
+      "film.mov is over 25 MB, so it wasn't attached. c.txt couldn't be saved, so it wasn't attached.",
+    );
+    expect(app.notice.value?.tone).toBe('error');
+    expect(app.list.getTask(id)?.attachments).toHaveLength(2);
+    expect(app.list.step).toBe(step + 1);
+
+    app.removeAttachment(id, attached[0]!);
+    expect(app.notice.value?.text).toBe('Removed a.txt.');
+    app.notice.value?.action?.run();
+    expect(app.list.getTask(id)?.attachments).toHaveLength(2);
+
+    store.files.delete(attached[1]!.id);
+    expect(await app.readAttachment(attached[1]!)).toBeNull();
+    expect(app.notice.value?.text).toBe('b.png is missing from the attachments folder.');
   });
 });

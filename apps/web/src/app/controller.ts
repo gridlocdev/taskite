@@ -5,6 +5,7 @@
 import { batch, computed, signal, type Signal } from '@preact/signals';
 import {
   INBOX_ID,
+  MAX_ATTACHMENT_BYTES,
   addDays,
   addDraft,
   describeAutomations,
@@ -20,6 +21,7 @@ import {
   todayISO,
   viewContent,
   visibleIds,
+  type Attachment,
   type Priority,
   type Project,
   type ProjectSection,
@@ -118,6 +120,9 @@ export interface ControllerOptions {
   /** Where the tasks file lives, for About and Settings. */
   readonly location?: string;
 }
+
+/** What the editor needs of a file picked or dropped on it: a `File`. */
+export type AttachedFile = Pick<File, 'name' | 'size' | 'type' | 'arrayBuffer'>;
 
 /** The cursor's id for a section's Add task button, which ↑ and ↓ stop on after the section's tasks (PRD §7). */
 export function addStop(slot: string): string {
@@ -701,6 +706,61 @@ export class AppController {
       priority: parsed.priority ?? 4,
       labels: parsed.labels,
     });
+  }
+
+  /**
+   * Files picked or dropped in the editor (PRD §4.8). Each is written to the store before the task names it,
+   * and the ones written are attached as one undo step. A file over the limit, or one that can't be written,
+   * is left out and named in a notice.
+   */
+  async attachFiles(taskId: string, files: readonly AttachedFile[]): Promise<void> {
+    const written: Attachment[] = [];
+    const refused: string[] = [];
+    const failed: string[] = [];
+    for (const file of files) {
+      if (file.size > MAX_ATTACHMENT_BYTES) {
+        refused.push(file.name);
+        continue;
+      }
+      const id = crypto.randomUUID();
+      try {
+        await this.session.store.putFile(id, new Uint8Array(await file.arrayBuffer()));
+        written.push({ id, name: file.name, size: file.size, type: file.type });
+      } catch {
+        failed.push(file.name);
+      }
+    }
+    const attached = this.list.addAttachments(taskId, written);
+    const problems = [
+      ...refused.map((name) => `${name} is over 25 MB, so it wasn't attached.`),
+      ...failed.map((name) => `${name} couldn't be saved, so it wasn't attached.`),
+    ];
+    if (problems.length) this.say(problems.join(' '), { tone: 'error', sticky: true });
+    else if (attached.length)
+      this.sayUndoable(
+        attached.length === 1
+          ? `Attached ${attached[0]!.name}.`
+          : `Attached ${plural(attached.length, 'file')}.`,
+      );
+  }
+
+  /** The editor's × on an attachment: the task stops naming it, and Undo brings it back (PRD §4.8). */
+  removeAttachment(taskId: string, attachment: Attachment): void {
+    this.list.removeAttachment(taskId, attachment.id);
+    this.sayUndoable(`Removed ${attachment.name}.`);
+  }
+
+  /** An attachment's bytes, for opening it; null, with a notice, when they can't be read. */
+  async readAttachment(attachment: Attachment): Promise<Uint8Array | null> {
+    let bytes: Uint8Array | null;
+    try {
+      bytes = await this.session.store.getFile(attachment.id);
+    } catch {
+      this.say(`${attachment.name} couldn't be opened. Try again.`, { tone: 'error' });
+      return null;
+    }
+    if (!bytes) this.say(`${attachment.name} is missing from the attachments folder.`, { tone: 'error' });
+    return bytes;
   }
 
   setDue(ids: readonly string[], due: string | null): void {
