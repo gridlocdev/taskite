@@ -3,7 +3,7 @@
   "effect: apps/web/src/app/App.tsx": 2,
   "effect: apps/web/src/app/Calendar.tsx": 2,
   "effect: apps/web/src/app/ContextMenu.tsx": 2,
-  "effect: apps/web/src/app/Dialogs.tsx": 5,
+  "effect: apps/web/src/app/Dialogs.tsx": 4,
   "effect: apps/web/src/app/Sidebar.tsx": 1,
   "effect: apps/web/src/app/TaskView.tsx": 3,
   "empty-catch: packages/ui/src/store/nasStore.ts": 2,

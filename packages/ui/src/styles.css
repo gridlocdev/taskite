@@ -1387,14 +1387,43 @@ fieldset {
   background: var(--tk-bg);
   outline: none;
 }
-.tk-add-field {
-  position: relative;
+/* The editor's fields not shown yet, one button each (PRD §4.4). */
+.tk-add-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
 }
-.tk-add-field-menu {
+.tk-add-fields .tk-button {
+  border: 1px dashed var(--tk-border);
+}
+.tk-add-fields .tk-button:hover {
+  border-style: solid;
+}
+/* A field added from its button, with × at the end of its caption line to take it away again. */
+.tk-extra {
+  position: relative;
+  min-width: 0;
+}
+.tk-extra > .tk-remove-field {
   position: absolute;
-  left: 0;
-  bottom: 34px;
-  min-width: 160px;
+  top: -4px;
+  right: 0;
+}
+
+/* A checkbox setting: the box, then its name with a line of help under it. */
+.tk-check-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 16px 0 12px;
+}
+.tk-check-field input {
+  margin-top: 3px;
+}
+.tk-check-field small {
+  display: block;
+  margin-top: 2px;
 }
 
 /* Section automations editor (PRD §6.1): each rule a sentence, its actions one per line under it. */
