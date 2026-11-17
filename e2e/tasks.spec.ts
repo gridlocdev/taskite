@@ -25,7 +25,7 @@ test.describe('Working on tasks', () => {
     await expect.poll(() => fileTask('Water the ferns')?.due).toBe('2027-01-15');
   });
 
-  test('files attach from the editor button or a drop, show their size, open, and come off with ×', async ({
+  test('files attach from the editor button, a drop or a paste, show their size, open, and come off with ×', async ({
     page,
   }) => {
     await page.getByRole('option', { name: /Water the plants/ }).click();
@@ -58,6 +58,21 @@ test.describe('Working on tasks', () => {
     await body.dispatchEvent('drop', { dataTransfer: dropped });
     await expect(files.getByRole('listitem')).toHaveCount(3);
 
+    // So does pasting a screenshot, but not rich text that carries a picture of itself.
+    const paste = (rich: boolean) =>
+      editor.getByRole('textbox', { name: 'Task name' }).evaluate((field, html) => {
+        const data = new DataTransfer();
+        if (html) data.setData('text/html', '<p>Water weekly</p>');
+        data.items.add(new File(['png'], 'image.png', { type: 'image/png' }));
+        field.dispatchEvent(
+          new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }),
+        );
+      }, rich);
+    await paste(true);
+    await paste(false);
+    await expect(files.getByRole('listitem')).toHaveCount(4);
+    await expect(files.getByRole('listitem').last()).toContainText('image.png');
+
     const download = page.waitForEvent('download');
     await files.getByRole('button', { name: /^plant care\.txt/ }).click();
     expect((await download).suggestedFilename()).toBe('plant care.txt');
@@ -65,11 +80,11 @@ test.describe('Working on tasks', () => {
     await editor.getByRole('button', { name: 'Remove plant care.txt' }).click();
     await expect
       .poll(() => fileTask('Water the plants')?.attachments?.map((a) => a.name))
-      .toEqual(['fern.png', 'repotting.md']);
+      .toEqual(['fern.png', 'repotting.md', 'image.png']);
     await page.keyboard.press('Escape');
     await expect(
-      page.getByRole('option', { name: /Water the plants/ }).getByTitle('2 attachments'),
-    ).toHaveText('2');
+      page.getByRole('option', { name: /Water the plants/ }).getByTitle('3 attachments'),
+    ).toHaveText('3');
   });
 
   test('the editor adds a field from its button and focuses it; taking the value away brings the button back', async ({

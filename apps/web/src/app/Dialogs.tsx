@@ -224,6 +224,15 @@ function Attachments(props: {
 /** The files a drag carries, if it carries any. */
 const carriesFiles = (e: DragEvent): boolean => e.dataTransfer?.types.includes('Files') ?? false;
 
+/**
+ * The files a paste carries: a screenshot, or files copied in Finder or Explorer. Rich text copied from a
+ * document or a page can carry a picture of itself too; that pastes as text, not as an attachment.
+ */
+function pastedFiles(data: DataTransfer | null): File[] {
+  if (!data || data.types.includes('text/html')) return [];
+  return [...data.files];
+}
+
 /** The × beside a field added from the buttons: takes away what it holds, and its button comes back. */
 function RemoveField(props: { readonly extra: Extra; readonly onRemove: (e: Extra) => void }) {
   const name = EXTRAS[props.extra].name.toLowerCase();
@@ -398,6 +407,12 @@ function TaskEditor({ app, id }: { readonly app: AppController; readonly id: str
         }}
         onDragLeave={(e) => {
           if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) setDropping(false);
+        }}
+        onPaste={(e) => {
+          const files = pastedFiles(e.clipboardData);
+          if (!files.length) return;
+          e.preventDefault();
+          void app.attachFiles(task.id, files);
         }}
         onDrop={(e) => {
           setDropping(false);

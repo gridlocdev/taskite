@@ -139,7 +139,7 @@ Everything else, with spaces collapsed, is the title.
 
 ### §4.8 Attachments
 
-- A task can have files attached. The editor's button row has **Attachments** (paperclip); it opens the system's file picker, and files can also be dropped on the editor. Each attachment shows its name and size, opens or downloads on click, and has × to remove it. A file over 25 MB is refused with a notice naming it.
+- A task can have files attached. The editor's button row has **Attachments** (paperclip); it opens the system's file picker, and files can also be dropped on the editor or pasted into it (a screenshot, or files copied in Finder or Explorer). A paste that also carries rich text (`text/html`), as a copy from a document or a page does, pastes as text instead. Each attachment shows its name and size, opens or downloads on click, and has × to remove it. A file over 25 MB is refused with a notice naming it.
 - Rows and board cards show a paperclip chip with the count when a task has attachments.
 - `tasks.json` keeps only `{ id, name, size, type }` per attachment (`id` a UUID, `type` the MIME type or ""). The bytes are in `attachments/<id>` beside `tasks.json`, written once and never changed, so they can't conflict (§3.4). The file is written before the task change that names it; if writing fails, the task is left as it was and a notice says so.
 - Adding and removing an attachment are undo steps like any other change; removing one only drops the reference, so Undo brings it back. Subtasks can have attachments too. A task's attachments stay with it when it moves, is trashed or is restored.
