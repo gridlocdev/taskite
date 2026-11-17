@@ -61,4 +61,20 @@ test.describe('Never losing a task', () => {
     await runCommand(page, 'Move Completed Tasks to Trash');
     await expect.poll(() => fileTask('Read chapter four')?.deletedAt).not.toBeNull();
   });
+
+  // Found by random use (FUZZ_SEED=120): with a dialog's button focused, ⌘Z ran the browser's own undo on the
+  // search box behind the dialog, took back what was typed there and moved the keyboard out of the dialog.
+  test('⌘Z in a dialog leaves the search box behind it alone', async ({ page }) => {
+    const search = page.getByRole('searchbox', { name: 'Search tasks' });
+    await runCommand(page, 'Search');
+    await expect(search).toBeFocused();
+    await page.keyboard.type('dentist');
+    await runCommand(page, 'Settings');
+    const dialog = page.getByRole('dialog', { name: 'Settings' });
+    await expect(dialog.locator(':focus')).toHaveCount(1);
+    await page.keyboard.press('ControlOrMeta+KeyZ');
+    await page.keyboard.press('ControlOrMeta+Shift+KeyZ');
+    await expect(search).toHaveValue('dentist');
+    await expect(dialog.locator(':focus'), 'the dialog keeps the keyboard').toHaveCount(1);
+  });
 });

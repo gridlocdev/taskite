@@ -1,6 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useId, useRef, useState } from 'preact/hooks';
-import { isComposingKey, isSubmitKey } from '../commands/shortcut.ts';
+import { isComposingKey, isSubmitKey, isUndoKey } from '../commands/shortcut.ts';
 import { trapTab } from './focusTrap.ts';
 
 /**
@@ -53,6 +53,11 @@ export function Dialog(props: {
             e.preventDefault();
             e.stopPropagation();
             ref.current?.requestSubmit();
+          } else if (isUndoKey(e) && !keepsOwnUndo(e.target)) {
+            // The browser's own undo would take back typing in a field behind the dialog, and move the keyboard
+            // there. A text field in the dialog keeps its undo.
+            e.preventDefault();
+            e.stopPropagation();
           } else if (ref.current) {
             trapTab(ref.current, e);
           }
@@ -73,4 +78,13 @@ export function Dialog(props: {
       </div>
     </div>
   );
+}
+
+/** Input types that hold typed text, so ⌘Z in them undoes typing. A radio or checkbox has none. */
+const TEXT_INPUTS = new Set(['text', 'search', 'email', 'url', 'tel', 'password', 'number']);
+
+function keepsOwnUndo(target: EventTarget | null): boolean {
+  if (target instanceof HTMLTextAreaElement) return true;
+  if (target instanceof HTMLInputElement) return TEXT_INPUTS.has(target.type);
+  return target instanceof HTMLElement && target.isContentEditable;
 }

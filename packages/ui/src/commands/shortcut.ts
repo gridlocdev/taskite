@@ -93,6 +93,11 @@ export function isSubmitKey(e: ShortcutEvent, mac = isMac): boolean {
   return e.key === 'Enter' && (mac ? e.metaKey : e.ctrlKey) && !e.altKey && !e.shiftKey;
 }
 
+/** ⌘Z, ⇧⌘Z or ⌘Y on a Mac (Ctrl elsewhere): the keys a browser takes for its own undo and redo. */
+export function isUndoKey(e: ShortcutEvent, mac = isMac): boolean {
+  return (e.code === 'KeyZ' || e.code === 'KeyY') && (mac ? e.metaKey : e.ctrlKey) && !e.altKey;
+}
+
 /**
  * True when the event typed a character through AltGr rather than pressing a shortcut. Windows reports
  * AltGr as Ctrl+Alt, so Polish AltGr+S (ś) would otherwise run Ctrl+Alt+S. macOS has no AltGr (⌥ is Alt).

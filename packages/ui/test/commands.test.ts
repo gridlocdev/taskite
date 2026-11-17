@@ -5,6 +5,7 @@ import {
   filterEntries,
   formatSequence,
   isSubmitKey,
+  isUndoKey,
   listStep,
   parseSequence,
   sequenceAccelerator,
@@ -75,6 +76,15 @@ describe('shortcuts', () => {
     expect(isSubmitKey(key({ key: 'Enter', ctrlKey: true }), true)).toBe(false);
     expect(isSubmitKey(key({ key: 'Enter' }), true)).toBe(false);
     expect(isSubmitKey(key({ key: 'Enter', metaKey: true, shiftKey: true }), true)).toBe(false);
+  });
+
+  it('⌘Z, ⇧⌘Z and ⌘Y are the undo keys on a Mac, with Ctrl elsewhere; plain Z or ⌥⌘Z are not', () => {
+    expect(isUndoKey(key({ key: 'z', code: 'KeyZ', metaKey: true }), true)).toBe(true);
+    expect(isUndoKey(key({ key: 'Z', code: 'KeyZ', metaKey: true, shiftKey: true }), true)).toBe(true);
+    expect(isUndoKey(key({ key: 'y', code: 'KeyY', ctrlKey: true }), false)).toBe(true);
+    expect(isUndoKey(key({ key: 'z', code: 'KeyZ', ctrlKey: true }), true)).toBe(false);
+    expect(isUndoKey(key({ key: 'z', code: 'KeyZ' }), true)).toBe(false);
+    expect(isUndoKey(key({ key: 'Ω', code: 'KeyZ', metaKey: true, altKey: true }), true)).toBe(false);
   });
 
   it('extra modifiers stop a match; Shift is ignored for symbols such as ?', () => {
