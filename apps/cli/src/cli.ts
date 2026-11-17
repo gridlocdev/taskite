@@ -19,7 +19,7 @@ import {
   type Task,
   type View,
 } from '@taskite/core';
-import { readDataFile, writeDataFile } from '@taskite/node-files';
+import { readDataFile, removeUnusedAttachments, writeDataFile } from '@taskite/node-files';
 import { HELP, LIST_VIEWS, ProblemError, UsageError, parseArgs, type Args } from './args.ts';
 import { chooseFile, legacyFile, type CliIo } from './io.ts';
 
@@ -187,6 +187,10 @@ async function run(args: Args, io: CliIo, out: Out): Promise<void> {
     return out({ ok: true, path: file }, file);
   }
   const l = await load(args, io);
+  // Files no task names, left by Delete Forever, go once they are a day old (PRD §4.8).
+  await removeUnusedAttachments(l.file, io.now()).catch((e: unknown) => {
+    io.stderr(`taskite: couldn't remove unused attachment files: ${(e as Error).message}\n`);
+  });
   const { list, today } = l;
   switch (args.command) {
     case 'list': {

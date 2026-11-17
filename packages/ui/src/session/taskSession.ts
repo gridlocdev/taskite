@@ -117,6 +117,7 @@ export class TaskSession {
   #read: { version: string | null; data: AppData | null } | null = null;
   /** Tasks the last `takeFile` changed, for `refresh` to return. */
   #taken: number | null = null;
+  #cleaned: Promise<number | null> = Promise.resolve(null);
 
   private constructor(store: TaskStore, data: AppData, version: string | null, opts: SessionOptions) {
     this.store = store;
@@ -160,7 +161,14 @@ export class TaskSession {
     // Replace the unreadable file now, so the next start doesn't keep another copy.
     if (corrupt) session.#fire('edit');
     session.list.purgeExpired(now());
+    // Files no task names, left by Delete Forever on any device, go once they are a day old (PRD §4.8).
+    session.#cleaned = store.cleanFiles().catch(() => null);
     return { session, notice };
+  }
+
+  /** How many unused attachment files opening removed, or null if that failed; nothing waits on it. */
+  get cleaned(): Promise<number | null> {
+    return this.#cleaned;
   }
 
   /** The version of the file this session last read or wrote. */

@@ -1,4 +1,12 @@
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  utimesSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -271,5 +279,30 @@ describe('taskite', () => {
     expect((await cli('--help')).out).toContain('Usage: taskite <command>');
     expect((await cli('help')).out).toContain('Exit codes');
     expect((await cli('--version')).out).toBe('2.0.0\n');
+  });
+
+  it('removes attachment files no task names once they are a day old, keeping those in the Trash', async () => {
+    const [A, B, C] = ['a', 'b', 'c'].map((c) => `${c.repeat(8)}-0000-4000-8000-000000000000`);
+    const task = (id: string, attachment: string, deletedAt: number | null) => ({
+      id,
+      title: id,
+      deletedAt,
+      attachments: [{ id: attachment, name: `${id}.txt`, size: 1, type: '' }],
+    });
+    writeFileSync(
+      file,
+      JSON.stringify({ version: 1, tasks: [task('kept', A!, null), task('trashed', B!, NOW)] }),
+    );
+    const folder = path.join(dir, 'attachments');
+    mkdirSync(folder);
+    const old = new Date(NOW - 86_400_001);
+    for (const name of [A!, B!, C!, 'notes.txt']) {
+      writeFileSync(path.join(folder, name), 'x');
+      utimesSync(path.join(folder, name), old, old);
+    }
+
+    expect((await cli('list')).code).toBe(0);
+    expect(readdirSync(folder).sort()).toEqual([A, B, 'notes.txt'].sort());
+    expect(existsSync(path.join(folder, C!))).toBe(false);
   });
 });

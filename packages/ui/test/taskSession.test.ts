@@ -281,4 +281,46 @@ describe('a task session', () => {
     expect(session.recoverable.value).toBeNull();
     expect(recovery.text).toBeNull();
   });
+
+  it('removes attachment files no task names once they are a day old, the Trash and Undo included (PRD §4.8)', async () => {
+    const [A, B, C, D] = ['a', 'b', 'c', 'd'].map((c) => `${c.repeat(8)}-0000-4000-8000-000000000000`);
+    const data = withTask('Kept');
+    data.tasks[0]!.attachments = [{ id: A!, name: 'a.txt', size: 1, type: '' }];
+    data.tasks.push({
+      ...data.tasks[0]!,
+      id: 't-trashed',
+      title: 'Trashed',
+      deletedAt: Date.now(),
+      attachments: [{ id: B!, name: 'b.txt', size: 1, type: '' }],
+    });
+    const store = new MemoryStore(serialize(data));
+    const dayAgo = Date.now() - 86_400_001;
+    for (const name of [A!, B!, C!, 'notes.txt'])
+      store.files.set(name, { bytes: new Uint8Array(1), modified: dayAgo });
+    store.files.set(D!, { bytes: new Uint8Array(1), modified: Date.now() });
+
+    const { session } = await TaskSession.open(store, opts());
+    expect(await session.cleaned).toBe(1);
+    expect([...store.files.keys()].sort()).toEqual([A, B, D, 'notes.txt'].sort());
+
+    // Delete Forever saves at once, but the file stays until a later open, so Undo brings the task back whole.
+    session.list.purgeTasks('t-trashed');
+    await session.flush();
+    session.list.undo();
+    await session.flush();
+    expect(store.files.has(B!)).toBe(true);
+    expect(await (await TaskSession.open(store, opts())).session.cleaned).toBe(0);
+
+    session.list.purgeTasks('t-trashed');
+    await session.flush();
+    expect(await (await TaskSession.open(store, opts())).session.cleaned).toBe(1);
+    expect(store.files.has(B!)).toBe(false);
+  });
+
+  it('opens even when removing unused files fails', async () => {
+    const store = new MemoryStore();
+    store.cleanFiles = () => Promise.reject(new Error('offline'));
+    const { session } = await TaskSession.open(store, opts());
+    expect(await session.cleaned).toBeNull();
+  });
 });
