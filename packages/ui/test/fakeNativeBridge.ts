@@ -1,4 +1,11 @@
-import { readDataFile, writeCopy, writeDataFile } from '@taskite/node-files';
+import {
+  readAttachment,
+  readDataFile,
+  removeUnusedAttachments,
+  writeAttachment,
+  writeCopy,
+  writeDataFile,
+} from '@taskite/node-files';
 import path from 'node:path';
 import type { NativeData } from '../src/index.ts';
 
@@ -20,5 +27,8 @@ export function fakeNativeBridge(file: string, legacyFile?: string): NativeData 
     async saveCopy(text, label) {
       return path.basename(await writeCopy(file, text, label));
     },
+    putFile: (id, bytes) => writeAttachment(file, id, bytes),
+    getFile: (id) => readAttachment(file, id),
+    cleanFiles: () => removeUnusedAttachments(file),
   };
 }

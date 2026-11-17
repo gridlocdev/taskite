@@ -2,12 +2,10 @@
  * Just enough of the File System Access API, in memory. `caseInsensitive` resolves names the way macOS and
  * Windows disks do: "Notes.md" finds "notes.md". `failWrites` names files whose writes fail.
  */
-let clock = 1;
-
 export class FakeFile {
   readonly kind = 'file';
   bytes = new Uint8Array();
-  lastModified = clock++;
+  lastModified = Date.now();
   readonly name: string;
   private readonly fs: { failWrites: Set<string> };
   constructor(name: string, fs: { failWrites: Set<string> }) {
@@ -35,7 +33,7 @@ export class FakeFile {
       },
       close: () => {
         this.bytes = next;
-        this.lastModified = clock++;
+        this.lastModified = Date.now();
         return Promise.resolve();
       },
     });

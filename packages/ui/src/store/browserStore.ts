@@ -1,12 +1,28 @@
-import { DATA_FILE, copyFileName, type CopyLabel } from '@taskite/core';
-import { ConflictError, sha256Hex, type StoredFile, type TaskStore } from './taskStore.ts';
+import {
+  ATTACHMENTS_DIR,
+  DATA_FILE,
+  copyFileName,
+  unusedAttachmentFiles,
+  type CopyLabel,
+} from '@taskite/core';
+import {
+  ConflictError,
+  FileExistsError,
+  putFileProblem,
+  sha256Hex,
+  type StoredFile,
+  type TaskStore,
+} from './taskStore.ts';
 
 /** The parts of a File System Access directory handle the store uses (OPFS in the browser, a fake in tests). */
 export interface DirHandle {
   getFileHandle(name: string, opts?: { create?: boolean }): Promise<FileHandleLike>;
+  getDirectoryHandle(name: string, opts?: { create?: boolean }): Promise<DirHandle>;
+  removeEntry(name: string): Promise<void>;
+  entries(): AsyncIterable<[string, { readonly kind: 'file' | 'directory' }]>;
 }
 export interface FileHandleLike {
-  getFile(): Promise<{ arrayBuffer(): Promise<ArrayBuffer> }>;
+  getFile(): Promise<{ lastModified: number; arrayBuffer(): Promise<ArrayBuffer> }>;
   createWritable(): Promise<{ write(data: Uint8Array): Promise<void>; close(): Promise<void> }>;
 }
 
@@ -99,5 +115,54 @@ export class BrowserStore implements TaskStore {
 
   location(): string {
     return "this browser's storage";
+  }
+
+  /** The attachments folder beside tasks.json (PRD §4.8). */
+  async #files(): Promise<DirHandle> {
+    return (await this.#root()).getDirectoryHandle(ATTACHMENTS_DIR, { create: true });
+  }
+
+  putFile(id: string, bytes: Uint8Array): Promise<void> {
+    const problem = putFileProblem(id, bytes);
+    if (problem) return Promise.reject(new Error(problem));
+    return this.#serial(async () => {
+      const dir = await this.#files();
+      const taken = await dir.getFileHandle(id).then(
+        () => true,
+        (e: unknown) => {
+          if (isNotFound(e)) return false;
+          throw e;
+        },
+      );
+      if (taken) throw new FileExistsError(id);
+      const w = await (await dir.getFileHandle(id, { create: true })).createWritable();
+      await w.write(bytes);
+      await w.close();
+    });
+  }
+
+  async getFile(id: string): Promise<Uint8Array | null> {
+    try {
+      const handle = await (await this.#files()).getFileHandle(id);
+      return new Uint8Array(await (await handle.getFile()).arrayBuffer());
+    } catch (e) {
+      if (isNotFound(e)) return null;
+      throw e;
+    }
+  }
+
+  cleanFiles(): Promise<number> {
+    return this.#serial(async () => {
+      const dir = await this.#files();
+      const listed: { name: string; modified: number }[] = [];
+      for await (const [name, entry] of dir.entries()) {
+        if (entry.kind !== 'file') continue;
+        const file = await (await dir.getFileHandle(name)).getFile();
+        listed.push({ name, modified: file.lastModified });
+      }
+      const unused = unusedAttachmentFiles(await this.#read(DATA_FILE), listed, Date.now());
+      for (const name of unused) await dir.removeEntry(name);
+      return unused.length;
+    });
   }
 }

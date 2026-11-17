@@ -14,7 +14,14 @@ export {
   type TokenStorage,
 } from './store/nasStore.ts';
 export { NativeStore, type NativeData } from './store/nativeStore.ts';
-export { ConflictError, sha256Hex, type StoredFile, type TaskStore } from './store/taskStore.ts';
+export {
+  ConflictError,
+  FileExistsError,
+  putFileProblem,
+  sha256Hex,
+  type StoredFile,
+  type TaskStore,
+} from './store/taskStore.ts';
 export {
   RETRY_DELAYS,
   TaskSession,

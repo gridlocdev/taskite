@@ -106,4 +106,11 @@ export {
   type View,
   type ViewContent,
 } from './views.ts';
-export { DATA_FILE, copyFileName, type CopyLabel } from './files.ts';
+export {
+  ATTACHMENTS_DIR,
+  DATA_FILE,
+  UNUSED_FILE_MS,
+  copyFileName,
+  unusedAttachmentFiles,
+  type CopyLabel,
+} from './files.ts';

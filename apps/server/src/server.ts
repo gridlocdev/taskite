@@ -7,7 +7,16 @@ import { readFile, stat } from 'node:fs/promises';
 import http from 'node:http';
 import { isIP } from 'node:net';
 import path from 'node:path';
-import { readDataFile, writeCopy, writeDataFile } from '@taskite/node-files';
+import {
+  MAX_ATTACHMENT_BYTES,
+  isAttachmentId,
+  readAttachment,
+  readDataFile,
+  removeUnusedAttachments,
+  writeAttachment,
+  writeCopy,
+  writeDataFile,
+} from '@taskite/node-files';
 
 export interface ServerOptions {
   /** The tasks file the API reads and writes. */
@@ -20,6 +29,8 @@ export interface ServerOptions {
   readonly version: string;
   /** Largest accepted body in bytes (default 10 MB). */
   readonly maxBytes?: number;
+  /** Largest attached file in bytes (default MAX_ATTACHMENT_BYTES, 25 MB). */
+  readonly maxFileBytes?: number;
   /** Extra `Host` names accepted when there is no token (`TASKITE_HOSTS`). */
   readonly allowedHosts?: readonly string[];
 }
@@ -158,6 +169,8 @@ async function api(
   url: URL,
   opts: ServerOptions,
 ): Promise<void> {
+  const file = /^\/api\/attachments\/([^/]+)$/.exec(url.pathname)?.[1];
+  if (file !== undefined && file !== 'clean') return attachment(req, res, file, opts);
   switch (`${req.method} ${url.pathname}`) {
     case 'GET /api/info':
       return send(res, 200, { name: 'Taskite', version: opts.version, auth: opts.token !== null });
@@ -202,9 +215,39 @@ async function api(
       const written = await writeCopy(opts.file, text, label);
       return send(res, 201, { name: path.basename(written) });
     }
+    case 'POST /api/attachments/clean':
+      return send(res, 200, { removed: await removeUnusedAttachments(opts.file) });
     default:
       throw new HttpError(404, 'Not found');
   }
+}
+
+/** `PUT` and `GET /api/attachments/<id>`: an attached file, written once (PRD §4.8, §10). */
+async function attachment(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  id: string,
+  opts: ServerOptions,
+): Promise<void> {
+  if (!isAttachmentId(id)) throw new HttpError(400, 'An attachment id is a UUID');
+  if (req.method === 'PUT') {
+    const bytes = await readBody(req, opts.maxFileBytes ?? MAX_ATTACHMENT_BYTES);
+    if ((await writeAttachment(opts.file, id, bytes)) === 'exists')
+      throw new HttpError(409, 'That attachment already exists');
+    return send(res, 201, { id });
+  }
+  if (req.method !== 'GET') throw new HttpError(405, 'Method not allowed');
+  const bytes = await readAttachment(opts.file, id);
+  if (bytes === null) throw new HttpError(404, 'No such attachment');
+  // Never shown as a page from this origin: the browser saves it, whatever it holds.
+  res.writeHead(200, {
+    'Content-Type': 'application/octet-stream',
+    'Content-Length': bytes.length,
+    'Content-Disposition': 'attachment',
+    'Cache-Control': 'private, max-age=31536000, immutable',
+    ...SECURITY_HEADERS,
+  });
+  res.end(bytes);
 }
 
 async function readJsonBody(req: http.IncomingMessage, max: number): Promise<string> {

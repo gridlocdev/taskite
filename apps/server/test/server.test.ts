@@ -9,12 +9,13 @@ let dir: string;
 let base: string;
 let close: () => Promise<void>;
 
-async function start(token: string | null = null) {
+async function start(token: string | null = null, maxFileBytes?: number) {
   const server = createServer({
     file: path.join(dir, 'tasks.json'),
     staticDir: null,
     token,
     version: '9.9.9',
+    ...(maxFileBytes === undefined ? {} : { maxFileBytes }),
   });
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -126,6 +127,47 @@ describe('the data API', () => {
       body: '{}',
     });
     expect(res.status).toBe(403);
+  });
+});
+
+describe('attachments (PRD §4.8, §10)', () => {
+  const id = '0b6f1c1e-3a4d-4c8e-9f00-1a2b3c4d5e6f';
+
+  it('keeps a file once, beside tasks.json, and sends it back only as a download', async () => {
+    await start();
+    const put = (body: Uint8Array) => fetch(`${base}/api/attachments/${id}`, { method: 'PUT', body });
+    expect((await put(new Uint8Array([60, 104, 49, 62]))).status).toBe(201);
+    expect((await put(new Uint8Array([1]))).status).toBe(409);
+    expect([...(await readFile(path.join(dir, 'attachments', id)))]).toEqual([60, 104, 49, 62]);
+    const got = await fetch(`${base}/api/attachments/${id}`);
+    expect(got.status).toBe(200);
+    expect(got.headers.get('content-type')).toBe('application/octet-stream');
+    expect(got.headers.get('content-disposition')).toBe('attachment');
+    expect(got.headers.get('x-content-type-options')).toBe('nosniff');
+    expect([...new Uint8Array(await got.arrayBuffer())]).toEqual([60, 104, 49, 62]);
+    expect((await fetch(`${base}/api/attachments/7d3e2f10-5b6c-4d7e-8f90-a1b2c3d4e5f6`)).status).toBe(404);
+  });
+
+  it('refuses ids that are not UUIDs and files over the limit, leaving nothing behind', async () => {
+    await start(null, 4);
+    for (const bad of ['..%2Ftasks.json', 'nope', id.toUpperCase()])
+      expect((await fetch(`${base}/api/attachments/${bad}`, { method: 'PUT', body: 'x' })).status).toBe(400);
+    const big = await fetch(`${base}/api/attachments/${id}`, { method: 'PUT', body: new Uint8Array(5) });
+    expect(big.status).toBe(413);
+    expect(await readdir(dir)).toEqual([]);
+    expect((await fetch(`${base}/api/attachments/${id}`, { method: 'DELETE' })).status).toBe(405);
+  });
+
+  it('needs the token, and refuses cross-site uploads', async () => {
+    await start('secret');
+    expect((await fetch(`${base}/api/attachments/${id}`)).status).toBe(401);
+    expect((await fetch(`${base}/api/attachments/clean`, { method: 'POST' })).status).toBe(401);
+    const cross = await fetch(`${base}/api/attachments/${id}`, {
+      method: 'PUT',
+      headers: { Authorization: 'Bearer secret', 'Sec-Fetch-Site': 'cross-site' },
+      body: 'x',
+    });
+    expect(cross.status).toBe(403);
   });
 });
 

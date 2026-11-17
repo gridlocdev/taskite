@@ -60,6 +60,19 @@ class GatedStore implements TaskStore {
   location(): string {
     return 'gated';
   }
+
+  // Attached files never pass through the save session.
+  putFile(): Promise<void> {
+    return Promise.reject(new Error('not used'));
+  }
+
+  getFile(): Promise<Uint8Array | null> {
+    return Promise.resolve(null);
+  }
+
+  cleanFiles(): Promise<number> {
+    return Promise.resolve(0);
+  }
 }
 
 interface World {

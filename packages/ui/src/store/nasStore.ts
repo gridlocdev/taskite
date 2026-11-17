@@ -1,5 +1,11 @@
 import type { CopyLabel } from '@taskite/core';
-import { ConflictError, type StoredFile, type TaskStore } from './taskStore.ts';
+import {
+  ConflictError,
+  FileExistsError,
+  putFileProblem,
+  type StoredFile,
+  type TaskStore,
+} from './taskStore.ts';
 
 /** The server wants a token we don't have, or the one we sent is wrong. */
 export class AuthError extends Error {
@@ -147,5 +153,31 @@ export class NasStore implements TaskStore {
 
   location(): string {
     return `tasks.json on ${this.client.base || 'this server'}`;
+  }
+
+  async putFile(id: string, bytes: Uint8Array): Promise<void> {
+    const problem = putFileProblem(id, bytes);
+    if (problem) throw new Error(problem);
+    const res = await this.client.request(`/api/attachments/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      // A copy whose buffer is a plain ArrayBuffer, as fetch wants.
+      body: bytes.slice(),
+    });
+    if (res.status === 409) throw new FileExistsError(id);
+    if (!res.ok) throw await failure(res);
+  }
+
+  async getFile(id: string): Promise<Uint8Array | null> {
+    const res = await this.client.request(`/api/attachments/${encodeURIComponent(id)}`);
+    if (res.status === 404) return null;
+    if (!res.ok) throw await failure(res);
+    return new Uint8Array(await res.arrayBuffer());
+  }
+
+  async cleanFiles(): Promise<number> {
+    const res = await this.client.request('/api/attachments/clean', { method: 'POST' });
+    if (!res.ok) throw await failure(res);
+    return ((await res.json()) as { removed: number }).removed;
   }
 }

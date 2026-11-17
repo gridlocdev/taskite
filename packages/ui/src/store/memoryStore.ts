@@ -1,11 +1,20 @@
-import { copyFileName, type CopyLabel } from '@taskite/core';
-import { ConflictError, sha256Hex, type StoredFile, type TaskStore } from './taskStore.ts';
+import { copyFileName, unusedAttachmentFiles, type CopyLabel } from '@taskite/core';
+import {
+  ConflictError,
+  FileExistsError,
+  putFileProblem,
+  sha256Hex,
+  type StoredFile,
+  type TaskStore,
+} from './taskStore.ts';
 
 /** A store in memory, for tests and demos. `copies` holds the saved copies by name. */
 export class MemoryStore implements TaskStore {
   readonly kind = 'memory';
   text: string | null;
   readonly copies = new Map<string, string>();
+  /** Attached files by id, with when each was written (epoch ms). */
+  readonly files = new Map<string, { bytes: Uint8Array; modified: number }>();
   /** Set to make the next saves fail, like a full disk. */
   failSaves = 0;
 
@@ -39,5 +48,24 @@ export class MemoryStore implements TaskStore {
 
   location(): string {
     return 'memory';
+  }
+
+  putFile(id: string, bytes: Uint8Array): Promise<void> {
+    const problem = putFileProblem(id, bytes);
+    if (problem) return Promise.reject(new Error(problem));
+    if (this.files.has(id)) return Promise.reject(new FileExistsError(id));
+    this.files.set(id, { bytes: bytes.slice(), modified: Date.now() });
+    return Promise.resolve();
+  }
+
+  getFile(id: string): Promise<Uint8Array | null> {
+    return Promise.resolve(this.files.get(id)?.bytes.slice() ?? null);
+  }
+
+  cleanFiles(): Promise<number> {
+    const listed = [...this.files].map(([name, f]) => ({ name, modified: f.modified }));
+    const unused = unusedAttachmentFiles(this.text, listed, Date.now());
+    for (const name of unused) this.files.delete(name);
+    return Promise.resolve(unused.length);
   }
 }

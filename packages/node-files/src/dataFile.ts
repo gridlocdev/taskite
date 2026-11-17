@@ -90,7 +90,7 @@ export async function writeAtomic(file: string, text: string): Promise<void> {
 }
 
 /** Flushes a folder so a rename in it survives a crash. Windows can't open folders; skip it there. */
-async function syncFolder(dir: string): Promise<void> {
+export async function syncFolder(dir: string): Promise<void> {
   if (process.platform === 'win32') return;
   const handle = await open(dir, 'r').catch(() => null);
   if (!handle) return;

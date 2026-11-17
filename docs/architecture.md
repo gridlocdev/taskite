@@ -41,7 +41,7 @@ Taskite is one TypeScript code base with three hosts and a CLI. The browser, the
 
 ## UI (`packages/ui`)
 
-- `store/`: the `TaskStore` contract and its four adapters. A version is the SHA-256 of the file's text; a save sends the version it last saw and fails with `ConflictError` if the file changed (PRD §3.4).
+- `store/`: the `TaskStore` contract and its four adapters. A version is the SHA-256 of the file's text; a save sends the version it last saw and fails with `ConflictError` if the file changed (PRD §3.4). Each adapter also keeps attached files under their ids, written once, in an `attachments` folder beside the tasks file (PRD §4.8).
 - `session/taskSession.ts`: one open file. It saves every change at once, never two saves at a time, retries a failed save, keeps unsaved text for recovery, and stops on a conflict until the user chooses. What happens when is the table in `session/saveChart.ts`, drawn below.
 - `commands/`: the `CommandCatalog`. Shortcuts are parsed once; `forEvent` turns a key press into a command, a wait for the second key of a sequence, or nothing (PRD §8).
 - `components/`: `Dialog` (modal, focus trap, Esc), `ListPopup` and the `Icon` set.
@@ -88,12 +88,12 @@ stateDiagram-v2
 
 ## Server (`apps/server`)
 
-A `node:http` server with no framework. `GET` and `PUT /api/data` read and write `tasks.json` with `ETag` and `If-Match`, `POST /api/copies` keeps a dated copy, and everything else is a static file from the web build, never from outside it. It checks a bearer token, or the `Host` header when there is no token (PRD §10). The `Dockerfile` builds the web client and runs the server as the `node` user with the data in `/data`.
+A `node:http` server with no framework. `GET` and `PUT /api/data` read and write `tasks.json` with `ETag` and `If-Match`, `POST /api/copies` keeps a dated copy, `/api/attachments/<id>` stores and sends attached files, and everything else is a static file from the web build, never from outside it. It checks a bearer token, or the `Host` header when there is no token (PRD §10). The `Dockerfile` builds the web client and runs the server as the `node` user with the data in `/data`.
 
 ## Desktop (`apps/desktop`)
 
 - `main.ts`: one window, loading the web build from `app://taskite/`. The renderer is sandboxed with context isolation, and IPC is accepted only from that origin.
-- `preload.cts` exposes `taskiteNative`: load, save and save a copy of the tasks file, set the menu bar, send menu commands and full-screen changes to the page, and say whether the window uses the unified toolbar (`chrome`; macOS). `main.tsx` turns that into the `tk-unified` and `tk-fullscreen` classes on `<html>`, which the stylesheet uses for the drag regions. The channels are listed in `bridge.ts`.
+- `preload.cts` exposes `taskiteNative`: load, save and save a copy of the tasks file, write, read and clean up attached files, set the menu bar, send menu commands and full-screen changes to the page, and say whether the window uses the unified toolbar (`chrome`; macOS). `main.tsx` turns that into the `tk-unified` and `tk-fullscreen` classes on `<html>`, which the stylesheet uses for the drag regions. The channels are listed in `bridge.ts`.
 - `paths.ts`: where the data lives, and the one-time read of the old Tasks file. `menu.ts`: the menu bar from the catalog plus the standard menus, and the edit menu for right-clicked text. `windowState.ts`: the window's size and place.
 
 ## CLI (`apps/cli`)

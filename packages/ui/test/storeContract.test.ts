@@ -1,6 +1,6 @@
 import { versionOf } from '@taskite/node-files';
 import { createServer } from '@taskite/server';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, utimes } from 'node:fs/promises';
 import type { AddressInfo } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   BrowserStore,
   ConflictError,
+  FileExistsError,
   MemoryStore,
   NasClient,
   NasStore,
@@ -33,10 +34,31 @@ afterAll(async () => {
   await rm(dir, { recursive: true, force: true });
 });
 
+/** A store, and a way to make one of its attached files two days old, as `cleanFiles` sees it. */
+interface Made {
+  readonly store: TaskStore;
+  readonly age: (id: string) => Promise<void>;
+}
+
+const TWO_DAYS = 2 * 86_400_000;
+
+/** Ages a file on disk by setting its modified time back. */
+function ageOnDisk(file: string) {
+  return (id: string) => {
+    const old = new Date(Date.now() - TWO_DAYS);
+    return utimes(path.join(path.dirname(file), 'attachments', id), old, old);
+  };
+}
+
 async function nasStore(): Promise<TaskStore> {
+  return (await nasMade()).store;
+}
+
+async function nasMade(): Promise<Made> {
   await stopServer?.();
+  const file = path.join(dir, `nas-${++n}`, 'tasks.json');
   const server = createServer({
-    file: path.join(dir, `nas-${++n}`, 'tasks.json'),
+    file,
     staticDir: null,
     token: null,
     version: '0',
@@ -44,21 +66,47 @@ async function nasStore(): Promise<TaskStore> {
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   stopServer = () => new Promise((r) => server.close(() => r()));
-  return new NasStore(new NasClient(base, { get: () => null, set: () => undefined }));
+  return {
+    store: new NasStore(new NasClient(base, { get: () => null, set: () => undefined })),
+    age: ageOnDisk(file),
+  };
 }
 
-const stores: Record<string, () => Promise<TaskStore>> = {
-  memory: () => Promise.resolve(new MemoryStore()),
+const stores: Record<string, () => Promise<Made>> = {
+  memory: () => {
+    const store = new MemoryStore();
+    return Promise.resolve({
+      store,
+      age: (id) => {
+        store.files.get(id)!.modified -= TWO_DAYS;
+        return Promise.resolve();
+      },
+    });
+  },
   browser: () => {
     const { root } = fakeFolder('opfs');
-    return Promise.resolve(new BrowserStore(() => Promise.resolve(root as unknown as DirHandle)));
+    return Promise.resolve({
+      store: new BrowserStore(() => Promise.resolve(root as unknown as DirHandle)),
+      age: async (id) => {
+        const file = await (await root.getDirectoryHandle('attachments')).getFileHandle(id);
+        file.lastModified -= TWO_DAYS;
+      },
+    });
   },
-  nas: nasStore,
-  native: () =>
-    Promise.resolve(new NativeStore(fakeNativeBridge(path.join(dir, `native-${++n}`, 'tasks.json')))),
+  nas: nasMade,
+  native: () => {
+    const file = path.join(dir, `native-${++n}`, 'tasks.json');
+    return Promise.resolve({ store: new NativeStore(fakeNativeBridge(file)), age: ageOnDisk(file) });
+  },
 };
 
-describe.each(Object.entries(stores))('the %s store', (_name, make) => {
+const A = '0b6f1c1e-3a4d-4c8e-9f00-1a2b3c4d5e6f';
+const B = '7d3e2f10-5b6c-4d7e-8f90-a1b2c3d4e5f6';
+const C = 'c0ffee00-1234-4abc-8def-0123456789ab';
+const bytes = (...b: number[]) => new Uint8Array(b);
+
+describe.each(Object.entries(stores))('the %s store', (_name, made) => {
+  const make = async () => (await made()).store;
   it('starts with no file, creates one, and reads it back with its version', async () => {
     const store = await make();
     expect(await store.load()).toEqual({ text: null, version: null });
@@ -85,6 +133,44 @@ describe.each(Object.entries(stores))('the %s store', (_name, make) => {
     expect(a).toMatch(/^tasks\.copy-\d{4}-\d\d-\d\d-\d{6}\.json$/);
     expect(b).not.toBe(a);
     expect((await store.load()).text).toBe('{"a":1}');
+  });
+
+  it('keeps an attached file once under its id, and refuses ids that are taken or not UUIDs', async () => {
+    const store = await make();
+    expect(await store.getFile(A)).toBeNull();
+    await store.putFile(A, bytes(0, 1, 2, 255));
+    expect(await store.getFile(A)).toEqual(bytes(0, 1, 2, 255));
+    await expect(store.putFile(A, bytes(9))).rejects.toBeInstanceOf(FileExistsError);
+    expect(await store.getFile(A)).toEqual(bytes(0, 1, 2, 255));
+    await expect(store.putFile('../tasks.json', bytes(1))).rejects.toThrow('Not an attachment id');
+    await store.putFile(B, bytes());
+    expect(await store.getFile(B)).toEqual(bytes());
+  });
+
+  it('deletes only files no task names that are over a day old, and none without a file it can read', async () => {
+    const { store, age } = await made();
+    await store.putFile(A, bytes(1));
+    await store.putFile(B, bytes(2));
+    await store.putFile(C, bytes(3));
+    await age(A);
+    await age(B);
+    // No tasks file yet: nothing can say which files are used.
+    expect(await store.cleanFiles()).toBe(0);
+    const trashed = {
+      id: 't1',
+      title: 'Old',
+      deletedAt: 1,
+      attachments: [{ id: A, name: 'a', size: 1, type: '' }],
+    };
+    const v1 = await store.save(JSON.stringify({ version: 1, tasks: [trashed] }), null);
+    expect(await store.cleanFiles()).toBe(1);
+    expect(await store.getFile(A)).toEqual(bytes(1));
+    expect(await store.getFile(B)).toBeNull();
+    expect(await store.getFile(C)).toEqual(bytes(3));
+    // A file from a newer Taskite can't be read either.
+    await store.save('{"version":99}', v1);
+    await age(C);
+    expect(await store.cleanFiles()).toBe(0);
   });
 });
 

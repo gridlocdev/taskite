@@ -7,6 +7,7 @@ import {
   normalize,
   parseDataFile,
   serialize,
+  unusedAttachmentFiles,
   type Attachment,
 } from '../src/index.ts';
 import { checkInvariants } from './support/invariants.ts';
@@ -122,5 +123,24 @@ describe('attachments (PRD §4.8)', () => {
     checkInvariants(list.data);
     const parsed = parseDataFile(serialize(list.data), 5);
     expect(parsed.ok && parsed.data).toEqual(JSON.parse(serialize(list.data)));
+  });
+
+  it('picks for deletion only attachment files no task names that are over a day old', () => {
+    const now = 10 * 86_400_000;
+    const old = now - 86_400_001;
+    const text = serialize(
+      normalize({ tasks: [{ id: 't1', title: 'In the Trash', deletedAt: 1, attachments: [file(A)] }] }),
+    );
+    const files = [
+      { name: A, modified: old },
+      { name: B, modified: old },
+      { name: 'c0ffee00-1234-4abc-8def-0123456789ab', modified: now - 1000 },
+      { name: 'notes.txt', modified: old },
+      { name: `.${B}.tmp`, modified: old },
+    ];
+    expect(unusedAttachmentFiles(text, files, now)).toEqual([B]);
+    expect(unusedAttachmentFiles(null, files, now)).toEqual([]);
+    expect(unusedAttachmentFiles('not json', files, now)).toEqual([]);
+    expect(unusedAttachmentFiles('{"version":99}', files, now)).toEqual([]);
   });
 });

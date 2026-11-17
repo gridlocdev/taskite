@@ -5,7 +5,14 @@
 import { app, BrowserWindow, ipcMain, Menu, nativeTheme, net, protocol, screen, shell } from 'electron';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { readDataFile, writeCopy, writeDataFile } from '@taskite/node-files';
+import {
+  readAttachment,
+  readDataFile,
+  removeUnusedAttachments,
+  writeAttachment,
+  writeCopy,
+  writeDataFile,
+} from '@taskite/node-files';
 import { Channels, type NativeMenuItem } from './bridge.ts';
 import { editMenuTemplate, toTemplate, withStandardMenus } from './menu.ts';
 import { appFile, dataPaths, isAppUrl } from './paths.ts';
@@ -169,6 +176,19 @@ function registerIpc(): void {
     if (!trusted(e) || typeof text !== 'string' || (label !== 'copy' && label !== 'corrupt'))
       throw new Error('Forbidden');
     return path.basename(await writeCopy(dataFile, text, label));
+  });
+  // Attached files (PRD §4.8). writeAttachment and readAttachment refuse ids that aren't UUIDs.
+  ipcMain.handle(Channels.putFile, async (e, id: unknown, bytes: unknown) => {
+    if (!trusted(e) || typeof id !== 'string' || !(bytes instanceof Uint8Array)) throw new Error('Forbidden');
+    return writeAttachment(dataFile, id, bytes);
+  });
+  ipcMain.handle(Channels.getFile, async (e, id: unknown) => {
+    if (!trusted(e) || typeof id !== 'string') throw new Error('Forbidden');
+    return readAttachment(dataFile, id);
+  });
+  ipcMain.handle(Channels.cleanFiles, async (e) => {
+    if (!trusted(e)) throw new Error('Forbidden');
+    return removeUnusedAttachments(dataFile);
   });
   ipcMain.on(Channels.setMenu, (e, items: readonly NativeMenuItem[]) => {
     if (!trusted(e) || !Array.isArray(items)) return;
