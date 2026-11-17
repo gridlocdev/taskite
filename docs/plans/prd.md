@@ -27,8 +27,8 @@ All data is one JSON file, `tasks.json`, written pretty-printed (two-space inden
 ```
 
 - **Project**: `id`, `name`, `color` (one of `gray red orange yellow green teal blue purple magenta pink`). The Inbox has id `inbox`, is always present and is listed first. Optional, left out until used: `sections` (`[{ id, name }]` in display order) and `view` (`board`; a list when absent).
-- **Task**: `id` (UUID), `title`, `description`, `projectId`, `parentId` (null, or the id of its parent; subtasks are one level deep), `labels` (strings), `priority` (1 urgent … 4 normal), `due` (`YYYY-MM-DD` or null), `recurrence` (`daily`, `weekdays`, `weekly`, `monthly`, `yearly` or null), `completed`, `completedAt` (epoch ms or null), `createdAt` (epoch ms), `order` (position within its project), `deletedAt` (epoch ms or null), `sectionId` (optional: a section of its project; left out for tasks above the first section, and dropped on reading when it names no section of the task's project).
-- **Settings**: `theme` (`auto`, `light`, `dark`), `lastView` (§5.1, or null).
+- **Task**: `id` (UUID), `title`, `description`, `projectId`, `parentId` (null, or the id of its parent; subtasks are one level deep), `labels` (strings), `priority` (1 urgent … 4 normal), `due` (`YYYY-MM-DD` or null), `recurrence` (`daily`, `weekdays`, `weekly`, `monthly`, `yearly` or null), `completed`, `completedAt` (epoch ms or null), `createdAt` (epoch ms), `order` (position within its project), `deletedAt` (epoch ms or null), `sectionId` (optional: a section of its project; left out for tasks above the first section, and dropped on reading when it names no section of the task's project), `attachments` (optional, left out when empty: `[{ id, name, size, type }]`, §4.8).
+- **Settings**: `theme` (`auto`, `light`, `dark`), `lastView` (§5.1, or null), and, once set, `showCompleted` (§5.2) and `doneRules` (§6.1).
 - **labelColors** (optional): label in lower case → a project colour name. Left out until a label has a colour.
 
 ### §3.2 Reading
@@ -72,6 +72,8 @@ All data is one JSON file, `tasks.json`, written pretty-printed (two-space inden
 | Browser | `tasks.json` in the origin's private file system (OPFS) |
 | NAS | `$TASKITE_DATA/tasks.json` on the server (§10) |
 | CLI | `--file`, else `$TASKITE_FILE`, else the desktop location (§11) |
+
+Attached files live in an `attachments/` folder beside `tasks.json`, wherever it is (§4.8).
 
 ## §4 Tasks
 
@@ -134,6 +136,15 @@ Everything else, with spaces collapsed, is the title.
 - Every change to tasks, projects and labels is one undo step, including multi-task changes. 100 steps. **Undo** ⌘Z, **Redo** ⇧⌘Z / ⌘Y. A new change clears redo. A change that leaves everything as it was records no step and shows no notice. Undo never changes settings or the current view.
 - While typing in a text field, ⌘Z belongs to the field.
 - Completing or trashing a task plays a short animation before the change is made; Undo during it cancels the change. A notice's **Undo** goes away once anything else changes the tasks.
+
+### §4.8 Attachments
+
+- A task can have files attached. The editor's button row has **Attachments** (paperclip); it opens the system's file picker, and files can also be dropped on the editor. Each attachment shows its name and size, opens or downloads on click, and has × to remove it. A file over 25 MB is refused with a notice naming it.
+- Rows and board cards show a paperclip chip with the count when a task has attachments.
+- `tasks.json` keeps only `{ id, name, size, type }` per attachment (`id` a UUID, `type` the MIME type or ""). The bytes are in `attachments/<id>` beside `tasks.json`, written once and never changed, so they can't conflict (§3.4). The file is written before the task change that names it; if writing fails, the task is left as it was and a notice says so.
+- Adding and removing an attachment are undo steps like any other change; removing one only drops the reference, so Undo brings it back. Subtasks can have attachments too. A task's attachments stay with it when it moves, is trashed or is restored.
+- Files no task names (the Trash included) are deleted when the file loads, if they are more than a day old. So a task deleted for good (§4.6) loses its files at the next load after that, and Undo right after Delete Forever still works. Files in the folder that aren't attachment ids are left alone.
+- A conflict choice (§3.4) never deletes files; the next load cleans up what no task names.
 
 ## §5 Views
 
@@ -243,6 +254,7 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
   - `GET /api/data` → the file (200, `ETag: "<sha256>"`), or 404 when there's none yet. With `If-None-Match` naming the current version, 304 and no body: the app's regular re-reads (§3.4) download the file only when it changed.
   - `PUT /api/data` with `If-Match` (or `If-None-Match: *` for a new file) → 204 with the new `ETag`; 412 on a version mismatch; 428 with neither header; 400 for invalid JSON; body limit 10 MB.
   - `POST /api/copies?label=copy|corrupt` → 201 `{ "name": "tasks.copy-….json" }`: keeps the body as a dated copy next to the file (§3.2, §3.4).
+  - `PUT /api/attachments/<id>` → 201, keeps the body as `attachments/<id>` (409 if it exists; body limit 25 MB); `GET /api/attachments/<id>` → the bytes (`Content-Disposition: attachment`, `X-Content-Type-Options: nosniff`); `<id>` must be a UUID, else 400.
   - `GET /api/info` also says whether a token is needed (`"auth": true`).
 - Env vars: `TASKITE_DATA` (folder holding `tasks.json`, required), `TASKITE_STATIC` (the web build), `TASKITE_HOST` (default `127.0.0.1`), `TASKITE_PORT` (default `8788`), `TASKITE_TOKEN` (bearer token), `TASKITE_NO_AUTH=1` (allow no token on a non-loopback bind), `TASKITE_HOSTS` (extra allowed Host names).
 - Without a token, a non-loopback bind is refused unless `TASKITE_NO_AUTH=1`, and requests whose `Host` isn't loopback or listed get 421.
@@ -265,6 +277,8 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
 | `move <task> <project>` | moves a task to a project (`#Name` or the name, ignoring case); a subtask leaves its parent, as in the app |
 | `due <task> <date>` | sets the due date from the words the Set Due Date dialog takes; `none` clears it |
 | `projects` | lists projects with open counts |
+| `attach <task> <file...>` | copies files into `attachments/` and attaches them |
+| `attachments <task>` | lists a task's attachments with their paths |
 | `path` | prints the data file path |
 
 - A `<task>` is looked for only among the tasks the command can act on (`done` looks at open tasks, `reopen` at completed ones, `restore` in the Trash): a title equal to the words (ignoring case), else titles that contain them, else an id start of at least 4 characters that only one task has. Titles come first because short words like `bed` are also the start of some id. When several match, the CLI lists them (up to 10) and changes nothing.
