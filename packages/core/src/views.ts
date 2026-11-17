@@ -2,7 +2,7 @@
  * What each view lists (PRD §5): pure functions from the task list to sections of rows, so the UI only
  * draws them.
  */
-import type { AutomationAction, AutomationRun } from './automations.ts';
+import type { AutomationAction, AutomationRun, SectionAutomation } from './automations.ts';
 import { addDays, firstDayOfWeek, formatDayHeading, parseISODate, startOfWeek, toISODate } from './dates.ts';
 import { DAY_MS, INBOX_ID, TRASH_DAYS, type Project, type SavedView, type Task } from './model.ts';
 import { parseQuickAdd, type Priority } from './parser.ts';
@@ -476,15 +476,19 @@ function describeAction(list: TaskList, run: AutomationRun, n: number): string {
             : `in ${plural(Number(due.slice(1)), 'day')}`;
     return `made ${them} due ${when}`;
   }
-  const { projectId, sectionId } = action.moveTo;
-  const project = list.getProject(projectId);
-  const section = sectionId ? list.getSection(projectId, sectionId) : undefined;
-  const place = !section
-    ? (project?.name ?? '')
-    : projectId === run.projectId
-      ? section.name
-      : `${project?.name ?? ''} › ${section.name}`;
-  return `moved ${them} to ${place}`;
+  return `moved ${them} to ${placeName(list, action.moveTo, run.projectId)}`;
+}
+
+/** Where a move goes: the section alone when it is in `from`'s project, else "Project › Section", or the project. */
+function placeName(
+  list: TaskList,
+  to: { readonly projectId: string; readonly sectionId: string | null },
+  from: string,
+): string {
+  const project = list.getProject(to.projectId);
+  const section = to.sectionId ? list.getSection(to.projectId, to.sectionId) : undefined;
+  if (!section) return project?.name ?? '';
+  return to.projectId === from ? section.name : `${project?.name ?? ''} › ${section.name}`;
 }
 
 /**
@@ -500,4 +504,28 @@ export function describeAutomations(list: TaskList, runs: readonly AutomationRun
     groups.set(key, group);
   }
   return [...groups.values()].map((g) => describeAction(list, g.run, g.tasks.size)).join(', ');
+}
+
+/**
+ * One rule as a line, for the heading's ⚡ hover (PRD §6.1): "When a task enters: complete it, add @shipped".
+ * Moves name the section alone when it is in `projectId`, else the project too.
+ */
+export function describeRule(list: TaskList, projectId: string, rule: SectionAutomation): string {
+  const when = rule.on === 'enter' ? 'When a task enters' : 'When a task is completed';
+  return `${when}: ${rule.do.map((action) => ruleAction(list, projectId, action)).join(', ')}`;
+}
+
+function ruleAction(list: TaskList, projectId: string, action: AutomationAction): string {
+  if ('complete' in action) return action.complete ? 'complete it' : 'reopen it';
+  if ('priority' in action) return `set priority ${action.priority}`;
+  if ('addLabel' in action) return `add @${action.addLabel}`;
+  if ('removeLabel' in action) return `remove @${action.removeLabel}`;
+  if ('due' in action) {
+    const due = action.due;
+    if (due === null) return 'remove its date';
+    if (due === 'nextWeek') return 'make it due next week';
+    if (due === 'today' || due === 'tomorrow') return `make it due ${due}`;
+    return `make it due in ${plural(Number(due.slice(1)), 'day')}`;
+  }
+  return `move it to ${placeName(list, action.moveTo, projectId)}`;
 }

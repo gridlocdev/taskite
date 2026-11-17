@@ -75,6 +75,7 @@ export {
   byDueThenPriority,
   byPriority,
   describeAutomations,
+  describeRule,
   dueTone,
   plural,
   projectNameFromTag,

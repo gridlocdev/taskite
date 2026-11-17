@@ -13,6 +13,7 @@ import { Icon, isComposingKey, type CommandCatalog } from '@taskite/ui';
 import { addStop, type AppController } from './controller.ts';
 import { openMenu } from './ContextMenu.tsx';
 import { dropOrder } from './forms.ts';
+import { SectionHeading } from './SectionHeading.tsx';
 
 /** A coloured label's text colour (PRD §4.7); none for a plain label. */
 function labelStyle(app: AppController, label: string) {
@@ -254,8 +255,6 @@ function SectionView({
     section.sectionId && view.type === 'project'
       ? ({ kind: 'section', projectId: view.id, id: section.sectionId } as const)
       : undefined;
-  const sectionMenu = (e: MouseEvent, at?: { x: number; y: number }) =>
-    target && openMenu(app, catalog, e, 'section', target, at);
   return (
     <section
       class={`tk-section${into ? ' tk-drop-into' : ''}`}
@@ -284,32 +283,13 @@ function SectionView({
       }}
     >
       {section.heading && (
-        <h2
-          class={`tk-section-heading${section.tone === 'overdue' ? ' tk-overdue' : ''}`}
-          onContextMenu={(e) => {
-            if (!target) return;
-            e.stopPropagation();
-            sectionMenu(e);
-          }}
-        >
-          <span class="tk-section-name">{section.heading}</span>
-          {section.count !== null && <span class="tk-count">{section.count}</span>}
-          {target && (
-            <button
-              type="button"
-              class="tk-icon-button tk-section-more"
-              aria-label={`${section.heading} section actions`}
-              title="Section actions"
-              aria-haspopup="menu"
-              onClick={(e) => {
-                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                sectionMenu(e, { x: r.left, y: r.bottom + 4 });
-              }}
-            >
-              <Icon name="dots" />
-            </button>
-          )}
-        </h2>
+        <SectionHeading
+          app={app}
+          catalog={catalog}
+          section={section}
+          heading={section.heading}
+          target={target}
+        />
       )}
       {section.rows.map((row) => (
         <TaskRow

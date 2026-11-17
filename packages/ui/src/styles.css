@@ -474,8 +474,31 @@ kbd {
   white-space: nowrap;
 }
 .tk-section-heading .tk-count,
-.tk-section-more {
+.tk-section-more,
+.tk-automation-badge {
   flex: none;
+}
+/* A section's automations (PRD §6.1): ⚡ and the rule count after the heading count. */
+.tk-automation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 6px;
+  padding: 1px 6px 1px 4px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--tk-hover);
+  color: var(--tk-text-2);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.tk-automation-badge:hover {
+  color: var(--tk-accent);
+}
+.tk-automation-badge .tk-icon {
+  width: 12px;
+  height: 12px;
 }
 .tk-section-more {
   width: 26px;

@@ -74,4 +74,27 @@ test.describe('Automations', () => {
     await expect.poll(() => fileTask('Plan team offsite')?.priority).toBe(4);
     expect(rulesOf('s2')).toBeUndefined();
   });
+
+  test('a section with rules shows ⚡ and their count; hovering lists them and a click opens the editor', async ({
+    page,
+  }) => {
+    await workAsBoard(page, true, [
+      { on: 'enter', do: [{ complete: true }, { addLabel: 'shipped' }] },
+      {
+        on: 'complete',
+        do: [{ moveTo: { projectId: '978cd5f4-cbfd-4ecf-afad-4a96d464378b', sectionId: null } }],
+      },
+    ]);
+    await page.getByRole('button', { name: /^Work/ }).click();
+    const badge = page.getByRole('button', { name: 'Done automations: 2 rules' });
+    await expect(badge).toHaveText('2');
+    await expect(badge).toHaveAttribute(
+      'title',
+      'When a task enters: complete it, add @shipped\nWhen a task is completed: move it to Home',
+    );
+    await expect(page.getByRole('button', { name: /^Doing automations/ })).toHaveCount(0);
+    await expect(page.getByRole('main')).toHaveScreenshot('board-automation-badge.png');
+    await badge.click();
+    await expect(page.getByRole('dialog', { name: 'Automations · Done' })).toBeVisible();
+  });
 });

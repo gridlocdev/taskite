@@ -6,6 +6,7 @@ import {
   TaskList,
   cleanAutomations,
   describeAutomations,
+  describeRule,
   emptyData,
   normalize,
   parseDataFile,
@@ -369,5 +370,43 @@ describe('saying what automations did (PRD §6.1)', () => {
         'moved it to Doing, moved it to Work › Later, moved it to Work, reopened it',
     );
     expect(describeAutomations(list, [])).toBe('');
+  });
+});
+
+describe('a rule as one line (PRD §6.1)', () => {
+  it('reads as a sentence, naming moves within the project by section alone', () => {
+    const doing = list.addSection(INBOX_ID, 'Doing')?.id ?? '';
+    const work = list.addProject('Work');
+    const later = list.addSection(work.id, 'Later')?.id ?? '';
+    expect(
+      describeRule(list, INBOX_ID, {
+        on: 'enter',
+        do: [
+          { complete: true },
+          { due: 'nextWeek' },
+          { due: '+3' },
+          { priority: 1 },
+          { addLabel: 'x' },
+          { moveTo: { projectId: INBOX_ID, sectionId: doing } },
+        ],
+      }),
+    ).toBe(
+      'When a task enters: complete it, make it due next week, make it due in 3 days, set priority 1, add @x, ' +
+        'move it to Doing',
+    );
+    expect(
+      describeRule(list, INBOX_ID, {
+        on: 'complete',
+        do: [
+          { complete: false },
+          { due: null },
+          { removeLabel: 'y' },
+          { moveTo: { projectId: work.id, sectionId: later } },
+          { moveTo: { projectId: work.id, sectionId: null } },
+        ],
+      }),
+    ).toBe(
+      'When a task is completed: reopen it, remove its date, remove @y, move it to Work › Later, move it to Work',
+    );
   });
 });
