@@ -1,12 +1,17 @@
 /** The taskite command (PRD §11): reads tasks.json, makes one change through the engine, saves it. */
+import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
+import { readFile, stat } from 'node:fs/promises';
+import path from 'node:path';
 import {
   INBOX_ID,
+  MAX_ATTACHMENT_BYTES,
   TaskList,
   addDraft,
   describeAutomations,
   emptyData,
   formatDue,
+  formatSize,
   parseDataFile,
   parseDueText,
   projectNameFromTag,
@@ -15,11 +20,18 @@ import {
   sidebarCounts,
   todayISO,
   viewContent,
+  type Attachment,
   type Draft,
   type Task,
   type View,
 } from '@taskite/core';
-import { readDataFile, removeUnusedAttachments, writeDataFile } from '@taskite/node-files';
+import {
+  attachmentPath,
+  readDataFile,
+  removeUnusedAttachments,
+  writeAttachment,
+  writeDataFile,
+} from '@taskite/node-files';
 import { HELP, LIST_VIEWS, ProblemError, UsageError, parseArgs, type Args } from './args.ts';
 import { chooseFile, legacyFile, type CliIo } from './io.ts';
 
@@ -179,6 +191,55 @@ function sectionNamed(list: TaskList, draft: Draft, name: string): string {
   );
 }
 
+/** An attachment as `attach` and `attachments` print it, with where its file is. */
+function attachmentJson(file: string, a: Attachment) {
+  return { id: a.id, name: a.name, size: a.size, type: a.type, path: attachmentPath(file, a.id) };
+}
+
+/**
+ * The files `attach` was given, read whole. All are checked before any is copied, so a missing or too
+ * large file changes nothing.
+ */
+async function readFiles(
+  names: readonly string[],
+  cwd: string,
+): Promise<{ name: string; bytes: Uint8Array; type: string }[]> {
+  const read = [];
+  for (const name of names) {
+    const full = path.resolve(cwd, name);
+    const info = await stat(full).catch(() => null);
+    if (!info?.isFile()) throw new ProblemError(`${name} isn't a file`);
+    if (info.size > MAX_ATTACHMENT_BYTES)
+      throw new ProblemError(`${name} is over 25 MB, so nothing was attached`);
+    read.push({
+      name: path.basename(full),
+      bytes: await readFile(full),
+      type: MIME_TYPES[path.extname(full).toLowerCase()] ?? '',
+    });
+  }
+  return read;
+}
+
+/** The MIME types the CLI knows by extension; others are "" (unknown), as a browser gives them. */
+const MIME_TYPES: Readonly<Record<string, string>> = {
+  '.txt': 'text/plain',
+  '.md': 'text/markdown',
+  '.csv': 'text/csv',
+  '.html': 'text/html',
+  '.json': 'application/json',
+  '.pdf': 'application/pdf',
+  '.zip': 'application/zip',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.mp3': 'audio/mpeg',
+  '.mp4': 'video/mp4',
+  '.mov': 'video/quicktime',
+};
+
 type Out = (value: unknown, text: string) => void;
 
 async function run(args: Args, io: CliIo, out: Out): Promise<void> {
@@ -303,6 +364,40 @@ async function run(args: Args, io: CliIo, out: Out): Promise<void> {
       return out(
         { ok: true, task: taskJson(list, list.getTask(t.id)!) },
         due ? `"${t.title}" is due ${formatDue(due, today).toLowerCase()}.` : `"${t.title}" has no due date.`,
+      );
+    }
+    case 'attach': {
+      const t = findTask(l, taskRef(args, true), 'live');
+      const names = args.words.slice(1);
+      if (!names.length)
+        throw new UsageError('give the files to attach, e.g. taskite attach "Report" notes.pdf');
+      const files = await readFiles(names, io.cwd);
+      // Each file is written before the task names it (PRD §4.8); one the save never names is cleaned up later.
+      const written: Attachment[] = [];
+      for (const f of files) {
+        const id = randomUUID();
+        await writeAttachment(l.file, id, f.bytes);
+        written.push({ id, name: f.name, size: f.bytes.length, type: f.type });
+      }
+      const attached = list.addAttachments(t.id, written);
+      await save(l);
+      return out(
+        {
+          ok: true,
+          task: taskJson(list, list.getTask(t.id)!),
+          attachments: attached.map((a) => attachmentJson(l.file, a)),
+        },
+        `Attached ${attached.map((a) => `"${a.name}"`).join(', ')} to "${t.title}".`,
+      );
+    }
+    case 'attachments': {
+      const t = findTask(l, taskRef(args, false), 'live');
+      const rows = (t.attachments ?? []).map((a) => attachmentJson(l.file, a));
+      return out(
+        { ok: true, task: taskJson(list, t), attachments: rows },
+        rows.length
+          ? rows.map((a) => `${formatSize(a.size).padStart(7)}  ${a.name}  ${a.path}`).join('\n')
+          : `"${t.title}" has no attachments.`,
       );
     }
     case 'help':

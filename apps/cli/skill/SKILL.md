@@ -1,7 +1,7 @@
 ---
 name: taskite
 description: >-
-  Read and change someone's Taskite tasks from the terminal with the `taskite` command: list what is due today, upcoming, in the Inbox, in a project or with a label; add tasks with Quick Add text ("Call mum tomorrow p1 #Family @phone"); complete, reopen, trash and restore them, move them to a project or set their due date; list projects. Use it when a task involves their to-do list, Taskite, or "my tasks", or when a script needs to add or check tasks. Covers naming tasks by title or id, `--json` output, which file it uses, and the exit codes.
+  Read and change someone's Taskite tasks from the terminal with the `taskite` command: list what is due today, upcoming, in the Inbox, in a project or with a label; add tasks with Quick Add text ("Call mum tomorrow p1 #Family @phone"); complete, reopen, trash and restore them, move them to a project or set their due date; attach files to them and find their attached files; list projects. Use it when a task involves their to-do list, Taskite, or "my tasks", or when a script needs to add or check tasks. Covers naming tasks by title or id, `--json` output, which file it uses, and the exit codes.
 ---
 
 # Working with Taskite through `taskite`
@@ -21,6 +21,8 @@ description: >-
 | `taskite trash <task>` / `taskite restore <task>` | Moves a task to the Trash, or back. |
 | `taskite move <task> <project>` | Moves a task to a project (`#Name` or the name, ignoring case). |
 | `taskite due <task> <date>` | Sets the due date (`tomorrow`, `fri`, `jan 5`); `none` clears it. |
+| `taskite attach <task> <file...>` | Copies files (up to 25 MB each) into the `attachments` folder beside `tasks.json` and attaches them. A missing or too large file stops it before anything is attached. |
+| `taskite attachments <task>` | A task's attachments: size, name and the path of the file to read. |
 | `taskite projects` | Projects with their open task counts. |
 | `taskite path` | The tasks file it uses. |
 
@@ -30,13 +32,13 @@ description: >-
 
 ## Naming a task
 
-A `<task>` is part of its title, ignoring case: `taskite done call mum`. `move` and `due` take only the first word as the task, so quote a longer title there: `taskite due "call mum" fri`. A title that equals the words wins over titles that only contain them. When several tasks still match, taskite lists them with their short ids, exits 1 and changes nothing; run it again with more of the title or the id.
+A `<task>` is part of its title, ignoring case: `taskite done call mum`. `move`, `due` and `attach` take only the first word as the task, so quote a longer title there: `taskite due "call mum" fri`. A title that equals the words wins over titles that only contain them. When several tasks still match, taskite lists them with their short ids, exits 1 and changes nothing; run it again with more of the title or the id.
 
 `list` prints each task's short id (the first 8 characters). Any start of an id that only one task has also works: `taskite done 9ac7`. Use ids from `list --json` when scripting, since titles can change.
 
 ## JSON
 
-Add `--json` to any command. Successes print `{ "ok": true, ... }` with `tasks`, `task` or `projects`; each task has `id`, `shortId`, `title`, `project`, `parentId`, `labels`, `priority`, `due` (`YYYY-MM-DD` or null), `recurrence`, `completed` and `deleted`. Failures print `{ "ok": false, "error": "..." }` and still exit non-zero.
+Add `--json` to any command. Successes print `{ "ok": true, ... }` with `tasks`, `task` or `projects`, and `attach` and `attachments` add `attachments` (`id`, `name`, `size`, `type`, `path`); each task has `id`, `shortId`, `title`, `project`, `parentId`, `labels`, `priority`, `due` (`YYYY-MM-DD` or null), `recurrence`, `completed` and `deleted`. Failures print `{ "ok": false, "error": "..." }` and still exit non-zero.
 
 ## Which file
 

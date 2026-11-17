@@ -305,4 +305,46 @@ describe('taskite', () => {
     expect(readdirSync(folder).sort()).toEqual([A, B, 'notes.txt'].sort());
     expect(existsSync(path.join(folder, C!))).toBe(false);
   });
+
+  it('attaches files to a task and lists them with their paths (PRD §4.8)', async () => {
+    await cli('add', 'Write report');
+    writeFileSync(path.join(dir, 'notes.txt'), 'Draft one.');
+    mkdirSync(path.join(dir, 'pics'));
+    writeFileSync(path.join(dir, 'pics', 'chart.png'), new Uint8Array(2048));
+
+    const attached = await cli('attach', 'write report', 'notes.txt', 'pics/chart.png');
+    expect(attached).toMatchObject({
+      code: 0,
+      out: 'Attached "notes.txt", "chart.png" to "Write report".\n',
+    });
+    const [note, chart] =
+      (saved().tasks[0] as { attachments?: { id: string; name: string; size: number; type: string }[] })
+        .attachments ?? [];
+    expect([note?.name, note?.size, note?.type]).toEqual(['notes.txt', 10, 'text/plain']);
+    expect([chart?.name, chart?.size, chart?.type]).toEqual(['chart.png', 2048, 'image/png']);
+    const notePath = path.join(dir, 'attachments', note!.id);
+    expect(readFileSync(notePath, 'utf8')).toBe('Draft one.');
+
+    const listed = await cli('attachments', 'write report');
+    expect(listed.out).toBe(
+      `   10 B  notes.txt  ${notePath}\n   2 KB  chart.png  ${path.join(dir, 'attachments', chart!.id)}\n`,
+    );
+    const json = JSON.parse((await cli('attachments', 'write report', '--json')).out);
+    expect(json.attachments[0]).toEqual({ ...note, path: notePath });
+
+    // A missing or too large file stops the whole command before anything is copied.
+    writeFileSync(path.join(dir, 'big.bin'), new Uint8Array(25 * 1024 * 1024 + 1));
+    for (const bad of ['missing.txt', 'big.bin']) {
+      const r = await cli('attach', 'write report', 'notes.txt', bad);
+      expect(r.code).toBe(1);
+    }
+    expect((await cli('attach', 'write report', 'big.bin')).err).toBe(
+      'taskite: big.bin is over 25 MB, so nothing was attached\n',
+    );
+    expect(readdirSync(path.join(dir, 'attachments'))).toHaveLength(2);
+    expect((await cli('attach', 'write report')).code).toBe(2);
+
+    await cli('add', 'Empty');
+    expect((await cli('attachments', 'empty')).out).toBe('"Empty" has no attachments.\n');
+  });
 });

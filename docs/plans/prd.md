@@ -277,12 +277,12 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
 | `move <task> <project>` | moves a task to a project (`#Name` or the name, ignoring case); a subtask leaves its parent, as in the app |
 | `due <task> <date>` | sets the due date from the words the Set Due Date dialog takes; `none` clears it |
 | `projects` | lists projects with open counts |
-| `attach <task> <file...>` | copies files into `attachments/` and attaches them |
-| `attachments <task>` | lists a task's attachments with their paths |
+| `attach <task> <file...>` | copies files into `attachments/` and attaches them as one change. Every file is checked first: one that is missing or over 25 MB stops the command and nothing is attached. The type comes from the file's extension, or "" |
+| `attachments <task>` | lists a task's attachments: size, name and the path of its file. JSON has `attachments` with `id`, `name`, `size`, `type` and `path` |
 | `path` | prints the data file path |
 
 - A `<task>` is looked for only among the tasks the command can act on (`done` looks at open tasks, `reopen` at completed ones, `restore` in the Trash): a title equal to the words (ignoring case), else titles that contain them, else an id start of at least 4 characters that only one task has. Titles come first because short words like `bed` are also the start of some id. When several match, the CLI lists them (up to 10) and changes nothing.
-- `done`, `reopen`, `trash` and `restore` take all their words as the task (`taskite done call mum`); `move` and `due` take the first word, so a title of several words is quoted.
+- `done`, `reopen`, `trash`, `restore` and `attachments` take all their words as the task (`taskite done call mum`); `move`, `due` and `attach` take the first word, so a title of several words is quoted.
 - Saves are atomic and check the version (the file mustn't have changed since it was read).
 - A mistake the user can fix prints `taskite: <message>` and exits 2 for usage errors, 1 for others (no match, several matches, conflict). Success exits 0.
 

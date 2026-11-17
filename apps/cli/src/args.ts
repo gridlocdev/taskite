@@ -9,6 +9,8 @@ export const COMMANDS = [
   'restore',
   'move',
   'due',
+  'attach',
+  'attachments',
   'projects',
   'path',
   'help',
@@ -100,6 +102,8 @@ Commands:
   restore <task>                                 Bring a task back from the Trash
   move <task> <project>                          Move a task to another project
   due <task> <date>                              Set the due date ("tomorrow", "fri", "jan 5", "none")
+  attach <task> <file...>                        Copy files into the attachments folder and attach them
+  attachments <task>                             List a task's attachments with their paths
   projects                                       List projects with their open task counts
   path                                           Print the tasks file's path
 
