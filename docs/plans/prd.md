@@ -187,7 +187,7 @@ Typing in the search box (`/`, ⌘F) shows Search results; clearing it, or Esc, 
 - **Triggers.** *Enters this section*: a task is created in it (Add task there, Quick Add, `taskite add --section`), dragged or moved into it (another section, another project's section, or by an automation). Reordering within the section and editing the task don't count. *Is completed here*: a task in the section is completed (a repeating task that moves to its next date isn't completed, so it doesn't fire). Only top-level tasks trigger rules; subtasks follow their parent as usual (§6).
 - **Actions**, run top to bottom: **Complete** / **Reopen** (with their usual subtask rules, §4.3); **Set due date** (Today, Tomorrow, In N days, Next week = the week's first day, No date); **Set priority** (1–4); **Add label** / **Remove label** (a label name, with the label list to pick from); **Move to** (a section of this or another project, or a project's top). An action that changes nothing is skipped.
 - **Chaining.** A move by an automation into a section with *enters* rules runs them too, but a task never triggers the same section twice in one go, so rules can't loop.
-- **One change.** The user's action and every automation it set off are one undo step. After them a notice says what happened, e.g. `Moved to Done. Automation: completed it, added #shipped.`, with Undo. When nothing ran, the usual notice shows.
+- **One change.** The user's action and every automation it set off are one undo step. After them a notice says what happened, e.g. `Moved to Done. Automation: completed it, added @shipped.`, with Undo. When nothing ran, the usual notice shows.
 - **Existing tasks.** Saving a rule with an *enters* trigger that's new or changed, in a section that already has tasks, asks "Apply to the N tasks already in <section>?" (**Apply** / **Not now**). Apply runs those rules on each, as part of the same undo step as the save.
 - **Showing them.** A section with automations shows ⚡ and the rule count after its heading count; hovering it lists the rules in one line each, and clicking it opens the editor.
 - **Where they run.** The engine runs them, so the app, the NAS server and the CLI behave the same (`taskite add --section`, `done`).
@@ -257,7 +257,7 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
 |---|---|
 | `list [today\|upcoming\|inbox\|completed\|trash]`, `list --project <name>`, `list --label <name>` | prints tasks: short id (first 8 characters), due, priority, title, project; a project's sections as `## Name` headings. JSON has each task's `section` name. Default `today` |
 | `add <quick add text...>` | adds a task like the composer in the Inbox; prints its short id. `--section <name>` puts it in that section (ignoring case) of its project, or fails listing the sections |
-| `done <task>` | completes a task (repeating ones move on) |
+| `done <task>` | completes a task (repeating ones move on). Like `add`, says what section automations did after it (`Automation: moved it to Done.`), and JSON has `automation` (null when none ran) |
 | `reopen <task>` | |
 | `trash <task>`, `restore <task>` | |
 | `move <task> <project>` | moves a task to a project (`#Name` or the name, ignoring case); a subtask leaves its parent, as in the app |

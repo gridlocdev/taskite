@@ -5,6 +5,7 @@ import {
   MAX_RULES,
   TaskList,
   cleanAutomations,
+  describeAutomations,
   emptyData,
   normalize,
   parseDataFile,
@@ -335,5 +336,38 @@ describe('running section automations (PRD §6.1)', () => {
     expect([a, b, other].map((t) => task(t.id)?.completed)).toEqual([true, true, false]);
     list.undo();
     expect([a, b].map((t) => task(t.id)?.completed)).toEqual([false, false]);
+  });
+});
+
+describe('saying what automations did (PRD §6.1)', () => {
+  it('names each action once, with how many tasks it changed', () => {
+    const doing = list.addSection(INBOX_ID, 'Doing')?.id ?? '';
+    const work = list.addProject('Work');
+    const later = list.addSection(work.id, 'Later')?.id ?? '';
+    const run = (taskId: string, action: SectionAutomation['do'][number]) => ({
+      taskId,
+      projectId: INBOX_ID,
+      sectionId: doing,
+      action,
+    });
+    expect(
+      describeAutomations(list, [
+        run('a', { complete: true }),
+        run('b', { complete: true }),
+        run('a', { addLabel: 'x' }),
+        run('a', { removeLabel: 'y' }),
+        run('a', { due: '+1' }),
+        run('a', { due: null }),
+        run('a', { priority: 2 }),
+        run('a', { moveTo: { projectId: INBOX_ID, sectionId: doing } }),
+        run('a', { moveTo: { projectId: work.id, sectionId: later } }),
+        run('a', { moveTo: { projectId: work.id, sectionId: null } }),
+        run('a', { complete: false }),
+      ]),
+    ).toBe(
+      'completed 2 tasks, added @x, removed @y, made it due in 1 day, removed its date, set it to priority 2, ' +
+        'moved it to Doing, moved it to Work › Later, moved it to Work, reopened it',
+    );
+    expect(describeAutomations(list, [])).toBe('');
   });
 });

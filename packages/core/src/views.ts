@@ -2,6 +2,7 @@
  * What each view lists (PRD §5): pure functions from the task list to sections of rows, so the UI only
  * draws them.
  */
+import type { AutomationAction, AutomationRun } from './automations.ts';
 import { addDays, firstDayOfWeek, formatDayHeading, parseISODate, startOfWeek, toISODate } from './dates.ts';
 import { DAY_MS, INBOX_ID, TRASH_DAYS, type Project, type SavedView, type Task } from './model.ts';
 import { parseQuickAdd, type Priority } from './parser.ts';
@@ -450,4 +451,53 @@ export function addDraft(list: TaskList, draft: Draft): AddedDraft {
     });
     return { task, createdProject };
   });
+}
+
+/** What one action did, for `n` tasks (PRD §6.1): "completed it", "added @x to 2 tasks". */
+function describeAction(list: TaskList, run: AutomationRun, n: number): string {
+  const action: AutomationAction = run.action;
+  const them = n === 1 ? 'it' : plural(n, 'task');
+  const to = n === 1 ? '' : ` to ${plural(n, 'task')}`;
+  if ('complete' in action) return `${action.complete ? 'completed' : 'reopened'} ${them}`;
+  if ('priority' in action) return `set ${them} to priority ${action.priority}`;
+  if ('addLabel' in action) return `added @${action.addLabel}${to}`;
+  if ('removeLabel' in action)
+    return `removed @${action.removeLabel}${n === 1 ? '' : ` from ${plural(n, 'task')}`}`;
+  if ('due' in action) {
+    const due = action.due;
+    if (due === null) return n === 1 ? 'removed its date' : `removed the date from ${plural(n, 'task')}`;
+    const when =
+      due === 'today'
+        ? 'today'
+        : due === 'tomorrow'
+          ? 'tomorrow'
+          : due === 'nextWeek'
+            ? 'next week'
+            : `in ${plural(Number(due.slice(1)), 'day')}`;
+    return `made ${them} due ${when}`;
+  }
+  const { projectId, sectionId } = action.moveTo;
+  const project = list.getProject(projectId);
+  const section = sectionId ? list.getSection(projectId, sectionId) : undefined;
+  const place = !section
+    ? (project?.name ?? '')
+    : projectId === run.projectId
+      ? section.name
+      : `${project?.name ?? ''} › ${section.name}`;
+  return `moved ${them} to ${place}`;
+}
+
+/**
+ * What automations did in an edit, in the order they ran, each action once with how many tasks it changed:
+ * "completed it, added @shipped" (PRD §6.1). Empty when none ran.
+ */
+export function describeAutomations(list: TaskList, runs: readonly AutomationRun[]): string {
+  const groups = new Map<string, { run: AutomationRun; tasks: Set<string> }>();
+  for (const run of runs) {
+    const key = JSON.stringify(run.action);
+    const group = groups.get(key) ?? { run, tasks: new Set<string>() };
+    group.tasks.add(run.taskId);
+    groups.set(key, group);
+  }
+  return [...groups.values()].map((g) => describeAction(list, g.run, g.tasks.size)).join(', ');
 }

@@ -161,6 +161,42 @@ describe('taskite', () => {
     });
   });
 
+  it('runs section automations on add and done, and says what they did', async () => {
+    writeFileSync(
+      file,
+      JSON.stringify({
+        version: 1,
+        projects: [
+          { id: 'inbox', name: 'Inbox', color: 'gray' },
+          {
+            id: 'w',
+            name: 'Work',
+            color: 'red',
+            sections: [
+              {
+                id: 'doing',
+                name: 'Doing',
+                automations: [
+                  { on: 'enter', do: [{ due: 'today' }, { addLabel: 'focus' }] },
+                  { on: 'complete', do: [{ moveTo: { projectId: 'w', sectionId: 'done' } }] },
+                ],
+              },
+              { id: 'done', name: 'Done' },
+            ],
+          },
+        ],
+        tasks: [],
+      }),
+    );
+    const added = await cli('add', 'Report #Work', '--section', 'doing');
+    expect(added.out).toMatch(/^[0-9a-f-]{8}\nAutomation: made it due today, added @focus\.\n$/);
+    expect((await cli('done', 'report')).out).toBe('Completed "Report". Automation: moved it to Done.\n');
+    const json = JSON.parse((await cli('list', 'completed', '--json')).out);
+    expect(json.tasks[0]).toMatchObject({ title: 'Report', section: 'Done', labels: ['focus'] });
+    // Without automations, the output is as before.
+    expect((await cli('add', 'Loose', '--json')).out).toContain('"automation": null');
+  });
+
   it('lists by project and label, and counts projects', async () => {
     await cli('add', 'Report #Work @deep');
     await cli('add', 'Email #Work');

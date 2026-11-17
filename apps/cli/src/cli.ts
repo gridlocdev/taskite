@@ -4,6 +4,7 @@ import {
   INBOX_ID,
   TaskList,
   addDraft,
+  describeAutomations,
   emptyData,
   formatDue,
   parseDataFile,
@@ -157,6 +158,11 @@ function taskLine(list: TaskList, t: Task, today: string): string {
   return `${shortId(t.id)}  ${due.padEnd(10)}  p${t.priority}  ${t.title}${labels}  (${project})`;
 }
 
+/** What section automations did in the last change, or null when none ran (PRD §6.1). */
+function automated(list: TaskList): string | null {
+  return describeAutomations(list, list.automated) || null;
+}
+
 /** The id of the section `name` (ignoring case) in the project a draft goes to. */
 function sectionNamed(list: TaskList, draft: Draft, name: string): string {
   const project = draft.projectName
@@ -217,11 +223,12 @@ async function run(args: Args, io: CliIo, out: Out): Promise<void> {
       if (args.section) draft.sectionId = sectionNamed(list, draft, args.section);
       const { task, createdProject } = addDraft(list, draft);
       if (!task) throw new UsageError('the task needs a name, not only a date, priority, #project or @label');
+      const automation = automated(list);
       await save(l);
       const made = createdProject ? ` (made the project "${createdProject.name}")` : '';
       return out(
-        { ok: true, task: taskJson(list, task), createdProject: createdProject?.name ?? null },
-        `${shortId(task.id)}${made}`,
+        { ok: true, task: taskJson(list, task), createdProject: createdProject?.name ?? null, automation },
+        `${shortId(task.id)}${made}${automation ? `\nAutomation: ${automation}.` : ''}`,
       );
     }
     case 'done': {
@@ -229,13 +236,14 @@ async function run(args: Args, io: CliIo, out: Out): Promise<void> {
       if (t.deletedAt !== null) throw new ProblemError(`"${t.title}" is in the Trash; restore it first`);
       if (t.completed) throw new ProblemError(`"${t.title}" is already done`);
       const [r] = list.completeTasks([t.id], today);
+      const automation = automated(list);
       await save(l);
       const next = r?.repeated && r.nextDue ? r.nextDue : null;
       return out(
-        { ok: true, task: taskJson(list, list.getTask(t.id)!), nextDue: next },
-        next
+        { ok: true, task: taskJson(list, list.getTask(t.id)!), nextDue: next, automation },
+        (next
           ? `"${t.title}" is next due ${formatDue(next, today).toLowerCase()}.`
-          : `Completed "${t.title}".`,
+          : `Completed "${t.title}".`) + (automation ? ` Automation: ${automation}.` : ''),
       );
     }
     case 'reopen': {

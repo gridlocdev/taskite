@@ -26,6 +26,28 @@ describe('AppController', () => {
     expect(app.view.value).toEqual({ type: 'project', id: INBOX_ID });
   });
 
+  it('says what section automations did, with one Undo for all of it (PRD §6.1)', async () => {
+    const { app } = await makeApp();
+    const doing = app.list.addSection(INBOX_ID, 'Doing')?.id ?? '';
+    const done = app.list.addSection(INBOX_ID, 'Done')?.id ?? '';
+    app.list.setSectionAutomations(INBOX_ID, doing, [{ on: 'enter', do: [{ priority: 1 }] }]);
+    app.list.setSectionAutomations(INBOX_ID, done, [
+      { on: 'enter', do: [{ complete: true }, { addLabel: 'shipped' }] },
+    ]);
+    app.go({ type: 'project', id: INBOX_ID });
+    app.addTask('Write', `section:${doing}`);
+    expect(app.notice.value?.text).toBe('Added "Write". Automation: set it to priority 1.');
+    const [write] = app.ids.value;
+    app.dropInto([write!], done, null);
+    expect(app.notice.value?.text).toBe('Moved to Done. Automation: completed it, added @shipped.');
+    app.notice.value?.action?.run();
+    expect(app.list.getTask(write!)).toMatchObject({ sectionId: doing, completed: false, labels: [] });
+    // A move no rule answers to keeps quiet, as before.
+    app.dismissNotice();
+    app.dropInto([write!], undefined, null);
+    expect(app.notice.value).toBeNull();
+  });
+
   it('opens on Today when the file has no saved view', async () => {
     const { app } = await makeApp();
     expect(app.view.value).toEqual({ type: 'today' });

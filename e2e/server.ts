@@ -36,6 +36,7 @@ export function seedData(fixture: string): void {
 export interface FileTask {
   title: string;
   projectId: string;
+  sectionId: string | null;
   due: string | null;
   priority: number;
   labels: string[];

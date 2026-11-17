@@ -7,6 +7,7 @@ import {
   INBOX_ID,
   addDays,
   addDraft,
+  describeAutomations,
   fallbackAfter,
   formatDue,
   parseQuickAdd,
@@ -252,7 +253,9 @@ export class AppController {
     // An edit that changed nothing says nothing: there is nothing to undo, and Undo would take back the step before.
     if (!this.list.lastEditChanged) return;
     const step = this.list.step;
-    this.say(text, {
+    // What section automations did comes after, as part of the same undo step (PRD §6.1).
+    const automated = describeAutomations(this.list, this.list.automated);
+    this.say(automated ? `${text} Automation: ${automated}.` : text, {
       action: {
         label: 'Undo',
         step,
@@ -621,6 +624,7 @@ export class AppController {
     const { task, createdProject } = addDraft(this.list, draft);
     if (!task) return false;
     if (createdProject) this.sayUndoable(`Created new project "${createdProject.name}".`);
+    else if (this.list.automated.length) this.sayUndoable(`Added "${task.title}".`);
     else this.announcement.value = `Added "${task.title}".`;
     return true;
   }
@@ -673,7 +677,9 @@ export class AppController {
         ([key, value]) => JSON.stringify(task[key as keyof typeof task]) !== JSON.stringify(value),
       ),
     ) as TaskPatch;
-    if (Object.keys(changed).length) this.list.updateTasks(id, changed);
+    if (!Object.keys(changed).length) return;
+    this.list.updateTasks(id, changed);
+    if (this.list.automated.length) this.sayUndoable('Task saved.');
   }
 
   /** The editor's subtask field: Quick Add text (PRD §4.4). A #project is ignored: subtasks live with their parent. */
@@ -992,6 +998,14 @@ export class AppController {
       if (tops.length) this.list.updateTasks(tops, { sectionId });
       if (order) this.list.reorderTasks(order);
     });
+    if (this.list.automated.length) this.sayUndoable(this.#movedTo(sectionId));
+  }
+
+  /** "Moved to Doing." for the section of the shown project, or out of sections. */
+  #movedTo(sectionId: string | undefined): string {
+    const project = this.shownProject();
+    const name = sectionId && project ? this.list.getSection(project.id, sectionId)?.name : null;
+    return name ? `Moved to ${name}.` : 'Moved out of sections.';
   }
 
   /** Whether the chosen tasks can move to the next or previous section (⌥← ⌥→). */
@@ -1019,8 +1033,8 @@ export class AppController {
     const sectionId = keys[to];
     const order = [...this.ids.peek().filter((id) => !tops.includes(id)), ...tops];
     this.dropInto(tops, sectionId, order);
-    const name = sectionId ? this.list.getSection(project.id, sectionId)?.name : null;
-    this.announcement.value = name ? `Moved to ${name}.` : 'Moved out of sections.';
+    // With automations, the notice already says it.
+    if (!this.list.automated.length) this.announcement.value = this.#movedTo(sectionId);
   }
 
   // ---------- Settings ----------

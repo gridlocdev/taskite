@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
-import { DATA, expect, openApp, readTasks, runCommand, test } from './fixtures.ts';
+import { DATA, expect, fileTask, openApp, readTasks, runCommand, test } from './fixtures.ts';
 
 test.describe('Views', () => {
   test.beforeEach(async ({ seed, page }) => {
@@ -174,10 +174,31 @@ test.describe('Views', () => {
     await expect(page.getByRole('button', { name: 'Add section' })).toBeFocused();
     await expect(add).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   });
+
+  test('a section automation runs when a task moves in, says what it did, and Undo takes it all back', async ({
+    page,
+  }) => {
+    await workAsBoard(page, true, [{ on: 'enter', do: [{ complete: true }, { addLabel: 'shipped' }] }]);
+    await page.getByRole('button', { name: /^Work/ }).click();
+    await page.getByRole('option', { name: /Plan team offsite/ }).click();
+    await page.keyboard.press('Alt+ArrowRight');
+    await expect(page.getByRole('status')).toContainText(
+      'Moved to Done. Automation: completed it, added @shipped.',
+    );
+    await expect.poll(() => fileTask('Plan team offsite')?.completed).toBe(true);
+    expect(fileTask('Plan team offsite')?.labels).toContain('shipped');
+
+    // One undo step covers the move and everything the rule did.
+    await page.keyboard.press('ControlOrMeta+KeyZ');
+    await expect.poll(() => fileTask('Plan team offsite')?.completed).toBe(false);
+    expect(fileTask('Plan team offsite')?.labels).not.toContain('shipped');
+    expect(fileTask('Plan team offsite')?.sectionId).toBe('s2');
+  });
 });
 
-/** Work as a board: Draft quarterly report in To do, Plan team offsite in Doing, and (with `done`) an empty Done. */
-async function workAsBoard(page: Page, done = false): Promise<void> {
+/** Work as a board: Draft quarterly report in To do, Plan team offsite in Doing, and (with `done`) an empty Done
+ * holding `doneRules`. */
+async function workAsBoard(page: Page, done = false, doneRules?: unknown[]): Promise<void> {
   const file = `${DATA}/tasks.json`;
   const data = JSON.parse(readFileSync(file, 'utf8'));
   const work = data.projects.find((p: { name: string }) => p.name === 'Work');
@@ -185,7 +206,7 @@ async function workAsBoard(page: Page, done = false): Promise<void> {
   work.sections = [
     { id: 's1', name: 'To do' },
     { id: 's2', name: 'Doing' },
-    ...(done ? [{ id: 's3', name: 'Done' }] : []),
+    ...(done ? [{ id: 's3', name: 'Done', ...(doneRules ? { automations: doneRules } : {}) }] : []),
   ];
   for (const t of data.tasks)
     if (t.projectId === work.id) t.sectionId = t.title.startsWith('Draft') ? 's1' : 's2';
