@@ -35,6 +35,20 @@ test.describe('Commands and shortcuts', () => {
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Inbox');
   });
 
+  test('going to a view by keys or the command menu takes the keyboard there', async ({ page }) => {
+    const home = page.getByRole('button', { name: /^Home/ });
+    await home.click();
+    await page.keyboard.press('KeyG');
+    await page.keyboard.press('KeyT');
+    await expect(page.getByRole('listbox', { name: 'Today' })).toBeFocused();
+    await home.click();
+    await runCommand(page, 'Go to Today');
+    await expect(page.getByRole('listbox', { name: 'Today' })).toBeFocused();
+    // Down from there reaches the first task.
+    await page.keyboard.press('ArrowDown');
+    await expect(page.getByRole('option').first()).toBeFocused();
+  });
+
   test('? opens the Keyboard Shortcuts window', async ({ page }) => {
     await page.keyboard.press('Shift+Slash');
     const dialog = page.getByRole('dialog');

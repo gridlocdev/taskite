@@ -103,7 +103,11 @@ export function buildCommands(app: AppController): CommandCatalog {
     group: 'Go',
     shortcuts: [key],
     keysOnly: true,
-    run: () => app.go(view),
+    run: () => {
+      app.go(view);
+      // The keyboard goes with it, as Go to Section… does: not left on the sidebar or a row that's gone.
+      app.focusList.value++;
+    },
   });
 
   const specs: CommandSpec[] = [

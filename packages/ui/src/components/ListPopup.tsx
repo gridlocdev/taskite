@@ -39,7 +39,10 @@ export function ListPopup(props: {
     const previous = document.activeElement as HTMLElement | null;
     input.current?.focus();
     return () => {
-      if (previous?.isConnected && previous !== document.body) previous.focus();
+      // Back where it was, unless the command picked has already moved the keyboard (Go to Today: the list).
+      const now = document.activeElement;
+      const moved = now !== null && now !== document.body && now !== input.current;
+      if (!moved && previous?.isConnected && previous !== document.body) previous.focus();
     };
   }, []);
   useEffect(() => {
