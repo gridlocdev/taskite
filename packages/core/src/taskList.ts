@@ -2,6 +2,7 @@
  * The task list engine: every edit to tasks, projects and labels, with undo (PRD §4, §6). It holds the
  * data in memory and tells listeners after each change; saving is the caller's job.
  */
+import { attachmentIds, cleanAttachments, type Attachment } from './attachments.ts';
 import {
   addDoneRules,
   automationDueDate,
@@ -40,8 +41,9 @@ export interface CompleteResult {
   nextDue: string | null;
 }
 
-export type NewTask = Partial<Omit<Task, 'id' | 'title'>> & { title: string };
-export type TaskPatch = Partial<Omit<Task, 'id'>>;
+/** Attachments come and go only through addAttachments and removeAttachment, which keep their ids unique. */
+export type NewTask = Partial<Omit<Task, 'id' | 'title' | 'attachments'>> & { title: string };
+export type TaskPatch = Partial<Omit<Task, 'id' | 'attachments'>>;
 
 export interface TaskListOptions {
   /** Clock, for tests. */
@@ -678,6 +680,35 @@ export class TaskList {
     removeTasks(this.#data, ids);
     this.#emit('settings');
     return true;
+  }
+
+  // ---------- Attachments ----------
+
+  /**
+   * Attaches files whose bytes are already stored under their ids (PRD §4.8), as one undo step. Ids that
+   * aren't UUIDs or that a task already names are left out, and a task in the Trash takes none. Returns
+   * what was attached.
+   */
+  addAttachments(taskId: string, attachments: readonly Attachment[]): Attachment[] {
+    const task = this.getTask(taskId);
+    if (!task || task.deletedAt !== null) return [];
+    const added = cleanAttachments(attachments, attachmentIds(this.#data));
+    if (!added.length) return [];
+    this.#edit(() => {
+      task.attachments = [...(task.attachments ?? []), ...added];
+    });
+    return added;
+  }
+
+  /** Takes an attachment off its task, as one undo step. Its file stays until no task names it (PRD §4.8). */
+  removeAttachment(taskId: string, attachmentId: string): void {
+    const task = this.getTask(taskId);
+    if (!task?.attachments?.some((a) => a.id === attachmentId)) return;
+    this.#edit(() => {
+      const left = task.attachments!.filter((a) => a.id !== attachmentId);
+      if (left.length) task.attachments = left;
+      else delete task.attachments;
+    });
   }
 
   // ---------- Projects ----------

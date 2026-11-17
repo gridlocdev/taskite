@@ -1,4 +1,11 @@
 export {
+  MAX_ATTACHMENT_BYTES,
+  attachmentIds,
+  cleanAttachments,
+  isAttachmentId,
+  type Attachment,
+} from './attachments.ts';
+export {
   MAX_ACTIONS,
   MAX_DUE_DAYS,
   MAX_RULES,

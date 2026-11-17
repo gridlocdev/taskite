@@ -1,9 +1,10 @@
 import { expect } from 'vitest';
-import type { AppData } from '../../src/index.ts';
+import { isAttachmentId, type AppData } from '../../src/index.ts';
 
 /**
  * The rules that relate tasks (PRD §4.4, §6): a live subtask has a live, top-level parent and sits in its
- * parent's project and section; a live task's section exists in its project.
+ * parent's project and section; a live task's section exists in its project; an attachment belongs to one
+ * task and its id is a UUID (PRD §4.8).
  */
 export function checkInvariants(data: AppData): void {
   for (const project of data.projects)
@@ -27,7 +28,15 @@ export function checkInvariants(data: AppData): void {
       }
     }
   const byId = new Map(data.tasks.map((t) => [t.id, t]));
+  const attached = new Set<string>();
   for (const t of data.tasks) {
+    if ('attachments' in t)
+      expect(t.attachments?.length, `${t.title} keeps attachments only while it has some`).toBeGreaterThan(0);
+    for (const a of t.attachments ?? []) {
+      expect(isAttachmentId(a.id), `${t.title}'s attachment ${a.id} has a UUID`).toBe(true);
+      expect(attached.has(a.id), `attachment ${a.id} belongs to one task`).toBe(false);
+      attached.add(a.id);
+    }
     if (t.deletedAt !== null) continue;
     const project = data.projects.find((p) => p.id === t.projectId);
     expect(project, `${t.title} is in a project that exists`).toBeDefined();

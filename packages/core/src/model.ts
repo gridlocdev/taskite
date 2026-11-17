@@ -2,6 +2,7 @@
  * The data file (PRD §3.1): types, defaults, repair of older or hand-edited files, and the exact text
  * written to disk.
  */
+import { cleanAttachments, type Attachment } from './attachments.ts';
 import { cleanAutomations, type SectionAutomation } from './automations.ts';
 import { RECURRENCES, isISODate, type Recurrence } from './dates.ts';
 import type { Priority } from './parser.ts';
@@ -28,13 +29,15 @@ export interface Task {
   order: number;
   /** Epoch ms when moved to the Trash. */
   deletedAt: number | null;
-  /** The project section it sits in. Left out for tasks above the first section. */
   /**
    * The day of the month a monthly or yearly repeat falls on, kept only while a short month has pulled the
    * due date earlier (the 31st due on Feb 28), so the next check-off goes back to it (PRD §4.3).
    */
   repeatDay?: number;
+  /** The project section it sits in. Left out for tasks above the first section. */
   sectionId?: string;
+  /** Files attached to it (PRD §4.8). Left out when there are none. */
+  attachments?: Attachment[];
 }
 
 export const PROJECT_COLORS = {
@@ -174,10 +177,13 @@ export function normalize(raw: unknown, now: number = Date.now()): AppData {
   const projectIds = new Set(projects.map((p) => p.id));
   const sectionIds = new Set(projects.flatMap((p) => (p.sections ?? []).map((s) => `${p.id}/${s.id}`)));
   const rawTasks = Array.isArray(raw['tasks']) ? (raw['tasks'] as unknown[]) : [];
+  // An attachment's file belongs to one task: a repeated id is dropped from the later ones.
+  const attached = new Set<string>();
   const tasks: Task[] = rawTasks
     .filter((t): t is Loose => isObject(t) && Boolean(t['id']) && typeof t['title'] === 'string')
-    .map(({ sectionId, repeatDay, ...t }, i) => {
+    .map(({ sectionId, repeatDay, attachments: rawAttachments, ...t }, i) => {
       const projectId = projectIds.has(t['projectId'] as string) ? (t['projectId'] as string) : INBOX_ID;
+      const attachments = cleanAttachments(rawAttachments, attached);
       return {
         ...t,
         ...(typeof sectionId === 'string' && sectionIds.has(`${projectId}/${sectionId}`)
@@ -186,6 +192,7 @@ export function normalize(raw: unknown, now: number = Date.now()): AppData {
         ...(Number.isInteger(repeatDay) && (repeatDay as number) >= 1 && (repeatDay as number) <= 31
           ? { repeatDay: repeatDay as number }
           : {}),
+        ...(attachments.length ? { attachments } : {}),
         id: String(t['id']),
         title: t['title'] as string,
         description: typeof t['description'] === 'string' ? t['description'] : '',

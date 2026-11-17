@@ -19,6 +19,7 @@ import {
   type SectionAutomation,
   type Task,
   type TaskPatch,
+  attachmentIds,
 } from '../src/index.ts';
 import { checkInvariants } from './support/invariants.ts';
 import { RANDOM_TIMEOUT, runRandomOps, type Op, type Random } from './support/randomOps.ts';
@@ -36,6 +37,8 @@ interface State {
   start: AppData;
   /** Counts tasks made by outside changes, so their ids never repeat. */
   outside: number;
+  /** Attachment ids handed out so far. */
+  files: number;
 }
 
 const copy = (data: AppData): AppData => JSON.parse(serialize(data)) as AppData;
@@ -315,6 +318,38 @@ const ops: Op<State>[] = [
       return ids.join(',');
     },
   },
+  {
+    name: 'addAttachments',
+    when: (s) => s.list.data.tasks.length > 0,
+    run: (s, r) => {
+      // Mostly new ids, sometimes one already used or one that isn't a UUID: the engine leaves those out.
+      const used = [...attachmentIds(s.list.data)];
+      const id = () => {
+        if (used.length && r.chance(0.2)) return r.pick(used);
+        if (r.chance(0.1)) return r.text();
+        return `00000000-0000-4000-8000-${String(++s.files).padStart(12, '0')}`;
+      };
+      const task = r.pick(s.list.data.tasks);
+      const files = Array.from({ length: 1 + r.int(2) }, () => ({
+        id: id(),
+        name: r.text(),
+        size: r.int(5000),
+        type: '',
+      }));
+      const added = s.list.addAttachments(task.id, files).map((a) => a.id);
+      return `${task.id} ${added.join(',') || '(none)'}`;
+    },
+  },
+  {
+    name: 'removeAttachment',
+    when: (s) => s.list.data.tasks.some((t) => t.attachments),
+    run: (s, r) => {
+      const task = r.pick(s.list.data.tasks.filter((t) => t.attachments));
+      const id = r.pick(task.attachments ?? []).id;
+      s.list.removeAttachment(task.id, id);
+      return `${task.id} ${id}`;
+    },
+  },
   { name: 'emptyTrash', weight: 0.3, run: (s) => keepsLiveTasks(s, () => s.list.emptyTrash()) },
   { name: 'clearCompleted', weight: 0.3, run: (s) => s.list.clearCompleted() },
   {
@@ -445,6 +480,7 @@ describe('the engine', () => {
             clock: START,
             start: emptyData(),
             outside: 0,
+            files: 0,
           };
           state.list = new TaskList(emptyData(), { now: () => state.clock, newId: () => `id${++n}` });
           state.start = copy(state.list.data);
