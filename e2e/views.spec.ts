@@ -116,6 +116,22 @@ test.describe('Views', () => {
     await page.keyboard.press('Enter');
     await expect(page.getByRole('region', { name: 'Done' }).getByRole('textbox')).toBeFocused();
   });
+
+  test('Down reaches the Add task button after the last task, and Enter there adds a task', async ({
+    page,
+  }) => {
+    await page.getByRole('button', { name: /^Home/ }).click();
+    await page.getByRole('option').last().click();
+    await page.keyboard.press('ArrowDown');
+    const add = page.getByRole('main').getByRole('button', { name: 'Add task' });
+    await expect(add).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('textbox', { name: 'New task' })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(add).toBeFocused();
+    await page.keyboard.press('ArrowUp');
+    await expect(page.getByRole('option').last()).toBeFocused();
+  });
 });
 
 /** Work as a board: Draft quarterly report in To do, Plan team offsite in Doing, and (with `done`) an empty Done. */

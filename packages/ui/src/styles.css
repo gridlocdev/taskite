@@ -730,10 +730,12 @@ kbd {
   cursor: pointer;
   text-align: left;
 }
-.tk-add-row:hover {
+.tk-add-row:hover,
+.tk-add-row:focus-visible {
   color: var(--tk-accent);
 }
-.tk-add-row:hover .tk-add-plus {
+.tk-add-row:hover .tk-add-plus,
+.tk-add-row:focus-visible .tk-add-plus {
   background: var(--tk-accent);
   color: var(--tk-accent-text);
 }

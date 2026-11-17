@@ -10,7 +10,7 @@ import {
   type Section,
 } from '@taskite/core';
 import { Icon, isComposingKey, type CommandCatalog } from '@taskite/ui';
-import type { AppController } from './controller.ts';
+import { addStop, type AppController } from './controller.ts';
 import { openMenu } from './ContextMenu.tsx';
 import { dropOrder } from './forms.ts';
 
@@ -318,7 +318,12 @@ function SectionView({
         <Composer app={app} slot={slot} />
       ) : (
         slot !== null && (
-          <button type="button" class="tk-add-row" onClick={() => (app.composer.value = slot)}>
+          <button
+            type="button"
+            class="tk-add-row"
+            data-id={addStop(slot)}
+            onClick={() => (app.composer.value = slot)}
+          >
             <span class="tk-add-plus">
               <Icon name="plus" />
             </span>

@@ -19,7 +19,7 @@ In a browser tab, the browser keeps **⌘N** and **⇧⌘N** (**Ctrl+N** and **C
 
 | Action | macOS | Windows / Linux |
 | --- | --- | --- |
-| Next / previous task | **↓** / **↑** (or **J** / **K**) | **Down** / **Up** (or **J** / **K**) |
+| Next / previous task (and the Add task button after each section) | **↓** / **↑** (or **J** / **K**) | **Down** / **Up** (or **J** / **K**) |
 | Add the task below / above | **⇧↓** / **⇧↑** (or **⇧J** / **⇧K**) | **Shift+Down** / **Shift+Up** (or **Shift+J** / **Shift+K**) |
 | First task of the next / previous section (list) | **⌥⇧↓** / **⌥⇧↑** | **Alt+Shift+Down** / **Alt+Shift+Up** |
 | Task level with this one in the next / previous column (board) | **→** / **←** | **Right** / **Left** |

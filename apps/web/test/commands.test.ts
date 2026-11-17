@@ -267,6 +267,60 @@ describe('commands', () => {
     expect(press(key('ArrowDown', { shiftKey: true, altKey: true }))).toBeNull();
   });
 
+  it('Down and Up stop on each section Add task button; Shift extends over tasks only', async () => {
+    const { app, catalog } = await makeApp();
+    app.go({ type: 'project', id: INBOX_ID });
+    const a = app.list.addTask({ title: 'A' });
+    const one = app.list.addSection(INBOX_ID, 'One')!;
+    const b = app.list.addTask({ title: 'B', sectionId: one.id });
+    const press = (k: string, more: Partial<KeyboardEvent> = {}) => {
+      const r = catalog.forEvent(key(k, more), 'list', 0, true);
+      if (r?.kind === 'run') catalog.run(r.command.id);
+    };
+    expect(app.stops.value).toEqual([a.id, 'add:end', b.id, `add:section:${one.id}`]);
+    press('ArrowDown');
+    expect(app.cursor.value).toBe(a.id);
+    press('ArrowDown');
+    expect(app.cursor.value).toBe('add:end');
+    expect(app.selectedIds()).toEqual([]);
+    expect(app.announcement.value).toBe('Add task');
+    // Nothing to act on from the button; N adds right there.
+    expect(catalog.isEnabled(catalog.get('task.complete')!)).toBe(false);
+    catalog.run('task.new');
+    expect(app.composer.value).toBe('end');
+    app.closeComposer();
+    press('ArrowDown');
+    expect(app.cursor.value).toBe(b.id);
+    press('ArrowDown');
+    press('ArrowDown');
+    expect(app.cursor.value).toBe(`add:section:${one.id}`);
+    press('ArrowUp');
+    expect(app.cursor.value).toBe(b.id);
+    // Shift+Up from B passes over the Inbox's Add task button to A.
+    press('ArrowUp', { shiftKey: true });
+    expect(app.cursor.value).toBe(a.id);
+    expect(app.selectedIds()).toEqual([a.id, b.id]);
+    // From a button, Shift starts at the task beyond it.
+    press('ArrowDown');
+    press('ArrowDown', { shiftKey: true });
+    expect(app.cursor.value).toBe(b.id);
+    expect(app.selectedIds()).toEqual([b.id]);
+  });
+
+  it('on a board, Left and Right from an Add task button go to the bottom of the next column', async () => {
+    const { app, catalog } = await makeApp();
+    app.go({ type: 'project', id: INBOX_ID });
+    const one = app.list.addSection(INBOX_ID, 'One')!;
+    const two = app.list.addSection(INBOX_ID, 'Two')!;
+    app.list.addTask({ title: 'A', sectionId: one.id });
+    app.list.addTask({ title: 'B1', sectionId: two.id });
+    const b2 = app.list.addTask({ title: 'B2', sectionId: two.id });
+    app.setBoard(true);
+    app.cursor.value = `add:section:${one.id}`;
+    catalog.run('select.columnRight');
+    expect(app.cursor.value).toBe(b2.id);
+  });
+
   it('closestTo picks the row level with the one the cursor leaves', () => {
     const rows = [
       { id: 'a', y: 10 },

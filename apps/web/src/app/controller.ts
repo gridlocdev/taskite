@@ -115,6 +115,16 @@ export interface ControllerOptions {
   readonly location?: string;
 }
 
+/** The cursor's id for a section's Add task button, which ↑ and ↓ stop on after the section's tasks (PRD §7). */
+export function addStop(slot: string): string {
+  return `add:${slot}`;
+}
+
+/** The add-task slot an Add task stop opens, or undefined for a task id. */
+export function stopSlot(id: string | null): string | undefined {
+  return id?.startsWith('add:') ? id.slice(4) : undefined;
+}
+
 /** With no saved view, the app opens on Today (PRD §5.1). */
 const DEFAULT_VIEW: View = { type: 'today' };
 
@@ -179,6 +189,14 @@ export class AppController {
   });
 
   readonly ids = computed(() => visibleIds(this.content.value));
+  /** Where ↑ and ↓ go: each section's tasks, then its Add task button. */
+  readonly stops = computed(() =>
+    this.content.value.sections.flatMap((s) =>
+      s.addSlot === null
+        ? s.rows.map((r) => r.task.id)
+        : [...s.rows.map((r) => r.task.id), addStop(s.addSlot)],
+    ),
+  );
 
   constructor(session: TaskSession, opts: ControllerOptions = {}) {
     this.session = session;
@@ -351,22 +369,37 @@ export class AppController {
     this.#announceSelection();
   }
 
-  /** ↓ / ↑: moves to the next row, choosing it alone; with `extend`, grows the range from the anchor. */
+  /**
+   * ↓ / ↑: moves to the next row or Add task button, choosing a row alone; with `extend`, grows the range
+   * from the anchor over tasks only.
+   */
   step(delta: 1 | -1, extend = false): void {
     const ids = this.ids.value;
-    const from = this.cursor.value ?? (delta > 0 ? null : (ids[ids.length - 1] ?? null));
-    const next =
-      this.cursor.value === null ? (delta > 0 ? ids[0] : ids[ids.length - 1]) : stepId(ids, from, delta);
+    const stops = this.stops.value;
+    const cursor = this.cursor.value;
+    let next: string | null | undefined;
+    if (cursor === null)
+      next = extend ? (delta > 0 ? ids[0] : ids.at(-1)) : delta > 0 ? stops[0] : stops.at(-1);
+    else if (extend && stopSlot(cursor) !== undefined) {
+      // From an Add task button, the range starts at the task beyond it.
+      const at = stops.indexOf(cursor);
+      const beyond = delta > 0 ? stops.slice(at + 1) : stops.slice(0, Math.max(at, 0)).reverse();
+      next = beyond.find((id) => stopSlot(id) === undefined);
+    } else next = stepId(extend ? ids : stops, cursor, delta);
     if (!next) return;
+    const to = next;
     batch(() => {
-      if (extend) {
-        this.#anchor ??= this.cursor.value ?? next;
-        this.#select(rangeIds(ids, this.#anchor, next));
+      if (stopSlot(to) !== undefined) {
+        this.#select([]);
+        this.#anchor = null;
+      } else if (extend) {
+        this.#anchor ??= this.cursor.value ?? to;
+        this.#select(rangeIds(ids, this.#anchor, to));
       } else {
-        this.#select([next]);
-        this.#anchor = next;
+        this.#select([to]);
+        this.#anchor = to;
       }
-      this.cursor.value = next;
+      this.cursor.value = to;
     });
     this.#announceSelection();
   }
@@ -382,7 +415,7 @@ export class AppController {
   #filledSection(delta: 1 | -1): Section | undefined {
     const sections = this.content.value.sections;
     const cursor = this.cursor.value;
-    const at = cursor === null ? -1 : sections.findIndex((s) => s.rows.some((r) => r.task.id === cursor));
+    const at = cursor === null ? -1 : sections.findIndex((s) => holds(s, cursor));
     const from = at !== -1 ? at : delta > 0 ? -1 : sections.length;
     for (let i = from + delta; i >= 0 && i < sections.length; i += delta) {
       const s = sections[i]!;
@@ -408,8 +441,10 @@ export class AppController {
     let next = ids[0]!;
     if (near) {
       const cursor = this.cursor.value;
-      const from = this.content.value.sections.find((s) => s.rows.some((r) => r.task.id === cursor));
-      const place = from ? from.rows.findIndex((r) => r.task.id === cursor) : 0;
+      const from = cursor === null ? undefined : this.content.value.sections.find((s) => holds(s, cursor));
+      // The Add task button is below the last row.
+      const row = from ? from.rows.findIndex((r) => r.task.id === cursor) : 0;
+      const place = row === -1 ? (from?.rows.length ?? 0) : row;
       next = near(ids) ?? ids[Math.min(place, ids.length - 1)]!;
     }
     this.#moveTo(next);
@@ -457,7 +492,8 @@ export class AppController {
 
   #announceSelection(): void {
     const n = this.selected.value.size;
-    if (n > 1) this.announcement.value = `${plural(n, 'task')} chosen`;
+    if (stopSlot(this.cursor.value) !== undefined) this.announcement.value = 'Add task';
+    else if (n > 1) this.announcement.value = `${plural(n, 'task')} chosen`;
     else {
       const task = this.cursor.value ? this.list.getTask(this.cursor.value) : undefined;
       if (task) this.announcement.value = task.title;
@@ -478,7 +514,7 @@ export class AppController {
         this.selected.value = new Set([...chosen].filter((id) => ids.has(id)));
       if (this.#anchor && !ids.has(this.#anchor)) this.#anchor = null;
       const cursor = this.cursor.peek();
-      if (cursor === null || ids.has(cursor)) return;
+      if (cursor === null || ids.has(cursor) || this.stops.peek().includes(cursor)) return;
       const at = before.indexOf(cursor);
       const near = [...before.slice(at + 1), ...before.slice(0, Math.max(at, 0)).reverse()];
       const next = near.find((id) => ids.has(id)) ?? null;
@@ -527,6 +563,8 @@ export class AppController {
     const sections = this.content.value.sections;
     // Beside the task with the cursor: its section or board column, or its day in Upcoming.
     const cursor = this.cursor.value;
+    const onButton = stopSlot(cursor);
+    if (onButton !== undefined && this.stops.value.includes(cursor!)) return onButton;
     const here = sections.find((s) => s.rows.some((r) => r.task.id === cursor))?.addSlot;
     if (cursor !== null && here) return here;
     if (view.type === 'upcoming') return `day:${this.today.value}`;
@@ -1047,4 +1085,12 @@ export class AppController {
   tomorrow(): string {
     return addDays(this.today.value, 1);
   }
+}
+
+/** Whether `id` is one of the section's tasks or its Add task button. */
+function holds(section: Section, id: string): boolean {
+  return (
+    section.rows.some((r) => r.task.id === id) ||
+    (section.addSlot !== null && addStop(section.addSlot) === id)
+  );
 }
