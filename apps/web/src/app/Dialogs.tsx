@@ -22,6 +22,7 @@ import {
   isMac,
   type CommandCatalog,
 } from '@taskite/ui';
+import { AutomationsDialog } from './Automations.tsx';
 import { Calendar } from './Calendar.tsx';
 import { CommandMenu } from './CommandMenu.tsx';
 import type { AppController } from './controller.ts';
@@ -74,6 +75,8 @@ export function Dialogs({ app, catalog }: { readonly app: AppController; readonl
       );
     case 'move':
       return <MoveDialog app={app} ids={d.ids} />;
+    case 'automations':
+      return <AutomationsDialog app={app} projectId={d.projectId} sectionId={d.sectionId} />;
     case 'sections':
       return <GoToSectionDialog app={app} />;
     case 'commands':

@@ -1373,3 +1373,44 @@ fieldset {
   bottom: 34px;
   min-width: 160px;
 }
+
+/* Section automations editor (PRD §6.1): each rule a sentence, its actions one per line under it. */
+.tk-rule {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--tk-border);
+  border-radius: var(--tk-radius);
+}
+.tk-rule-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+.tk-rule-line select,
+.tk-rule-line input {
+  padding: 4px 6px;
+  border: 1px solid var(--tk-border-strong);
+  border-radius: var(--tk-radius);
+  background: var(--tk-bg);
+}
+.tk-rule-line input {
+  width: 140px;
+}
+.tk-rule-line input.tk-rule-days {
+  width: 72px;
+}
+.tk-rule-line input[aria-invalid='true'] {
+  border-color: var(--tk-danger);
+}
+.tk-rule-actions {
+  list-style: none;
+  margin: 8px 0 6px;
+  padding: 0 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tk-push-right {
+  margin-left: auto;
+}

@@ -48,6 +48,39 @@ describe('AppController', () => {
     expect(app.notice.value).toBeNull();
   });
 
+  it('saves section automations, and Apply runs new enters rules on the open tasks there, as one step', async () => {
+    const { app } = await makeApp();
+    const done = app.list.addSection(INBOX_ID, 'Done')?.id ?? '';
+    const a = app.list.addTask({ title: 'A', sectionId: done });
+    const b = app.list.addTask({ title: 'B', sectionId: done });
+    app.list.completeTasks([b.id]);
+    app.go({ type: 'project', id: INBOX_ID });
+    expect(app.list.openTasksIn(INBOX_ID, done).map((t) => t.id)).toEqual([a.id]);
+    app.saveAutomations(INBOX_ID, done, [{ on: 'enter', do: [{ addLabel: 'shipped' }] }], true);
+    expect(app.list.getSection(INBOX_ID, done)?.automations).toHaveLength(1);
+    expect(app.list.getTask(a.id)?.labels).toEqual(['shipped']);
+    expect(app.list.getTask(b.id)?.labels).toEqual([]);
+    expect(app.notice.value?.text).toBe('Automations saved. Automation: added @shipped.');
+    app.notice.value?.action?.run();
+    expect(app.list.getSection(INBOX_ID, done)?.automations).toBeUndefined();
+    expect(app.list.getTask(a.id)?.labels).toEqual([]);
+  });
+
+  it('Section Automations… edits the section right-clicked, else the one the cursor is in, and closes if it goes', async () => {
+    const { app } = await makeApp();
+    const doing = app.list.addSection(INBOX_ID, 'Doing')?.id ?? '';
+    const loose = app.list.addTask({ title: 'Loose' });
+    const t = app.list.addTask({ title: 'T', sectionId: doing });
+    app.go({ type: 'project', id: INBOX_ID });
+    app.cursor.value = loose.id;
+    expect(app.automationTarget()).toBeUndefined();
+    app.cursor.value = t.id;
+    expect(app.automationTarget()?.section.id).toBe(doing);
+    app.open({ kind: 'automations', projectId: INBOX_ID, sectionId: doing });
+    app.list.deleteSection(INBOX_ID, doing, Date.now());
+    expect(app.dialog.value).toBeNull();
+  });
+
   it('opens on Today when the file has no saved view', async () => {
     const { app } = await makeApp();
     expect(app.view.value).toEqual({ type: 'today' });

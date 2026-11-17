@@ -26,6 +26,7 @@ import {
   type ProjectColor,
   type Recurrence,
   type SavedView,
+  type SectionAutomation,
   type Section,
   type Task,
   type TaskPatch,
@@ -84,6 +85,8 @@ export type DialogState =
       readonly run: () => void;
     }
   | { readonly kind: 'move'; readonly ids: readonly string[] }
+  /** Section Automations… (PRD §6.1). */
+  | { readonly kind: 'automations'; readonly projectId: string; readonly sectionId: string }
   | { readonly kind: 'sections' }
   | { readonly kind: 'commands'; readonly query: string }
   | { readonly kind: 'settings' }
@@ -217,6 +220,9 @@ export class AppController {
       const before = this.ids.peek();
       this.rev.value++;
       this.#pruneSelection(before);
+      // Its section went (deleted elsewhere, or undone): the automations editor has nothing left to edit.
+      const d = this.dialog.peek();
+      if (d?.kind === 'automations' && !this.list.getSection(d.projectId, d.sectionId)) this.close();
     });
   }
 
@@ -954,6 +960,39 @@ export class AppController {
     if (target?.kind !== 'section') return undefined;
     const section = this.list.getSection(target.projectId, target.id);
     return section ? { projectId: target.projectId, section } : undefined;
+  }
+
+  /**
+   * The section Section Automations… edits: the one right-clicked, else the project section the cursor is in
+   * (PRD §6.1).
+   */
+  automationTarget(): { readonly projectId: string; readonly section: ProjectSection } | undefined {
+    const right = this.sectionTarget();
+    if (right) return right;
+    if (this.menu.value) return undefined;
+    const project = this.shownProject();
+    const cursor = this.cursor.value;
+    if (!project || cursor === null) return undefined;
+    const sectionId = this.content.value.sections.find((s) => holds(s, cursor))?.sectionId;
+    const section = sectionId ? this.list.getSection(project.id, sectionId) : undefined;
+    return section ? { projectId: project.id, section } : undefined;
+  }
+
+  /**
+   * Saves a section's rules from the editor; with `apply`, also runs its "enters" rules on the open tasks already
+   * there. One undo step either way (PRD §6.1).
+   */
+  saveAutomations(
+    projectId: string,
+    sectionId: string,
+    rules: readonly SectionAutomation[],
+    apply: boolean,
+  ): void {
+    this.list.batch(() => {
+      this.list.setSectionAutomations(projectId, sectionId, rules);
+      if (apply) this.list.applyEnterRules(projectId, sectionId);
+    });
+    this.sayUndoable('Automations saved.');
   }
 
   /** Adds a section (after `after`, else at the end) or renames one. */

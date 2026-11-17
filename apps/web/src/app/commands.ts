@@ -58,6 +58,7 @@ export const MENUS: Readonly<Record<MenuKind, readonly string[]>> = {
     'section.add',
     '|',
     'section.rename',
+    'section.automations',
     'section.moveEarlier',
     'section.moveLater',
     '|',
@@ -398,6 +399,19 @@ export function buildCommands(app: AppController): CommandCatalog {
       run: () => {
         const t = app.sectionTarget();
         if (t) app.open({ kind: 'section', projectId: t.projectId, id: t.section.id });
+      },
+    },
+    {
+      id: 'section.automations',
+      title: 'Section Automations…',
+      keywords: 'rules automate when then trigger workflow',
+      description:
+        'Edits the rules that change a task when it enters the section, or is completed there (the section right-clicked, else the one the cursor is in).',
+      group: 'Task',
+      enabled: () => !!app.automationTarget(),
+      run: () => {
+        const t = app.automationTarget();
+        if (t) app.open({ kind: 'automations', projectId: t.projectId, sectionId: t.section.id });
       },
     },
     ...([-1, 1] as const).map((by): CommandSpec => ({

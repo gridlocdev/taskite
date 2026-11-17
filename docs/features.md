@@ -31,6 +31,14 @@ The row previews the date, project and labels while you type. Press Enter to add
 
 Drop a task on a project, a label, Today or the Trash in the sidebar to move it there, give it that label, make it due today or delete it.
 
+## Automations
+
+- **Section Automations…** gives a project section rules that change a task when it enters the section or is completed there: complete or reopen it, set its due date or priority, add or remove a label, or move it somewhere else. Open it from a section heading's ⋯ menu or right-click menu, or from ⌘K for the section you're in.
+- Each rule reads as a sentence: _When a task enters this section, then complete it and add @shipped._ A section holds up to 10 rules of up to 5 actions each.
+- When a rule runs, the notice says what it did, and one **Undo** takes back your change and the rule's together. A move by a rule can set off the next section's rules, but never the same section twice.
+- Saving a new rule for tasks entering a section that already has tasks asks whether to apply it to them.
+- Rules run everywhere the tasks file is changed: the app, the NAS server and the `taskite` CLI.
+
 ## Working on tasks
 
 - **Add** a task with **New Task** (`⌘N` or `N`). It opens beside the task you're on: in its section or board column, or on its day in Upcoming.

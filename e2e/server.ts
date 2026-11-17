@@ -46,7 +46,7 @@ export interface FileTask {
 
 /** The tasks file as the server has it now. */
 export function readTasks(): {
-  projects: { id: string; name: string }[];
+  projects: { id: string; name: string; sections?: { id: string; name: string; automations?: unknown }[] }[];
   tasks: FileTask[];
   settings: { showCompleted?: boolean };
 } {

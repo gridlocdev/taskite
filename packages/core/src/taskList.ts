@@ -540,16 +540,23 @@ export class TaskList {
    */
   applyEnterRules(projectId: string, sectionId: string): void {
     if (!this.getSection(projectId, sectionId)?.automations?.some((r) => r.on === 'enter')) return;
-    this.#edit((data) => {
-      this.#automate(
-        data.tasks
-          .filter(
-            (t) =>
-              t.deletedAt === null && !t.parentId && t.projectId === projectId && t.sectionId === sectionId,
-          )
-          .map((task) => ({ task, on: 'enter' as const, projectId, sectionId })),
-      );
+    const tasks = this.openTasksIn(projectId, sectionId);
+    if (!tasks.length) return;
+    this.#edit(() => {
+      this.#automate(tasks.map((task) => ({ task, on: 'enter' as const, projectId, sectionId })));
     });
+  }
+
+  /** The open top-level tasks in a section: the ones "Apply to the N tasks already here?" counts and runs on. */
+  openTasksIn(projectId: string, sectionId: string): Task[] {
+    return this.#data.tasks.filter(
+      (t) =>
+        t.deletedAt === null &&
+        !t.completed &&
+        !t.parentId &&
+        t.projectId === projectId &&
+        t.sectionId === sectionId,
+    );
   }
 
   /** Un-checks tasks, and their parents so they show again. */

@@ -3,6 +3,7 @@
 // Every page runs on a clock that starts at NOW and keeps going, so the fixtures' dates mean the same on every run;
 // `page.clock.runFor(ms)` moves it on, which checks a timer (an autosave, a row's way out) without waiting for it.
 import { execFileSync } from 'node:child_process';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { expect, test as base, type Page } from '@playwright/test';
 import { DATA, NOW, ROOT, seedData } from './server.ts';
 
@@ -82,4 +83,22 @@ export async function runCommand(page: Page, name: string): Promise<void> {
   await page.keyboard.type(name);
   await page.keyboard.press('Enter');
   await expect(menu).toBeHidden();
+}
+
+/** Work as a board: Draft quarterly report in To do, Plan team offsite in Doing, and (with `done`) an empty Done
+ * holding `doneRules`. */
+export async function workAsBoard(page: Page, done = false, doneRules?: unknown[]): Promise<void> {
+  const file = `${DATA}/tasks.json`;
+  const data = JSON.parse(readFileSync(file, 'utf8'));
+  const work = data.projects.find((p: { name: string }) => p.name === 'Work');
+  work.view = 'board';
+  work.sections = [
+    { id: 's1', name: 'To do' },
+    { id: 's2', name: 'Doing' },
+    ...(done ? [{ id: 's3', name: 'Done', ...(doneRules ? { automations: doneRules } : {}) }] : []),
+  ];
+  for (const t of data.tasks)
+    if (t.projectId === work.id) t.sectionId = t.title.startsWith('Draft') ? 's1' : 's2';
+  writeFileSync(file, JSON.stringify(data, null, 2));
+  await page.reload();
 }
