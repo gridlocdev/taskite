@@ -13,6 +13,7 @@ import {
 import { Icon, isComposingKey, type CommandCatalog } from '@taskite/ui';
 import { addStop, type AppController } from './controller.ts';
 import { openMenu } from './ContextMenu.tsx';
+import { setFaintDragImage } from './dragImage.ts';
 import { dropOrder } from './forms.ts';
 import { SectionHeading } from './SectionHeading.tsx';
 
@@ -405,7 +406,10 @@ function TaskRow({
         if (!app.selected.value.has(task.id)) app.click(task.id);
         const tops = app.targetIds().filter((id) => !list.getTask(id)?.parentId);
         e.dataTransfer?.setData(DRAG_TYPE, JSON.stringify(tops));
-        if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = 'move';
+          setFaintDragImage(e, e.currentTarget as HTMLElement);
+        }
       }}
       onDragOver={(e) => {
         if (!canReorder || !e.dataTransfer?.types.includes(DRAG_TYPE)) return;

@@ -96,6 +96,30 @@ test.describe('Views', () => {
     await expect(page.getByRole('main')).toHaveScreenshot('board-cards.png');
   });
 
+  test('dragging a card shows a line where it will land, and leaves nothing behind once dropped', async ({
+    page,
+  }) => {
+    await workAsBoard(page);
+    await page.getByRole('button', { name: /^Work/ }).click();
+    const draft = page.getByRole('option', { name: /Draft quarterly report/ });
+    const plan = page.getByRole('option', { name: /Plan team offsite/ });
+    const to = await plan.boundingBox();
+    if (!to) throw new Error('Plan team offsite has no box');
+
+    await draft.hover();
+    await page.mouse.down();
+    await page.mouse.move(to.x + to.width / 2, to.y + 4, { steps: 5 });
+    await expect(plan).toHaveClass(/tk-drop-before/);
+    await page.mouse.up();
+
+    await expect.poll(() => fileTask('Draft quarterly report')?.sectionId).toBe('s2');
+    await expect(page.getByRole('region', { name: 'Doing' }).getByRole('option').first()).toContainText(
+      'Draft quarterly report',
+    );
+    await expect(page.locator('.tk-drag-holder')).toHaveCount(0);
+    await expect(page.locator('.tk-drop-before, .tk-drop-after')).toHaveCount(0);
+  });
+
   test('keys and Go to Section move between sections in a list and on a board', async ({ page }) => {
     // A list: Shift+Option+Down goes from Overdue to the first task due today.
     await page.getByRole('region', { name: 'Overdue' }).getByRole('option').first().click();
