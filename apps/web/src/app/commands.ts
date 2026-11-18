@@ -9,6 +9,7 @@ import type { AppController, MenuKind } from './controller.ts';
 /** The right-click menu on tasks: command ids in order, `|` between groups. */
 export const TASK_MENU: readonly string[] = [
   'task.complete',
+  'task.rename',
   'task.edit',
   'task.due',
   '|',
@@ -204,11 +205,23 @@ export function buildCommands(app: AppController): CommandCatalog {
       keywords: 'open details change modify rename description notes subtasks labels tags repeat recurring',
       description: 'Opens the chosen task: name, notes, date, repeat, priority, project, labels, subtasks.',
       group: 'Task',
-      shortcuts: ['enter'],
+      shortcuts: ['mod+enter'],
       enabled: () => !!app.single() && !inTrash(),
       context: true,
       keysOnly: true,
       run: () => app.edit(),
+    },
+    {
+      id: 'task.rename',
+      title: 'Rename Task',
+      keywords: 'edit name title change text inline',
+      description: 'Edits the chosen task’s name in place, in the list.',
+      group: 'Task',
+      shortcuts: ['enter'],
+      enabled: () => !!app.single() && !inTrash(),
+      context: true,
+      keysOnly: true,
+      run: () => app.rename(),
     },
     {
       id: 'task.due',

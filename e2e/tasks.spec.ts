@@ -15,7 +15,7 @@ test.describe('Working on tasks', () => {
 
   test('renaming a task in its editor saves the new name', async ({ page }) => {
     await page.getByRole('option', { name: /Water the plants/ }).click();
-    await page.keyboard.press('Enter');
+    await page.keyboard.press('ControlOrMeta+Enter');
     // Type as a person does, once focus is in the field: fill() can land before the editor has set itself up.
     await expect(page.getByRole('textbox', { name: 'Task name' })).toBeFocused();
     await page.keyboard.press('ControlOrMeta+KeyA');
@@ -25,11 +25,50 @@ test.describe('Working on tasks', () => {
     await expect.poll(() => fileTask('Water the ferns')?.due).toBe('2027-01-15');
   });
 
+  test('Enter renames a task in its row, the field survives switching windows, and Esc puts the name back', async ({
+    page,
+  }) => {
+    const row = page.getByRole('option', { name: /Water the plants/ });
+    await row.click();
+    await page.keyboard.press('Enter');
+    const field = row.getByRole('textbox', { name: 'Task name' });
+    await expect(field).toBeFocused();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await page.keyboard.type(' twice');
+    // Another window takes the keyboard: the field stays open with what was typed, and saves nothing yet.
+    await page.evaluate(() => {
+      document.hasFocus = () => false;
+      (document.activeElement as HTMLElement).blur();
+      window.dispatchEvent(new Event('blur'));
+    });
+    await page.evaluate(() => {
+      document.hasFocus = () => true;
+      window.dispatchEvent(new Event('focus'));
+    });
+    await expect(field).toHaveValue('Water the plants twice');
+    await field.focus();
+    await page.keyboard.press('Enter');
+    await expect(field).toBeHidden();
+    await expect(page.getByRole('option', { name: /Water the plants twice/ })).toBeFocused();
+    await expect.poll(() => fileTask('Water the plants twice')?.due).toBe('2027-01-15');
+
+    // Esc puts the name back; ⌘Enter saves and opens the full editor.
+    await page.keyboard.press('Enter');
+    await page.keyboard.type(' more');
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('option', { name: /plants twice Today/ })).toBeVisible();
+    await page.keyboard.press('Enter');
+    await page.keyboard.type('!');
+    await page.keyboard.press('ControlOrMeta+Enter');
+    await expect(page.getByRole('dialog', { name: 'Task' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Task name' })).toHaveValue('Water the plants twice!');
+  });
+
   test('files attach from the editor button, a drop or a paste, show their size, open, and come off with ×', async ({
     page,
   }) => {
     await page.getByRole('option', { name: /Water the plants/ }).click();
-    await page.keyboard.press('Enter');
+    await page.keyboard.press('ControlOrMeta+Enter');
     const editor = page.getByRole('dialog', { name: 'Task' });
     const chooser = page.waitForEvent('filechooser');
     await editor.getByRole('button', { name: 'Attachments' }).click();
@@ -91,7 +130,7 @@ test.describe('Working on tasks', () => {
     page,
   }) => {
     await page.getByRole('option', { name: /Water the plants/ }).click();
-    await page.keyboard.press('Enter');
+    await page.keyboard.press('ControlOrMeta+Enter');
     const editor = page.getByRole('dialog', { name: 'Task' });
     const buttons = editor.getByRole('group', { name: 'Add to the task' });
     // The task has a date, so Due date shows as a field, not a button.

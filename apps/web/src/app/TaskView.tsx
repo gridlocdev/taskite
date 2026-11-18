@@ -13,6 +13,7 @@ import {
 import { Icon, isComposingKey, type CommandCatalog } from '@taskite/ui';
 import { addStop, type AppController } from './controller.ts';
 import { openMenu } from './ContextMenu.tsx';
+import { NameField } from './NameField.tsx';
 import { setFaintDragImage } from './dragImage.ts';
 import { dropOrder } from './forms.ts';
 import { SectionHeading } from './SectionHeading.tsx';
@@ -365,6 +366,7 @@ function TaskRow({
   const project = list.getProject(task.projectId);
   const inTrash = task.deletedAt !== null;
   const attached = task.attachments?.length ?? 0;
+  const renaming = app.renaming.value?.id === task.id;
 
   const classes = ['tk-row'];
   if (isSubtask) classes.push('tk-subtask');
@@ -387,13 +389,13 @@ function TaskRow({
         if (!isCursor && (e.currentTarget as HTMLElement).matches(':focus-visible')) app.click(task.id);
       }}
       // Only top-level tasks are dragged; subtasks follow their parent (PRD §4.5).
-      draggable={!inTrash && !task.parentId}
+      draggable={!inTrash && !task.parentId && !renaming}
       onClick={(e) => {
-        if ((e.target as HTMLElement).closest('.tk-check')) return;
+        if ((e.target as HTMLElement).closest('.tk-check, .tk-name-field')) return;
         app.click(task.id, { toggle: e.metaKey || e.ctrlKey, range: e.shiftKey });
       }}
       onDblClick={(e) => {
-        if (!(e.target as HTMLElement).closest('.tk-check') && !inTrash) app.edit(task.id);
+        if (!(e.target as HTMLElement).closest('.tk-check, .tk-name-field') && !inTrash) app.edit(task.id);
       }}
       onContextMenu={(e) => {
         // A task always has something to offer (Complete, or Restore in the Trash).
@@ -456,7 +458,7 @@ function TaskRow({
         </button>
       )}
       <div class="tk-row-body">
-        <div class="tk-row-title">{task.title}</div>
+        {renaming ? <NameField app={app} title={task.title} /> : <div class="tk-row-title">{task.title}</div>}
         {task.description && <div class="tk-row-desc">{task.description.split('\n')[0]}</div>}
         <div class="tk-row-meta">
           {inTrash && <span>{trashAge(task.deletedAt ?? 0, Date.now())}</span>}
@@ -552,6 +554,8 @@ function Composer({ app, slot }: { readonly app: AppController; readonly slot: s
           }
         }}
         onBlur={(e) => {
+          // Switching to another window or tab keeps the row open.
+          if (!document.hasFocus()) return;
           const next = e.relatedTarget as HTMLElement | null;
           if (!text.trim() && !next?.closest('.tk-composer')) app.composer.value = null;
         }}

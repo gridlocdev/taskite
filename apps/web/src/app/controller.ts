@@ -60,12 +60,20 @@ export interface Notice {
   readonly tone: 'info' | 'error';
 }
 
-/** The one dialog that can be open (PRD §9). */
 /** The task editor's unsaved text: save it, or ask whether there is any. */
 export interface Draft {
   flush(): void;
   dirty(): boolean;
 }
+
+/** A task's name being edited in its row (PRD §4.4): the text in the field, and the name it was last saved as. */
+export interface Renaming {
+  readonly id: string;
+  readonly text: string;
+  readonly from: string;
+}
+
+/** The one dialog that can be open (PRD §9). */
 
 export type DialogState =
   | { readonly kind: 'task'; readonly id: string }
@@ -165,6 +173,8 @@ export class AppController {
   readonly leaving = signal<ReadonlySet<string>>(new Set());
   /** What the screen reader's live region says next. */
   readonly announcement = signal('');
+  /** The task whose name is being edited in its row: what's typed, and the name it started from. */
+  readonly renaming = signal<Renaming | null>(null);
   /** Bumped when the list should take keyboard focus (after a dialog or the composer closes). */
   readonly focusList = signal(0);
   /** Bumped to put the cursor in the search box. */
@@ -674,6 +684,37 @@ export class AppController {
     if (id) this.open({ kind: 'task', id });
   }
 
+  /** Puts the task's name in a text field in its row (PRD §4.4). */
+  rename(id: string | undefined = this.single()?.id): void {
+    const task = id ? this.list.getTask(id) : undefined;
+    if (!task || task.deletedAt !== null) return;
+    this.flushDraft();
+    this.renaming.value = { id: task.id, text: task.title, from: task.title };
+  }
+
+  /** Typing in the row's name field. */
+  typeName(text: string): void {
+    const r = this.renaming.peek();
+    if (r) this.renaming.value = { ...r, text };
+  }
+
+  /** Saves the row's name field when it was typed in; an empty name keeps the last one. */
+  #saveName(): void {
+    const r = this.renaming.peek();
+    if (!r || r.text === r.from) return;
+    const title = r.text.trim();
+    if (title) this.saveTask(r.id, { title });
+    this.renaming.value = { ...r, text: title || r.from, from: title || r.from };
+  }
+
+  /** Closes the row's name field, saving it unless `save` is false. `focus` gives the keyboard back to the list. */
+  endRename({ save = true, focus = true } = {}): void {
+    if (this.renaming.peek() === null) return;
+    if (save) this.#saveName();
+    this.renaming.value = null;
+    if (focus) this.focusList.value++;
+  }
+
   /**
    * Changes a task from the editor (PRD §9.1): one undo step, or none when nothing differs. A repeating
    * task needs a date to repeat from, so repeating gives it today and clearing the date stops it repeating.
@@ -1175,11 +1216,14 @@ export class AppController {
 
   /** Saves the open editor's typed text, if any. */
   flushDraft(): void {
+    this.#saveName();
     this.#draft?.flush();
   }
 
   /** Whether the open editor holds typed text not yet saved. Changes from elsewhere wait for it. */
   hasDraft(): boolean {
+    const r = this.renaming.peek();
+    if (r && r.text !== r.from) return true;
     return this.#draft?.dirty() ?? false;
   }
 
@@ -1187,6 +1231,7 @@ export class AppController {
     this.flushDraft();
     batch(() => {
       this.menu.value = null;
+      this.renaming.value = null;
       this.dialog.value = dialog;
     });
   }

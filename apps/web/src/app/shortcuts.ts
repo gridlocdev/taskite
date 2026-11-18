@@ -32,6 +32,8 @@ function extras(mod: string): Partial<Record<CommandGroup, ShortcutLine[]>> {
     Task: [
       { title: 'Task actions menu', keys: [['Shift', 'F10']] },
       { title: 'Save and close the task editor', keys: [[mod === '⌘' ? '⌘Enter' : 'Ctrl+Enter']] },
+      { title: 'Save the name (renaming in the row)', keys: [['Enter']] },
+      { title: 'Put the name back (renaming in the row)', keys: [['Esc']] },
     ],
     Select: [
       { title: 'Choose another task too', keys: [[`${mod}-click`]] },

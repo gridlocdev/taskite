@@ -754,6 +754,21 @@ kbd {
 .tk-row-title {
   overflow-wrap: anywhere;
 }
+.tk-name-field {
+  display: block;
+  width: calc(100% + 12px);
+  margin: -3px -6px;
+  padding: 2px 5px;
+  border: 1px solid var(--tk-border-strong);
+  border-radius: 6px;
+  background: var(--tk-raised);
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+.tk-name-field:focus {
+  border-color: var(--tk-accent);
+}
 .tk-done .tk-row-title {
   color: var(--tk-text-3);
   text-decoration: line-through;

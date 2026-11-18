@@ -35,7 +35,8 @@ In a browser tab, the browser keeps **⌘N** and **⇧⌘N** (**Ctrl+N** and **C
 | Action                              | macOS                      | Windows / Linux                |
 | ----------------------------------- | -------------------------- | ------------------------------ |
 | Complete, or reopen if already done | **␣**                      | **Space**                      |
-| Edit (one task)                     | **↩**                      | **Enter**                      |
+| Rename (one task, in its row)       | **↩**                      | **Enter**                      |
+| Edit (one task, in the task editor) | **⌘↩**                     | **Ctrl+Enter**                 |
 | Save and close the task editor      | **⌘↩**                     | **Ctrl+Enter**                 |
 | Set due date                        | **D**                      | **D**                          |
 | Priority 1 to 4                     | **1**, **2**, **3**, **4** | **1**, **2**, **3**, **4**     |

@@ -313,6 +313,39 @@ describe('AppController', () => {
     expect(app.list.getTask(t.id)?.title).toBe('A, again');
   });
 
+  it('Enter renames the chosen task in its row and ⌘Enter opens the editor (PRD §4.4)', async () => {
+    const { app, catalog } = await makeApp();
+    const t = app.list.addTask({ title: 'A' });
+    app.go({ type: 'project', id: INBOX_ID });
+    app.click(t.id);
+    expect(catalog.get('task.rename')?.shortcuts).toEqual(['enter']);
+    expect(catalog.get('task.edit')?.shortcuts).toEqual(['mod+enter']);
+    catalog.run('task.rename');
+    expect(app.renaming.value).toEqual({ id: t.id, text: 'A', from: 'A' });
+    expect(app.hasDraft()).toBe(false);
+    app.typeName('B');
+    // Typed text holds off changes made elsewhere, and opening a dialog saves it and closes the field.
+    expect(app.hasDraft()).toBe(true);
+    catalog.run('task.edit');
+    expect(app.list.getTask(t.id)?.title).toBe('B');
+    expect(app.renaming.value).toBeNull();
+    expect(app.dialog.value).toEqual({ kind: 'task', id: t.id });
+    app.close();
+    // Esc puts the name back; an empty name keeps the last one; an unchanged name records nothing.
+    app.rename(t.id);
+    app.typeName('C');
+    app.endRename({ save: false });
+    expect(app.list.getTask(t.id)?.title).toBe('B');
+    app.rename(t.id);
+    app.typeName('  ');
+    app.endRename();
+    expect(app.list.getTask(t.id)?.title).toBe('B');
+    app.rename(t.id);
+    const before = app.rev.value;
+    app.endRename();
+    expect(app.rev.value).toBe(before);
+  });
+
   it('never saves an editor into a task that went to the Trash', async () => {
     const { app } = await makeApp();
     const t = app.list.addTask({ title: 'A' });
