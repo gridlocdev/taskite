@@ -26,6 +26,9 @@
       "path": "apps/desktop"
     },
     {
+      "path": "apps/ios"
+    },
+    {
       "path": "apps/cli"
     },
     {

@@ -1,4 +1,5 @@
 import type { CopyLabel } from '@taskite/core';
+import type { NativeMenuItem } from '../commands/index.ts';
 import {
   ConflictError,
   FileExistsError,
@@ -25,6 +26,25 @@ export interface NativeData {
   getFile(id: string): Promise<Uint8Array | null>;
   /** Returns how many files it deleted. */
   cleanFiles(): Promise<number>;
+}
+
+/**
+ * The whole `window.taskiteNative` bridge: the data calls plus the window's. The desktop preload provides it
+ * (PRD §12), and so does the iOS app (PRD §13).
+ */
+export interface TaskiteNative extends NativeData {
+  readonly version: string;
+  /** 'unified': the window has no title bar and the page draws the toolbar row (macOS). */
+  readonly chrome: 'unified' | 'native';
+  /** Replaces the menu bar. */
+  setMenu(items: readonly NativeMenuItem[]): void;
+  /** A menu bar item was chosen. */
+  onCommand(fn: (id: string) => void): void;
+  /** The window wants to close: finish saving, then call `closeReady`. */
+  onCloseRequested(fn: () => void): void;
+  closeReady(): void;
+  /** The window entered or left full screen. */
+  onFullScreen(fn: (full: boolean) => void): void;
 }
 
 export class NativeStore implements TaskStore {

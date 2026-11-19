@@ -96,6 +96,12 @@ A `node:http` server with no framework. `GET` and `PUT /api/data` read and write
 - `preload.cts` exposes `taskiteNative`: load, save and save a copy of the tasks file, write, read and clean up attached files, set the menu bar, send menu commands and full-screen changes to the page, and say whether the window uses the unified toolbar (`chrome`; macOS). `main.tsx` turns that into the `tk-unified` and `tk-fullscreen` classes on `<html>`, which the stylesheet uses for the drag regions. The channels are listed in `bridge.ts`.
 - `paths.ts`: where the data lives, and the one-time read of the old Tasks file. `menu.ts`: the menu bar from the catalog plus the standard menus, and the edit menu for right-clicked text. `windowState.ts`: the window's size and place.
 
+## iOS (`apps/ios`)
+
+- Capacitor wraps the web build. `scripts/assemble.mjs` copies `apps/web/dist` into `www` and adds the bridge script ahead of the client's module script; `cap sync` copies `www` into the Xcode project in `ios/`.
+- `main.ts` puts `taskiteNative` on the page. `documents.ts` is its data half: the desktop's file rules on top of `Files`, a small interface over the app's Documents folder. `files.ts` implements `Files` with `@capacitor/filesystem`; the tests use an in-memory one. The plugin's rename deletes the old file before it moves the new one in, so a crash in that instant leaves only the temp file (`.tasks.json.<uuid>.tmp`), not `tasks.json`. Moving the file in with a single native `replaceItemAt` call would close that gap.
+- Signing settings come from `ios/debug.xcconfig` and `ios/release.xcconfig`, which include the untracked `ios/signing.local.xcconfig`. A test fails if an Apple team ID gets into the Xcode project.
+
 ## CLI (`apps/cli`)
 
 `args.ts` parses the command line, `cli.ts` runs a command against `packages/core` and `packages/node-files`, and `io.ts` finds the file. `runCli` takes its input and output as arguments, so the tests run it without a process.

@@ -18,6 +18,8 @@ export default tseslint.config(
       '.types-e2e/**',
       '.e2e-*/**',
       '**/node_modules/**',
+      'apps/ios/ios/**',
+      'apps/ios/www/**',
     ],
   },
   js.configs.recommended,
@@ -45,7 +47,7 @@ export default tseslint.config(
   {
     // Build scripts run in Node.
     files: ['**/scripts/**/*.mjs'],
-    languageOptions: { globals: { console: 'readonly', process: 'readonly' } },
+    languageOptions: { globals: { console: 'readonly', process: 'readonly', URL: 'readonly' } },
   },
   {
     // The engine must stay portable: browser, worker, Node, Electron renderer. Its tests run in Node.

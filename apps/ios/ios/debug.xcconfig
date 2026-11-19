@@ -1,0 +1,4 @@
+CAPACITOR_DEBUG = true
+
+// Your Apple team goes in signing.local.xcconfig (not in git): DEVELOPMENT_TEAM = <your team ID>
+#include? "signing.local.xcconfig"

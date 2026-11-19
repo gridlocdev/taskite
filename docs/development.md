@@ -96,6 +96,18 @@ just icons  # icon.icns (macOS), icon.ico (Windows) and icon.png (Linux window) 
 
 It needs Inkscape (`brew install --cask inkscape`) and, for the `.icns`, macOS. If the Dock still shows the old icon after a rebuild, that is the macOS icon cache: move the app, or log out and back in.
 
+## The iOS app
+
+`apps/ios` wraps the web client for iPhone and iPad with Capacitor. You need macOS, Xcode and an Apple developer account.
+
+1. Put your team ID (in the Apple developer website under Membership) in `apps/ios/ios/signing.local.xcconfig`, as `DEVELOPMENT_TEAM = <team ID>`. Git ignores that file. Don't choose the team in Xcode's Signing & Capabilities tab: that writes it into the project file, and a test fails.
+2. Run `just open-ios`. It builds the web client and the bridge, copies them into the Xcode project, and opens Xcode.
+3. Pick your iPhone or a simulator and press Run.
+
+`just build-ios` does step 2 without opening Xcode. `pnpm build` (and so `just check`) builds `apps/ios/www` but doesn't touch the Xcode project.
+
+To check the app headlessly, build it with `xcodebuild` for a simulator, then install, launch and screenshot it with `xcrun simctl`. Each simulator has its own data, so checks never touch your real tasks.
+
 ## Releasing
 
 Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`. It packages the desktop app on macOS (Apple silicon and Intel), Windows and Linux, and publishes them on a GitHub release. The NAS image isn't published: people build it from the repository.

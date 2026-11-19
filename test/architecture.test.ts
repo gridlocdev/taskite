@@ -29,6 +29,7 @@ const LAYERS: Record<string, readonly string[]> = {
   'apps/server': ['packages/core', 'packages/node-files'],
   'apps/cli': ['packages/core', 'packages/node-files'],
   'apps/desktop': ['packages/core', 'packages/node-files'],
+  'apps/ios': ['packages/ui', 'packages/core'],
 };
 
 /**
@@ -54,7 +55,7 @@ const ENGINE_BANNED_GLOBALS = [
 const FETCH_NAMES = ['fetch'];
 
 /** The parts that run in the page. */
-const RENDERER = ['packages/ui', 'apps/web'];
+const RENDERER = ['packages/ui', 'apps/web', 'apps/ios'];
 
 // Things the page may do only in the folders or files listed. The test fails on an entry that doesn't exist.
 // Taskite keeps its settings in tasks.json, so only the store adapters touch browser storage.

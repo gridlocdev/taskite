@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### What's new
+
+- **Taskite for iPhone and iPad.** Build it from source with your own Apple developer account and install it from Xcode; see [Development](docs/development.md#the-ios-app). Your tasks are kept in a `tasks.json` you can see in the Files app, under On My iPhone › Taskite.
+
 ## 1.0.0
 
 ### Before you update

@@ -21,6 +21,7 @@ Taskite is a to-do list for one person. One UI runs in the browser, in the NAS s
 | `apps/web` | The app shell, the list of commands and the Vite entry point. One static build serves the browser, the NAS server and the desktop app. |
 | `apps/server` | The NAS server (`node:http`): serves the client and `/api/data`. No framework. |
 | `apps/desktop` | The Electron shell: main process, sandboxed preload bridge, native menu. |
+| `apps/ios` | The iOS app (Capacitor): a bridge script that provides `taskiteNative` over the app's Documents folder, and the Xcode project in `ios/`. |
 | `apps/cli` | The `taskite` CLI, run from source. It depends on `packages/core` only. |
 
 ## Golden rules
@@ -30,9 +31,10 @@ Taskite is a to-do list for one person. One UI runs in the browser, in the NAS s
 3. **One command catalog.** The command menu, shortcuts, context menus, the Electron menu bar, the Keyboard Shortcuts window and `docs/controls.md` all read it. Don't wire a key or a menu item past it.
 4. **The UI reaches the file only through `TaskStore`.** It never knows whether data is in memory, in the browser, on the NAS or on disk.
 5. **Never lose data.** Saves are atomic everywhere. A conflict is shown and the user chooses; nothing merges or overwrites silently. Deleting goes to the Trash.
-6. **Security.** The Electron renderer is sandboxed with context isolation; its only native access is the `taskiteNative` bridge, which reaches only the data file. The server serves only its data file and static folder, and checks `Host` when there is no token.
-7. **Dependencies.** The runtime dependencies are Preact and `@preact/signals`. Don't add a package without the owner's approval. Pin versions exactly.
-8. **Nothing left to interpretation.** If a behaviour isn't in the PRD, stop and ask, then record the answer in the PRD.
+6. **No Apple account details in the repo.** The Xcode project never names an Apple team, signing identity or provisioning profile. The team ID lives only in the untracked `apps/ios/ios/signing.local.xcconfig`, and `apps/ios/test/project.test.ts` enforces it.
+7. **Security.** The Electron renderer is sandboxed with context isolation; its only native access is the `taskiteNative` bridge, which reaches only the data file. The server serves only its data file and static folder, and checks `Host` when there is no token.
+8. **Dependencies.** The runtime dependencies are Preact and `@preact/signals`, plus the Capacitor packages in `apps/ios`. Don't add a package without the owner's approval. Pin versions exactly.
+9. **Nothing left to interpretation.** If a behaviour isn't in the PRD, stop and ask, then record the answer in the PRD.
 
 ## TypeScript conventions
 

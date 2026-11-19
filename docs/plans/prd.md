@@ -67,6 +67,7 @@ All data is one JSON file, `tasks.json`, written pretty-printed (two-space inden
 
 | Runs as | File |
 |---|---|
+| iOS | `tasks.json` in the app's Documents folder, shown in the Files app under On My iPhone › Taskite (§13) |
 | Desktop | `<userData>/tasks.json` (macOS `~/Library/Application Support/Taskite/`, Windows `%APPDATA%\Taskite\`, Linux `~/.config/Taskite/`) |
 | Browser | `tasks.json` in the origin's private file system (OPFS) |
 | NAS | `$TASKITE_DATA/tasks.json` on the server (§10) |
@@ -296,3 +297,10 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
 - The window's size and place are remembered.
 - `TASKITE_HEADLESS=1` renders offscreen with no window or Dock icon (for automated checks); `TASKITE_USER_DATA=<dir>` uses another data folder.
 - Packages: macOS dmg and zip (arm64 and x64, ad-hoc signed), Windows NSIS, Linux AppImage; app id `dev.gridloc.taskite`.
+
+## §13 iOS
+
+- Capacitor wraps the same web client for iPhone and iPad. A bridge script loads before the client and provides `taskiteNative` (§12), so the client uses the native store as it does on the desktop.
+- The tasks file and `attachments/` live in the app's Documents folder, which the Files app shows under On My iPhone › Taskite. Saves follow §3.3 and §3.4: one at a time, refused if the file changed since it was read, and written to a temp file that is then renamed over `tasks.json`.
+- There is no menu bar or full screen. When iOS sends the app to the background, it finishes saving, as the desktop app does before a window closes.
+- The app is built from source and installed with the builder's own Apple developer account; it isn't on the App Store. The Xcode project names no Apple team: the team ID goes in `apps/ios/ios/signing.local.xcconfig`, which git ignores. App id `dev.gridloc.taskite`.

@@ -13,7 +13,7 @@ export {
   type NasInfo,
   type TokenStorage,
 } from './store/nasStore.ts';
-export { NativeStore, type NativeData } from './store/nativeStore.ts';
+export { NativeStore, type NativeData, type TaskiteNative } from './store/nativeStore.ts';
 export {
   ConflictError,
   FileExistsError,

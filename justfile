@@ -105,6 +105,19 @@ install-desktop: package-desktop-dir
     "$lsregister" -f "$target"
     echo "Installed $target"
 
+# Build the iOS app's web content and copy it into the Xcode project (apps/ios/ios).
+[group('build')]
+[macos]
+build-ios: build-web
+    pnpm --filter @taskite/ios build
+    cd apps/ios && pnpm exec cap sync ios
+
+# Build, then open the Xcode project: pick your iPhone or a simulator and press Run.
+[group('build')]
+[macos]
+open-ios: build-ios
+    cd apps/ios && pnpm exec cap open ios
+
 # Build the NAS Docker image.
 [group('build')]
 build-docker tag="taskite:latest":
@@ -222,7 +235,7 @@ setup:
 # Remove build output.
 [group('housekeeping')]
 clean:
-    rm -rf apps/web/dist apps/desktop/out "{{ release }}" apps/desktop/node_modules/.cache/taskite-dev
+    rm -rf apps/web/dist apps/ios/dist apps/ios/www apps/desktop/out "{{ release }}" apps/desktop/node_modules/.cache/taskite-dev
     find . -name '*.tsbuildinfo' -not -path '*/node_modules/*' -delete
     rm -rf .e2e-data .e2e-results .e2e-report .e2e-soak .types-e2e
 
