@@ -60,7 +60,7 @@ export function Sidebar({ app, catalog }: { readonly app: AppController; readonl
         <span class="tk-app-name">Taskite</span>
         <button
           type="button"
-          class="tk-icon-button"
+          class="tk-icon-button tk-command-button"
           title={`Command menu (${catalog.keys(catalog.get('help.commands')!).join('')})`}
           aria-label="Command menu"
           onClick={() => catalog.run('help.commands')}
@@ -75,6 +75,16 @@ export function Sidebar({ app, catalog }: { readonly app: AppController; readonl
           onClick={() => catalog.run('app.settings')}
         >
           <Icon name="settings" />
+        </button>
+        {/* On a phone the Projects heading's + moves down here, by the search box and the thumb (PRD §5.5). */}
+        <button
+          type="button"
+          class="tk-icon-button tk-phone-only"
+          title="New project"
+          aria-label="New project"
+          onClick={() => catalog.run('project.new')}
+        >
+          <Icon name="plus" />
         </button>
       </div>
       <div class="tk-search">
@@ -103,70 +113,73 @@ export function Sidebar({ app, catalog }: { readonly app: AppController; readonl
         />
       </div>
       <div class="tk-sidebar-scroll">
-        <button type="button" class="tk-nav tk-nav-add tk-tabbed" onClick={() => catalog.run('task.new')}>
-          <span class="tk-add-plus">
-            <Icon name="plus" />
-          </span>
-          <span class="tk-nav-name">Add task</span>
-        </button>
-        <ul class="tk-nav-list">
-          {item(
-            { type: 'project', id: INBOX_ID },
-            'Inbox',
-            'inbox',
-            counts.inbox,
-            'project',
-            undefined,
-            true,
-          )}
-          {item({ type: 'today' }, 'Today', 'today', counts.today, 'today', undefined, true)}
-          {item({ type: 'upcoming' }, 'Upcoming', 'calendar', null, null, undefined, true)}
-          {item({ type: 'completed' }, 'Completed', 'done', null, null)}
-          {item({ type: 'trash' }, 'Trash', 'trash', counts.trash || null, 'trash')}
-        </ul>
-        <div class="tk-sidebar-heading" onContextMenu={(e) => openMenu(app, catalog, e, 'projects')}>
-          <span>Projects</span>
-          <button
-            type="button"
-            class="tk-icon-button"
-            title="New project"
-            aria-label="New project"
-            onClick={() => catalog.run('project.new')}
-          >
-            <Icon name="plus" />
+        {/* One box, so a phone can stack it from the bottom up and open it scrolled to the end (PRD §5.5). */}
+        <div class="tk-sidebar-list">
+          <button type="button" class="tk-nav tk-nav-add tk-tabbed" onClick={() => catalog.run('task.new')}>
+            <span class="tk-add-plus">
+              <Icon name="plus" />
+            </span>
+            <span class="tk-nav-name">Add task</span>
           </button>
-        </div>
-        <ul class="tk-nav-list">
-          {projects.map((p) =>
-            item(
-              { type: 'project', id: p.id },
-              p.name,
-              null,
-              counts.projects.get(p.id) ?? null,
+          <ul class="tk-nav-list">
+            {item(
+              { type: 'project', id: INBOX_ID },
+              'Inbox',
+              'inbox',
+              counts.inbox,
               'project',
-              PROJECT_COLORS[p.color],
-            ),
+              undefined,
+              true,
+            )}
+            {item({ type: 'today' }, 'Today', 'today', counts.today, 'today', undefined, true)}
+            {item({ type: 'upcoming' }, 'Upcoming', 'calendar', null, null, undefined, true)}
+            {item({ type: 'completed' }, 'Completed', 'done', null, null)}
+            {item({ type: 'trash' }, 'Trash', 'trash', counts.trash || null, 'trash')}
+          </ul>
+          <div class="tk-sidebar-heading" onContextMenu={(e) => openMenu(app, catalog, e, 'projects')}>
+            <span>Projects</span>
+            <button
+              type="button"
+              class="tk-icon-button tk-phone-hidden"
+              title="New project"
+              aria-label="New project"
+              onClick={() => catalog.run('project.new')}
+            >
+              <Icon name="plus" />
+            </button>
+          </div>
+          <ul class="tk-nav-list">
+            {projects.map((p) =>
+              item(
+                { type: 'project', id: p.id },
+                p.name,
+                null,
+                counts.projects.get(p.id) ?? null,
+                'project',
+                PROJECT_COLORS[p.color],
+              ),
+            )}
+          </ul>
+          {labels.length > 0 && (
+            <>
+              <div class="tk-sidebar-heading">
+                <span>Labels</span>
+              </div>
+              <ul class="tk-nav-list">
+                {labels.map((l) =>
+                  item(
+                    { type: 'label', name: l },
+                    l,
+                    'tag',
+                    counts.labels.get(l) || null,
+                    'label',
+                    colorOf(app.list.labelColor(l)),
+                  ),
+                )}
+              </ul>
+            </>
           )}
-        </ul>
-        {labels.length > 0 && (
-          <>
-            <div class="tk-sidebar-heading">
-              <span>Labels</span>
-            </div>
-            <ul class="tk-nav-list">
-              {labels.map((l) =>
-                item(
-                  { type: 'label', name: l },
-                  l,
-                  'tag',
-                  counts.labels.get(l) || null,
-                  'label',
-                  colorOf(app.list.labelColor(l)),
-                ),
-              )}
-            </ul>
-          </>
-        )}
+        </div>
       </div>
     </nav>
   );

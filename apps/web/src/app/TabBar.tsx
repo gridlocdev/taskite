@@ -2,7 +2,9 @@ import { useRef } from 'preact/hooks';
 import { INBOX_ID, sameView, sidebarCounts, type SavedView } from '@taskite/core';
 import { Icon, type CommandCatalog } from '@taskite/ui';
 import type { AppController } from './controller.ts';
+import { showMenu } from './ContextMenu.tsx';
 import { statusQuiet } from './StatusBar.tsx';
+import { useTouch } from './touch.ts';
 
 const TABS: readonly { readonly name: string; readonly icon: string; readonly view: SavedView }[] = [
   { name: 'Today', icon: 'today', view: { type: 'today' } },
@@ -12,9 +14,10 @@ const TABS: readonly { readonly name: string; readonly icon: string; readonly vi
 
 /**
  * The phone's bottom tab bar (PRD §5.5): Today, Upcoming, Inbox and Browse, which holds every other view and
- * search. The stylesheet shows it only at phone width.
+ * search. A long press on the tab that's showing opens its view's menu, the same as the ⋯ at the top. The
+ * stylesheet shows it only at phone width.
  */
-export function TabBar({ app }: { readonly app: AppController }) {
+export function TabBar({ app, catalog }: { readonly app: AppController; readonly catalog: CommandCatalog }) {
   void app.rev.value;
   const counts = sidebarCounts(app.list, app.today.value);
   const browsing = app.browsing.value || app.search.value.trim() !== '';
@@ -25,32 +28,47 @@ export function TabBar({ app }: { readonly app: AppController }) {
   return (
     <nav class="tk-tabbar" aria-label="Tabs">
       {TABS.map((tab) => (
-        <button
+        <Tab
           key={tab.name}
-          type="button"
-          class={`tk-tab${tab === on ? ' tk-active' : ''}`}
-          aria-current={tab === on ? 'page' : undefined}
-          onClick={() => app.go(tab.view)}
-        >
-          <span class="tk-tab-icon">
-            <Icon name={tab.icon} />
-            {count(tab) > 0 && <span class="tk-tab-count">{count(tab)}</span>}
-          </span>
-          {tab.name}
-        </button>
+          name={tab.name}
+          icon={tab.icon}
+          count={count(tab)}
+          active={tab === on}
+          onTap={() => app.go(tab.view)}
+          onLongPress={tab === on ? (at) => showMenu(app, catalog, 'list', undefined, at) : undefined}
+        />
       ))}
-      <button
-        type="button"
-        class={`tk-tab${on ? '' : ' tk-active'}`}
-        aria-current={on ? undefined : 'page'}
-        onClick={() => app.browse()}
-      >
-        <span class="tk-tab-icon">
-          <Icon name="browse" />
-        </span>
-        Browse
-      </button>
+      <Tab name="Browse" icon="browse" count={0} active={!on} onTap={() => app.browse()} />
     </nav>
+  );
+}
+
+function Tab(props: {
+  readonly name: string;
+  readonly icon: string;
+  readonly count: number;
+  readonly active: boolean;
+  readonly onTap: () => void;
+  readonly onLongPress?: ((at: { readonly x: number; readonly y: number }) => void) | undefined;
+}) {
+  const touch = useTouch(props.onLongPress ? { onLongPress: props.onLongPress } : {});
+  return (
+    <button
+      type="button"
+      class={`tk-tab${props.active ? ' tk-active' : ''}`}
+      aria-current={props.active ? 'page' : undefined}
+      {...touch.handlers}
+      onContextMenu={(e) => e.preventDefault()}
+      onClick={() => {
+        if (!touch.swallowClick()) props.onTap();
+      }}
+    >
+      <span class="tk-tab-icon">
+        <Icon name={props.icon} />
+        {props.count > 0 && <span class="tk-tab-count">{props.count}</span>}
+      </span>
+      {props.name}
+    </button>
   );
 }
 

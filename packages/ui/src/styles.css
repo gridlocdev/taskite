@@ -1344,8 +1344,19 @@ fieldset {
 
 /* The tab bar, Add button and swipe hints exist only on phones and touch screens (PRD §5.5). */
 .tk-tabbar,
-.tk-fab {
+.tk-fab,
+.tk-phone-only,
+.tk-composer-add {
   display: none;
+}
+.tk-composer-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tk-composer-line input {
+  flex: 1;
+  min-width: 0;
 }
 .tk-focus-proxy {
   position: fixed;
@@ -1397,16 +1408,28 @@ fieldset {
 /* Fingers: no long-press text selection or callout on rows, bigger check circles, no hover tints that stick. */
 @media (pointer: coarse) {
   .tk-row,
-  .tk-nav {
+  .tk-nav,
+  .tk-tab {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
     touch-action: pan-y;
   }
   .tk-row .tk-check {
+    position: relative;
     width: 22px;
     height: 22px;
     margin: -1px 0 -1px;
+  }
+  /* A 44px target around the circle, the size of a fingertip. */
+  .tk-row .tk-check::after {
+    content: '';
+    position: absolute;
+    inset: -11px;
+  }
+  /* No ⌘K on a touch screen. */
+  .tk-command-button {
+    display: none;
   }
   .tk-row:hover,
   .tk-nav:hover {
@@ -1587,6 +1610,187 @@ fieldset {
   .tk-sheet .tk-menu-item {
     min-height: 46px;
     font-size: 16px;
+  }
+  .tk-menu-flags {
+    display: flex;
+    gap: 6px;
+    padding: 4px 4px 6px;
+  }
+  .tk-menu-flag {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 46px;
+    border: 1px solid var(--tk-border);
+    border-radius: 10px;
+    background: none;
+    color: var(--tk-text-2);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .tk-menu-flag .tk-icon {
+    width: 18px;
+    height: 18px;
+  }
+  .tk-menu-flag.tk-p1 {
+    color: var(--tk-p1);
+  }
+  .tk-menu-flag.tk-p2 {
+    color: var(--tk-p2);
+  }
+  .tk-menu-flag.tk-p3 {
+    color: var(--tk-p3);
+  }
+
+  /*
+   * The app fills the part of the page the on-screen keyboard leaves showing, so whatever is docked at the bottom
+   * (search, the add-task panel, sheets) sits right above the keyboard and rides up with it. The transform also
+   * makes fixed things (the Add button, sheets, dialogs) place themselves in that part.
+   */
+  .tk-app {
+    height: var(--tk-frame-height, 100%);
+    transform: translateY(var(--tk-frame-top, 0px));
+    transition: height 0.25s ease-out;
+  }
+  .tk-app.tk-keyboard .tk-tabbar,
+  .tk-app.tk-keyboard .tk-fab {
+    display: none;
+  }
+  .tk-phone-only {
+    display: inline-flex;
+  }
+  .tk-phone-hidden {
+    display: none;
+  }
+
+  /* Browse: the list grows up from the bottom, with search and the tools in one row by the thumb. */
+  .tk-sidebar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  /* Reversed around its one box: short lists sit at the bottom, and long ones open scrolled to the end. */
+  .tk-sidebar-scroll {
+    grid-area: 1 / 1 / 2 / 3;
+    display: flex;
+    flex-direction: column-reverse;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--tk-border);
+  }
+  .tk-search {
+    grid-area: 2 / 1;
+    align-self: center;
+    margin: 8px 4px 8px 12px;
+  }
+  .tk-search .tk-icon {
+    top: 12px;
+  }
+  .tk-search input {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .tk-sidebar-top {
+    grid-area: 2 / 2;
+    padding: 8px 8px 8px 0;
+  }
+  .tk-app-name {
+    display: none;
+  }
+  .tk-sidebar-top .tk-icon-button {
+    width: 40px;
+    height: 40px;
+  }
+  .tk-sidebar-top .tk-icon-button .tk-icon {
+    width: 20px;
+    height: 20px;
+  }
+  /* Searching: the results fill the screen, and the search row stays at the bottom. */
+  .tk-app.tk-searching .tk-sidebar {
+    order: 2;
+    border-bottom: 0;
+    border-top: 1px solid var(--tk-border);
+  }
+
+  /* The add-task panel docks at the bottom, above the keyboard, with its add button at the right. */
+  .tk-composer {
+    position: fixed;
+    z-index: 30;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0;
+    padding: 10px calc(12px + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom))
+      calc(12px + env(safe-area-inset-left));
+    border-width: 1px 0 0;
+    border-radius: 14px 14px 0 0;
+    box-shadow: var(--tk-shadow);
+  }
+  .tk-composer-add {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--tk-accent);
+    color: var(--tk-accent-text);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tk-composer-add .tk-icon {
+    width: 22px;
+    height: 22px;
+  }
+  .tk-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .tk-composer-foot.tk-bare {
+    display: none;
+  }
+
+  /* Dialogs are sheets along the bottom, with their buttons in reach. */
+  .tk-backdrop,
+  .tk-backdrop-top {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .tk-dialog {
+    width: 100%;
+    max-height: 92%;
+    padding-bottom: env(safe-area-inset-bottom);
+    border-radius: 14px 14px 0 0;
+  }
+  .tk-dialog-actions .tk-button {
+    min-height: 40px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  /* The keyboard covers the home indicator, so no room is kept for it. */
+  .tk-keyboard .tk-composer {
+    padding-bottom: 10px;
+  }
+  .tk-keyboard .tk-dialog {
+    padding-bottom: 0;
+  }
+  /* The due date's quick picks go last, next to Set Date. */
+  .tk-dialog-body:has(> .tk-quick) {
+    display: flex;
+    flex-direction: column;
+  }
+  .tk-dialog-body > .tk-quick {
+    order: 1;
+    flex-wrap: nowrap;
+    margin-top: 12px;
+  }
+  .tk-dialog-body > .tk-quick .tk-button {
+    flex: 1;
+    min-height: 40px;
+    white-space: nowrap;
   }
 }
 

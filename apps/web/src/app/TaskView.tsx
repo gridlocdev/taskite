@@ -325,37 +325,55 @@ function Composer({ app, slot }: { readonly app: AppController; readonly slot: s
   const project = draft?.projectName
     ? (app.list.findProjectByName(draft.projectName)?.name ?? `${draft.projectName} (new)`)
     : null;
+  const chips = !!draft && (!!draft.due || draft.priority < 4 || !!project || draft.labels.length > 0);
+  const submit = () => {
+    if (!text.trim()) app.closeComposer();
+    else if (app.addTask(text, slot)) setText('');
+  };
   return (
     <div class="tk-composer">
-      <input
-        ref={input}
-        id="tk-composer"
-        value={text}
-        aria-label="New task"
-        placeholder="Task name — try “tomorrow p1 #Work @phone”"
-        spellcheck={true}
-        onInput={(e) => setText((e.target as HTMLInputElement).value)}
-        onKeyDown={(e) => {
-          // Enter and Esc while an input method is composing pick or cancel its candidate.
-          if (isComposingKey(e)) return;
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            if (!text.trim()) app.closeComposer();
-            else if (app.addTask(text, slot)) setText('');
-          } else if (e.key === 'Escape') {
-            e.preventDefault();
-            e.stopPropagation();
-            app.closeComposer();
-          }
-        }}
-        onBlur={(e) => {
-          // Switching to another window or tab keeps the row open.
-          if (!document.hasFocus()) return;
-          const next = e.relatedTarget as HTMLElement | null;
-          if (!text.trim() && !next?.closest('.tk-composer')) app.composer.value = null;
-        }}
-      />
-      <div class="tk-composer-foot">
+      <div class="tk-composer-line">
+        <input
+          ref={input}
+          id="tk-composer"
+          value={text}
+          aria-label="New task"
+          placeholder="Task name — try “tomorrow p1 #Work @phone”"
+          spellcheck={true}
+          onInput={(e) => setText((e.target as HTMLInputElement).value)}
+          onKeyDown={(e) => {
+            // Enter and Esc while an input method is composing pick or cancel its candidate.
+            if (isComposingKey(e)) return;
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              submit();
+            } else if (e.key === 'Escape') {
+              e.preventDefault();
+              e.stopPropagation();
+              app.closeComposer();
+            }
+          }}
+          onBlur={(e) => {
+            // Switching to another window or tab keeps the row open.
+            if (!document.hasFocus()) return;
+            const next = e.relatedTarget as HTMLElement | null;
+            if (!text.trim() && !next?.closest('.tk-composer')) app.composer.value = null;
+          }}
+        />
+        {/* Phones: the add-task panel's own add button, at the right by the thumb (PRD §5.5). */}
+        <button
+          type="button"
+          class="tk-composer-add"
+          aria-label="Add"
+          // Keeps the keyboard up: the field doesn't lose focus to the button.
+          onPointerDown={(e) => e.preventDefault()}
+          onClick={submit}
+        >
+          <Icon name="check" />
+        </button>
+      </div>
+      {/* Bare: nothing to show yet, so a phone gives the row no room (its key hints are hidden there). */}
+      <div class={`tk-composer-foot${chips ? '' : ' tk-bare'}`}>
         <div class="tk-chips" aria-live="polite">
           {draft?.due && (
             <span class="tk-chip">

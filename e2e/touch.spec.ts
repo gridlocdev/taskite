@@ -61,14 +61,102 @@ test.describe('Phones and touch screens', () => {
     await expect(tab(page, 'Browse')).toHaveAttribute('aria-current', 'page');
 
     await tab(page, 'Browse').tap();
-    await page.getByRole('searchbox', { name: 'Search tasks' }).fill('dentist');
+    // Search sits at the bottom, under the list and by the thumb, with New Project beside it and no ⌘K.
+    const search = page.getByRole('searchbox', { name: 'Search tasks' });
+    const top = async (target: Locator) => (await target.boundingBox())!.y;
+    expect(await top(search)).toBeGreaterThan(await top(views.getByRole('button', { name: /Work/ })));
+    await expect(views.getByRole('button', { name: 'New project' })).toBeVisible();
+    await expect(views.getByRole('button', { name: 'Command menu' })).toBeHidden();
+    await search.fill('dentist');
     await expect(row(page, 'Book dentist appointment')).toBeVisible();
-    await expect(page.getByRole('searchbox', { name: 'Search tasks' })).toBeVisible();
+    // The results fill the screen above it.
+    await expect
+      .poll(async () => (await top(search)) - (await top(row(page, 'dentist'))))
+      .toBeGreaterThan(300);
   });
 
-  test('the Add button opens the add-task row in the view', async ({ page }) => {
+  test('search and the add-task panel ride on top of the on-screen keyboard', async ({ page }) => {
+    // Chromium has no on-screen keyboard: stand in for one by shrinking the visual viewport, as a phone does.
+    await page.evaluate(() => {
+      const viewport = window.visualViewport!;
+      let covered = 0;
+      Object.defineProperty(viewport, 'height', { get: () => innerHeight - covered });
+      Object.defineProperty(viewport, 'pageTop', { get: () => 0 });
+      Object.assign(window, {
+        keyboard: (px: number) => {
+          covered = px;
+          viewport.dispatchEvent(new Event('resize'));
+        },
+      });
+    });
+    const keyboard = (px: number) =>
+      page.evaluate((h) => (window as unknown as { keyboard(px: number): void }).keyboard(h), px);
+    const bottomOf = async (target: Locator) => {
+      const box = (await target.boundingBox())!;
+      return box.y + box.height;
+    };
+
+    await tab(page, 'Browse').tap();
+    const search = page.getByRole('searchbox', { name: 'Search tasks' });
+    await search.tap();
+    await keyboard(300);
+    await expect(page.getByRole('navigation', { name: 'Tabs' })).toBeHidden();
+    await expect.poll(() => bottomOf(search)).toBeLessThanOrEqual(844 - 300);
+    expect(await bottomOf(search)).toBeGreaterThan(844 - 300 - 60);
+    await keyboard(0);
+    await expect(page.getByRole('navigation', { name: 'Tabs' })).toBeVisible();
+
     await tab(page, /Inbox/).tap();
-    await page.getByRole('button', { name: 'Add task', exact: true }).last().tap();
+    await page.locator('.tk-fab').tap();
+    await keyboard(300);
+    const panel = page.locator('.tk-composer');
+    await expect.poll(() => bottomOf(panel)).toBeLessThanOrEqual(844 - 300 + 1);
+    expect(await bottomOf(panel)).toBeGreaterThan(844 - 300 - 4);
+    await page.keyboard.type('Call the bank');
+    await panel.getByRole('button', { name: 'Add' }).tap();
+    await expect.poll(() => fileTask('Call the bank')?.projectId).toBe('inbox');
+    // The panel stays open for the next task, with the keyboard.
+    await expect(page.getByRole('textbox', { name: 'New task' })).toBeFocused();
+  });
+
+  test('a long press on the tab that is showing opens its view menu', async ({ page }) => {
+    await tab(page, /Inbox/).tap();
+    const { longPress } = await touch(page);
+    await longPress(tab(page, /Inbox/));
+    // Lifting the finger doesn't also pick the item the sheet opened under it.
+    const menu = page.getByRole('menu', { name: 'Actions' });
+    await expect(menu).toHaveClass(/tk-sheet/);
+    await menu.getByRole('menuitem', { name: /View as Board/ }).tap();
+    await expect(page.locator('.tk-board')).toBeVisible();
+    await expect(tab(page, /Inbox/)).toHaveAttribute('aria-current', 'page');
+  });
+
+  test('the due date is a sheet with its quick picks by Set Date, and no keyboard until a field is tapped', async ({
+    page,
+  }) => {
+    const { longPress } = await touch(page);
+    await longPress(row(page, 'Water the plants'));
+    await page.getByRole('menuitem', { name: /Due Date/ }).tap();
+    const dialog = page.getByRole('dialog', { name: 'Due date' });
+    await expect(dialog).toBeFocused();
+    const sheet = (await dialog.boundingBox())!;
+    expect(sheet.y + sheet.height).toBeGreaterThanOrEqual(844 - 1);
+    const tomorrow = dialog.getByRole('button', { name: 'Tomorrow' });
+    const calendar = (await dialog.locator('.tk-calendar').boundingBox())!;
+    expect((await tomorrow.boundingBox())!.y).toBeGreaterThan(calendar.y + calendar.height - 1);
+    await tomorrow.tap();
+    await expect.poll(() => fileTask('Water the plants')?.due).toBe('2027-01-16');
+  });
+
+  test('a tap just outside a check circle still completes the task', async ({ page }) => {
+    const check = (await row(page, 'Water the plants').locator('.tk-check').boundingBox())!;
+    await page.touchscreen.tap(check.x + check.width / 2, check.y + check.height + 8);
+    await expect.poll(() => fileTask('Water the plants')?.completed).toBe(true);
+  });
+
+  test('the Add button opens the add-task panel', async ({ page }) => {
+    await tab(page, /Inbox/).tap();
+    await page.locator('.tk-fab').tap();
     await expect(page.getByRole('textbox', { name: /task/i }).first()).toBeFocused();
     await page.keyboard.type('Call the bank');
     await page.keyboard.press('Enter');
@@ -112,6 +200,8 @@ test.describe('Phones and touch screens', () => {
     await longPress(row(page, 'Water the plants'));
     const menu = page.getByRole('menu', { name: 'Task actions' });
     await expect(menu).toHaveClass(/tk-sheet/);
+    // The priorities share one row of flags.
+    await expect(menu.getByRole('group', { name: 'Priority' }).getByRole('menuitem')).toHaveCount(4);
     // The press that opened the menu doesn't also open the task.
     await expect(page.getByRole('textbox', { name: 'Task name' })).toBeHidden();
     await menu.getByRole('menuitem', { name: /Priority 1/ }).tap();

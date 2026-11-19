@@ -83,5 +83,6 @@ On a phone or tablet, or any screen you use with a finger:
 | Move a task to the Trash                | Swipe it left                           |
 | A task's menu                           | Hold it                                 |
 | A project's or label's menu             | Hold it in **Browse**                   |
+| The view's menu                         | Hold its tab (phone width)              |
 | New task                                | The round **+** button                  |
 | Today, Upcoming, Inbox, everything else | The tabs along the bottom (phone width) |

@@ -73,11 +73,14 @@ A light and a dark theme, or follow the system (**Settings**, `⌘,`). Nothing a
 
 On a phone, Taskite puts **Today**, **Upcoming**, **Inbox** and **Browse** in a tab bar along the bottom. Browse holds search, your projects and labels, Completed, Trash and Settings. The round **+** button adds a task to the view you're in.
 
+Everything you reach for often sits at the bottom, by your thumb. The search box is at the bottom of Browse, and the box where you type a new task docks there too, with a ✓ to add it. Both sit right on top of the keyboard and move with it. Dialogs such as the due date open from the bottom, with Today, Tomorrow and Next week next to **Set Date**.
+
 With a finger:
 
 - **Tap** a task to open it.
 - **Swipe right** to complete it, or **left** to move it to the Trash. Undo is in the notice, as always.
 - **Hold** a task, or a project or label in Browse, for its menu.
+- **Hold** the tab you're on for the view's menu (View as Board, Add Section and the like).
 
 The iPhone and iPad app gets all of this too.
 

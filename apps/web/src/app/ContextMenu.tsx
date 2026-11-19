@@ -7,6 +7,8 @@ import type { AppController, ContextMenuState } from './controller.ts';
 import { menuArrows } from './TaskView.tsx';
 import { phone, touchScreen } from './touch.ts';
 
+const PRIORITY = /^task\.priority(\d)$/;
+
 const ICONS: Record<string, string> = {
   'task.complete': 'check',
   'task.edit': 'edit',
@@ -101,12 +103,14 @@ export function ContextMenu({
   const menu = app.menu.value;
   const ref = useRef<HTMLDivElement>(null);
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
+  const pressed = useRef(false);
   const close = () => {
     app.menu.value = null;
     app.focusList.value++;
   };
 
   useEffect(() => {
+    pressed.current = false;
     if (!menu) return;
     const away = (e: PointerEvent) => {
       if (!ref.current?.contains(e.target as Node)) close();
@@ -140,6 +144,14 @@ export function ContextMenu({
   }, [menu]);
 
   if (!menu) return null;
+  const choose = (id: string, e: MouseEvent) => {
+    // A click with no press in the menu is the finger that opened it lifting over an item: not a choice.
+    if (e.detail !== 0 && !pressed.current) return;
+    // Run first: a sidebar menu's command reads its target from the open menu.
+    catalog.run(id);
+    app.menu.value = null;
+    if (!app.dialog.value && app.composer.value === null) app.focusList.value++;
+  };
   // On a phone the menu is a sheet along the bottom of the screen, in reach of a thumb (PRD §5.5).
   const sheet = phone.value;
   const onTasks = menu.kind === 'task';
@@ -162,6 +174,7 @@ export function ContextMenu({
             }
       }
       onContextMenu={(e) => e.preventDefault()}
+      onPointerDown={() => (pressed.current = true)}
       onKeyDown={(e) => {
         if (e.key === 'Escape') {
           e.preventDefault();
@@ -173,9 +186,33 @@ export function ContextMenu({
       {ids.length > 1 && <div class="tk-menu-header">{plural(ids.length, 'task')} chosen</div>}
       {items.map((id, i) => {
         if (id === '|') return <div key={`sep${i}`} class="tk-menu-sep" role="separator" />;
+        // In a sheet the four priorities share one row of flags, so the rest of the menu sits lower (PRD §5.5).
+        if (sheet && PRIORITY.test(id)) {
+          if (PRIORITY.test(items[i - 1] ?? '')) return null;
+          let end = i;
+          while (end < items.length && PRIORITY.test(items[end]!)) end++;
+          const run = items.slice(i, end);
+          return (
+            <div key="priorities" class="tk-menu-flags" role="group" aria-label="Priority">
+              {run.map((pid) => (
+                <button
+                  key={pid}
+                  type="button"
+                  role="menuitem"
+                  class={`tk-menu-flag tk-p${PRIORITY.exec(pid)![1]}`}
+                  aria-label={catalog.get(pid)!.title}
+                  onPointerDown={(e) => e.preventDefault()}
+                  onClick={(e) => choose(pid, e)}
+                >
+                  <Icon name="flag" />P{PRIORITY.exec(pid)![1]}
+                </button>
+              ))}
+            </div>
+          );
+        }
         const c = catalog.get(id)!;
         const title = id === 'task.complete' && allDone ? 'Mark Not Done' : c.title;
-        const p = /^task\.priority(\d)$/.exec(id)?.[1];
+        const p = PRIORITY.exec(id)?.[1];
         return (
           <button
             key={id}
@@ -183,12 +220,7 @@ export function ContextMenu({
             role="menuitem"
             class={`tk-menu-item${c.danger ? ' tk-danger' : ''}${p ? ` tk-p${p}` : ''}`}
             onPointerDown={(e) => e.preventDefault()}
-            onClick={() => {
-              // Run first: a sidebar menu's command reads its target from the open menu.
-              catalog.run(id);
-              app.menu.value = null;
-              if (!app.dialog.value && app.composer.value === null) app.focusList.value++;
-            }}
+            onClick={(e) => choose(id, e)}
           >
             <Icon name={ICONS[id] ?? 'square'} />
             <span class="tk-menu-title">{title}</span>

@@ -3,6 +3,7 @@ import { every, type CommandCatalog, type KeyFocus } from '@taskite/ui';
 import { ContextMenu } from './ContextMenu.tsx';
 import type { AppController } from './controller.ts';
 import { Dialogs } from './Dialogs.tsx';
+import { keyboardUp } from './keyboard.ts';
 import { Sidebar } from './Sidebar.tsx';
 import { StatusBar } from './StatusBar.tsx';
 import { AddButton, TabBar } from './TabBar.tsx';
@@ -57,6 +58,7 @@ export function App({ app, catalog }: { readonly app: AppController; readonly ca
   const classes = ['tk-app'];
   if (app.browsing.value) classes.push('tk-browsing');
   if (app.search.value.trim()) classes.push('tk-searching');
+  if (keyboardUp.value) classes.push('tk-keyboard');
   return (
     <div class={classes.join(' ')}>
       <div class="tk-body">
@@ -65,7 +67,7 @@ export function App({ app, catalog }: { readonly app: AppController; readonly ca
       </div>
       <AddButton app={app} catalog={catalog} />
       <StatusBar app={app} />
-      <TabBar app={app} />
+      <TabBar app={app} catalog={catalog} />
       <ContextMenu app={app} catalog={catalog} />
       <Dialogs app={app} catalog={catalog} />
     </div>

@@ -21,9 +21,13 @@ export function Dialog(props: {
   const [previous] = useState(() => document.activeElement as HTMLElement | null);
   useEffect(() => {
     const root = ref.current;
+    // A finger: no keyboard popping up over the dialog until a field is tapped, so the box itself takes focus.
+    const finger = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
     const first =
       root?.querySelector<HTMLElement>('[data-autofocus]') ??
-      root?.querySelector<HTMLElement>('input, select, textarea, button');
+      (finger
+        ? root?.closest<HTMLElement>('.tk-dialog')
+        : root?.querySelector<HTMLElement>('input, select, textarea, button'));
     if (!root?.contains(document.activeElement)) first?.focus();
     return () => {
       if (previous?.isConnected && previous !== document.body) previous.focus();
