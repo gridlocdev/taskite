@@ -72,6 +72,6 @@ A light and a dark theme, or follow the system (**Settings**, `⌘,`). Nothing a
 ## Desktop, browser, NAS and CLI
 
 - **Desktop** (macOS, Windows, Linux): keeps the tasks file in the app's data folder, and remembers the window's size and place.
-- **Browser**: keeps the tasks in the browser's private storage.
+- **Browser**: keeps the tasks in the browser's private storage. Try it at [gridloc.dev/apps/taskite](https://gridloc.dev/apps/taskite/).
 - **NAS**: a small Docker image serves the app and one tasks file, behind a token. Open it from any browser on your network. See [Getting started](getting-started.md#run-it-on-a-nas-docker).
 - **CLI**: `taskite list`, `add`, `done` and more, on the desktop app's file or any other, with `--json` for scripts and agents. See [Getting started](getting-started.md#the-taskite-command-line).

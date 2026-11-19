@@ -13,4 +13,3 @@ These pages cover installing and using Taskite, and working on its code.
 
 - [Development](development.md): setting up, every `just` recipe, checking your work, adding a command, the NAS server and CLI, packaging, the app icon and releasing.
 - [Architecture](architecture.md): how the code is organized, its layer rules, and how each host reaches the tasks file.
-- [Product requirements](plans/prd.md): the exact behaviour, section by section. The code cites it as `PRD §n`.

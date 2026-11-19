@@ -10,7 +10,7 @@ Taskite is a to-do list for one person. Type a task in one line, with its date, 
 
 ## Getting started
 
-Download the desktop app for macOS, Windows or Linux from the [Releases page](https://github.com/gridlocdev/taskite/releases/latest), or run it on your NAS with Docker:
+Use it online at [gridloc.dev/apps/taskite](https://gridloc.dev/apps/taskite/), download the desktop app for macOS, Windows or Linux from the [Releases page](https://github.com/gridlocdev/taskite/releases/latest), or run it on your NAS with Docker:
 
 ```bash
 docker build -t taskite . && docker run -d -p 8788:8788 -e TASKITE_TOKEN=change-me -v /volume1/taskite:/data taskite

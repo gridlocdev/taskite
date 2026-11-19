@@ -8,7 +8,7 @@ In a browser tab, the browser keeps **⌘N** and **⇧⌘N** (**Ctrl+N** and **C
 
 ## Adding tasks
 
-| Action | macOS | Windows / Linux |
+|  | macOS | Windows / Linux |
 | --- | --- | --- |
 | New task | **⌘N** or **N** | **Ctrl+N** or **N** |
 | New project | **⇧⌘N** | **Ctrl+Shift+N** |
@@ -17,7 +17,7 @@ In a browser tab, the browser keeps **⌘N** and **⇧⌘N** (**Ctrl+N** and **C
 
 ## Choosing tasks
 
-| Action | macOS | Windows / Linux |
+|  | macOS | Windows / Linux |
 | --- | --- | --- |
 | Next / previous task (and the Add task button after each section) | **↓** / **↑** (or **J** / **K**) | **Down** / **Up** (or **J** / **K**) |
 | Add the task below / above | **⇧↓** / **⇧↑** (or **⇧J** / **⇧K**) | **Shift+Down** / **Shift+Up** (or **Shift+J** / **Shift+K**) |
@@ -32,7 +32,7 @@ In a browser tab, the browser keeps **⌘N** and **⇧⌘N** (**Ctrl+N** and **C
 
 ## Working on the chosen tasks
 
-| Action                              | macOS                      | Windows / Linux                |
+|                                     | macOS                      | Windows / Linux                |
 | ----------------------------------- | -------------------------- | ------------------------------ |
 | Complete, or reopen if already done | **␣**                      | **Space**                      |
 | Rename (one task, in its row)       | **↩**                      | **Enter**                      |
@@ -51,7 +51,7 @@ In a browser tab, the browser keeps **⌘N** and **⇧⌘N** (**Ctrl+N** and **C
 
 ## Going places
 
-| Action | macOS | Windows / Linux |
+|  | macOS | Windows / Linux |
 | --- | --- | --- |
 | Inbox | **G** then **I** | **G** then **I** |
 | Today | **G** then **T** | **G** then **T** |
@@ -64,7 +64,7 @@ In a browser tab, the browser keeps **⌘N** and **⇧⌘N** (**Ctrl+N** and **C
 
 ## Settings and help
 
-| Action | macOS | Windows / Linux |
+|  | macOS | Windows / Linux |
 | --- | --- | --- |
 | Settings | **⌘,** | **Ctrl+,** |
 | Command menu | **⌘K** or **⌘P** | **Ctrl+K** or **Ctrl+P** |

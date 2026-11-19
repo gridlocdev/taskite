@@ -1,6 +1,6 @@
 # Getting started
 
-You can run Taskite as a desktop app, on a NAS with Docker, from source in your browser, or as the `taskite` command line.
+You can use Taskite online, run it as a desktop app, on a NAS with Docker, from source in your browser, or as the `taskite` command line.
 
 ## What you need
 
@@ -33,6 +33,10 @@ The apps aren't signed by Apple or Microsoft yet, so the first launch needs one 
 ### Coming from Tasks 1.x
 
 Taskite used to be called Tasks. The first time it starts, if it has no tasks file of its own, it reads the old one (`Tasks/tasks.json` in the app data folder) and shows your tasks. The first change you make saves them to Taskite's own file. The old file is never changed, so you can delete it once you're happy.
+
+## Use it online
+
+Open [gridloc.dev/apps/taskite](https://gridloc.dev/apps/taskite/) in any modern browser. Nothing to install. Your tasks stay in that browser's private storage on your computer, so another browser or device starts with an empty list. To have the same tasks everywhere, run it on a NAS instead.
 
 ## Where your tasks are kept
 
