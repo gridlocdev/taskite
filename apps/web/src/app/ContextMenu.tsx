@@ -5,6 +5,7 @@ import { Icon, type CommandCatalog } from '@taskite/ui';
 import { MENUS } from './commands.ts';
 import type { AppController, ContextMenuState } from './controller.ts';
 import { menuArrows } from './TaskView.tsx';
+import { phone, touchScreen } from './touch.ts';
 
 const ICONS: Record<string, string> = {
   'task.complete': 'check',
@@ -70,11 +71,23 @@ export function openMenu(
   at?: { readonly x: number; readonly y: number },
 ): void {
   const where = at ?? ('clientX' in e ? { x: e.clientX, y: e.clientY } : { x: 0, y: 0 });
-  const state: ContextMenuState = { ...where, kind, ...(target ? { target } : {}) };
-  if (!menuItems(app, catalog, state).some((id) => id !== '|')) return;
+  if (!showMenu(app, catalog, kind, target, where)) return;
   e.preventDefault();
   e.stopPropagation();
+}
+
+/** Opens a menu at a point (a long press, PRD §5.5), if it has anything to offer. Says whether it did. */
+export function showMenu(
+  app: AppController,
+  catalog: CommandCatalog,
+  kind: ContextMenuState['kind'],
+  target: ContextMenuState['target'] | undefined,
+  at: { readonly x: number; readonly y: number },
+): boolean {
+  const state: ContextMenuState = { ...at, kind, ...(target ? { target } : {}) };
+  if (!menuItems(app, catalog, state).some((id) => id !== '|')) return false;
   app.menu.value = state;
+  return true;
 }
 
 /** The right-click menus: catalog commands, so titles and keys match everywhere else (PRD §8). */
@@ -100,7 +113,9 @@ export function ContextMenu({
     };
     addEventListener('pointerdown', away, true);
     addEventListener('blur', close);
-    ref.current?.querySelector<HTMLElement>('[role^=menuitem]:not([disabled])')?.focus();
+    // A finger has no keyboard to drive the menu, and a focus ring on the first item would look chosen.
+    if (!touchScreen.peek())
+      ref.current?.querySelector<HTMLElement>('[role^=menuitem]:not([disabled])')?.focus();
     return () => {
       removeEventListener('pointerdown', away, true);
       removeEventListener('blur', close);
@@ -125,6 +140,8 @@ export function ContextMenu({
   }, [menu]);
 
   if (!menu) return null;
+  // On a phone the menu is a sheet along the bottom of the screen, in reach of a thumb (PRD §5.5).
+  const sheet = phone.value;
   const onTasks = menu.kind === 'task';
   const ids = onTasks ? app.targetIds() : [];
   const allDone = ids.length > 0 && ids.every((id) => app.list.getTask(id)?.completed);
@@ -132,14 +149,18 @@ export function ContextMenu({
   return (
     <div
       ref={ref}
-      class="tk-menu tk-context-menu"
+      class={`tk-menu tk-context-menu${sheet ? ' tk-sheet' : ''}`}
       role="menu"
       aria-label={onTasks ? 'Task actions' : 'Actions'}
-      style={{
-        left: `${(at ?? menu).x}px`,
-        top: `${(at ?? menu).y}px`,
-        visibility: at ? 'visible' : 'hidden',
-      }}
+      style={
+        sheet
+          ? undefined
+          : {
+              left: `${(at ?? menu).x}px`,
+              top: `${(at ?? menu).y}px`,
+              visibility: at ? 'visible' : 'hidden',
+            }
+      }
       onContextMenu={(e) => e.preventDefault()}
       onKeyDown={(e) => {
         if (e.key === 'Escape') {

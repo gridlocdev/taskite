@@ -245,8 +245,11 @@ kbd {
   font-weight: 600;
   cursor: pointer;
 }
-.tk-link-button:hover {
-  text-decoration: underline;
+/* Only where something hovers: after a swipe, iOS spends a finger's first tap on a hover style, not the click. */
+@media (hover: hover) {
+  .tk-link-button:hover {
+    text-decoration: underline;
+  }
 }
 
 /* Sidebar */
@@ -1339,22 +1342,251 @@ fieldset {
   }
 }
 
-/* Phone width: the sidebar sits above the list, full width, and scrolls within a third of the screen. */
+/* The tab bar, Add button and swipe hints exist only on phones and touch screens (PRD §5.5). */
+.tk-tabbar,
+.tk-fab {
+  display: none;
+}
+.tk-focus-proxy {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+  /* At 16px iOS doesn't zoom the page in when it takes the keyboard. */
+  font-size: 16px;
+}
+.tk-swipe-hint {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  overflow: hidden;
+  color: #fff;
+  opacity: 0.55;
+}
+.tk-swipe-hint.tk-armed {
+  opacity: 1;
+}
+.tk-swipe-hint .tk-icon {
+  width: 22px;
+  height: 22px;
+}
+.tk-swipe-done {
+  justify-content: flex-start;
+  background: var(--tk-due-today);
+}
+.tk-swipe-trash {
+  justify-content: flex-end;
+  background: var(--tk-danger);
+}
+.tk-row.tk-sliding {
+  transition: none;
+  background: var(--tk-bg);
+}
+.tk-list:not(.tk-board) {
+  overflow-x: clip;
+}
+
+/* Fingers: no long-press text selection or callout on rows, bigger check circles, no hover tints that stick. */
+@media (pointer: coarse) {
+  .tk-row,
+  .tk-nav {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: pan-y;
+  }
+  .tk-row .tk-check {
+    width: 22px;
+    height: 22px;
+    margin: -1px 0 -1px;
+  }
+  .tk-row:hover,
+  .tk-nav:hover {
+    background: none;
+  }
+  .tk-row.tk-chosen {
+    background: var(--tk-bg);
+    font-weight: inherit;
+  }
+  /* No keyboard shortcuts to show: no menu keys, no "↵ add, esc close" under the add-task row. */
+  .tk-menu-key,
+  .tk-hint {
+    display: none;
+  }
+}
+
+/* iPhone and iPad corners and home indicator, with viewport-fit=cover. */
+.tk-app {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+}
+.tk-status {
+  height: calc(30px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/*
+ * Phone width (PRD §5.5): a bottom tab bar in place of the sidebar. Browse shows the sidebar full screen; while
+ * searching, its search box sits above the results.
+ */
 @media (max-width: 600px) {
   .tk-body {
     flex-direction: column;
   }
   .tk-sidebar {
+    flex: 1;
     width: 100%;
-    max-height: 36vh;
+    min-height: 0;
     border-right: 0;
+  }
+  .tk-app:not(.tk-browsing):not(.tk-searching) .tk-sidebar,
+  .tk-app.tk-browsing:not(.tk-searching) .tk-main,
+  .tk-sidebar .tk-tabbed {
+    display: none;
+  }
+  .tk-app.tk-searching .tk-sidebar {
+    flex: none;
     border-bottom: 1px solid var(--tk-border);
+  }
+  .tk-app.tk-searching .tk-sidebar-scroll {
+    display: none;
   }
   .tk-sidebar-scroll {
     min-height: 0;
   }
+  .tk-sidebar .tk-nav {
+    min-height: 44px;
+  }
+  .tk-sidebar input[type='search'] {
+    font-size: 16px;
+  }
   .tk-main {
+    flex: 1;
     min-height: 0;
+  }
+  .tk-main-inner {
+    padding: 16px 16px 96px;
+  }
+  .tk-row {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  /* 16px text, so iOS doesn't zoom in when a field takes the keyboard. */
+  .tk-composer input,
+  .tk-name-field,
+  .tk-dialog input,
+  .tk-dialog textarea,
+  .tk-dialog select {
+    font-size: 16px;
+  }
+  .tk-status {
+    height: 30px;
+    padding-bottom: 0;
+  }
+  /* With nothing to say it takes no room, but stays in the page so its live region still speaks. */
+  .tk-status.tk-quiet {
+    height: 0;
+    border-top: 0;
+    overflow: hidden;
+  }
+  .tk-tabbar {
+    flex: none;
+    display: flex;
+    padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    margin: 0 calc(-1 * env(safe-area-inset-right)) 0 calc(-1 * env(safe-area-inset-left));
+    border-top: 1px solid var(--tk-border);
+    background: var(--tk-sidebar);
+  }
+  .tk-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-height: 52px;
+    padding: 7px 0 5px;
+    border: 0;
+    background: none;
+    color: var(--tk-text-2);
+    font-size: 11px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tk-tab.tk-active {
+    color: var(--tk-accent);
+    font-weight: 600;
+  }
+  .tk-tab-icon {
+    position: relative;
+    display: inline-flex;
+  }
+  .tk-tab .tk-icon {
+    width: 24px;
+    height: 24px;
+  }
+  .tk-tab-count {
+    position: absolute;
+    top: -4px;
+    left: 16px;
+    min-width: 17px;
+    padding: 0 4px;
+    border-radius: 9px;
+    background: var(--tk-accent);
+    color: var(--tk-accent-text);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 17px;
+    text-align: center;
+  }
+  .tk-fab {
+    position: fixed;
+    z-index: 20;
+    right: calc(16px + env(safe-area-inset-right));
+    bottom: calc(68px + env(safe-area-inset-bottom));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--tk-accent);
+    color: var(--tk-accent-text);
+    box-shadow: var(--tk-shadow);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tk-fab.tk-lifted {
+    bottom: calc(98px + env(safe-area-inset-bottom));
+  }
+  .tk-fab .tk-icon {
+    width: 26px;
+    height: 26px;
+  }
+  .tk-app.tk-browsing .tk-fab,
+  .tk-app.tk-searching .tk-fab {
+    display: none;
+  }
+  .tk-context-menu.tk-sheet {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    max-height: 75vh;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    border-radius: 14px 14px 0 0;
+    box-shadow:
+      0 0 0 100vmax rgba(0, 0, 0, 0.35),
+      var(--tk-shadow);
+  }
+  .tk-sheet .tk-menu-item {
+    min-height: 46px;
+    font-size: 16px;
   }
 }
 

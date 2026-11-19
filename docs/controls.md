@@ -71,3 +71,17 @@ In a browser tab, the browser keeps **⌘N** and **⇧⌘N** (**Ctrl+N** and **C
 | Next / previous command in the menu | **↓** / **↑**, or **⇥** / **⇧⇥** | **Down** / **Up**, or **Tab** / **Shift+Tab** |
 | Keyboard shortcuts | **?** or **⌘/** | **?** or **Ctrl+/** |
 | Close a window or clear search | **⎋** | **Esc** |
+
+## Touch screens
+
+On a phone or tablet, or any screen you use with a finger:
+
+|                                         | Touch                                   |
+| --------------------------------------- | --------------------------------------- |
+| Open a task                             | Tap it                                  |
+| Complete a task (or mark it not done)   | Swipe it right                          |
+| Move a task to the Trash                | Swipe it left                           |
+| A task's menu                           | Hold it                                 |
+| A project's or label's menu             | Hold it in **Browse**                   |
+| New task                                | The round **+** button                  |
+| Today, Upcoming, Inbox, everything else | The tabs along the bottom (phone width) |

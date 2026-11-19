@@ -688,6 +688,8 @@ export function buildCommands(app: AppController): CommandCatalog {
       shortcuts: ['/', 'mod+f'],
       global: true,
       run: () => {
+        // On a phone the search box is on the Browse tab.
+        app.browsing.value = true;
         app.focusSearch.value++;
       },
     },

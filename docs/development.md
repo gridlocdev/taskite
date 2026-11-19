@@ -50,7 +50,7 @@ Tests live in each package's `test/` folder and run in Node with Vitest. `apps/w
 
 Browser scenarios live in `e2e/`, one `test.describe` per `##` heading of [Features](features.md); `apps/web/test/features.test.ts` fails when a feature has no scenarios. They run against the built client and the NAS server on a copy of `e2e/fixtures/basic`, with the page clock fixed at 15 January 2027. `random-ui.spec.ts` runs a few seeds of random commands, typing and keys; a failure prints `FUZZ_SEED=<n> just e2e -g random` to replay it. Screenshots are compared on macOS only.
 
-Check UI changes without a visible window: `just drive`, the scenarios, or the desktop app started with `just run-desktop-headless`. Never point a check at your real tasks: use `TASKITE_USER_DATA` for the desktop app and `--file` for the CLI.
+Check UI changes without a visible window: `just drive` (`just drive --phone` for an iPhone-sized touch screen), the scenarios, or the desktop app started with `just run-desktop-headless`. Never point a check at your real tasks: use `TASKITE_USER_DATA` for the desktop app and `--file` for the CLI.
 
 ## The spec
 

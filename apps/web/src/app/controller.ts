@@ -157,6 +157,8 @@ export class AppController {
   readonly today: Signal<string>;
   readonly view = signal<View>(DEFAULT_VIEW);
   readonly search = signal('');
+  /** On a phone, the Browse tab is showing the list of views in place of a view (PRD §5.5). */
+  readonly browsing = signal(false);
   readonly selected = signal<ReadonlySet<string>>(new Set());
   /** The row keyboard focus is on; Shift+arrows extend from `anchor` to it. */
   readonly cursor = signal<string | null>(null);
@@ -296,6 +298,7 @@ export class AppController {
 
   go(view: SavedView): void {
     batch(() => {
+      this.browsing.value = false;
       this.search.value = '';
       this.composer.value = null;
       if (!sameView(view, this.view.peek())) {
@@ -307,6 +310,16 @@ export class AppController {
     });
     this.list.rememberView(view);
     this.announcement.value = this.title();
+  }
+
+  /** The Browse tab on a phone: the list of views, with search, in place of the view (PRD §5.5). */
+  browse(): void {
+    batch(() => {
+      if (this.search.peek()) this.setSearch('');
+      this.composer.value = null;
+      this.menu.value = null;
+      this.browsing.value = true;
+    });
   }
 
   setSearch(query: string): void {
@@ -613,6 +626,7 @@ export class AppController {
   /** New Task: opens the add-task row here, or in the Inbox from a view that can't take one. */
   newTask(): void {
     this.menu.value = null;
+    this.browsing.value = false;
     if (this.defaultSlot() === null) this.go({ type: 'project', id: INBOX_ID });
     this.composer.value = this.defaultSlot();
   }

@@ -8,9 +8,10 @@ import {
   type SavedView,
 } from '@taskite/core';
 import { Icon, isComposingKey, type CommandCatalog } from '@taskite/ui';
-import { openMenu } from './ContextMenu.tsx';
+import { openMenu, showMenu } from './ContextMenu.tsx';
 import type { AppController, ContextMenuState } from './controller.ts';
-import { DRAG_TYPE } from './TaskView.tsx';
+import { DRAG_TYPE } from './TaskRow.tsx';
+import { useTouch } from './touch.ts';
 
 type DropKind = 'project' | 'today' | 'trash' | 'label';
 
@@ -36,6 +37,7 @@ export function Sidebar({ app, catalog }: { readonly app: AppController; readonl
     count: number | null,
     drop: DropKind | null,
     color?: string,
+    tabbed = false,
   ) => (
     <NavItem
       key={JSON.stringify(view)}
@@ -47,6 +49,7 @@ export function Sidebar({ app, catalog }: { readonly app: AppController; readonl
       color={color}
       count={count}
       drop={drop}
+      tabbed={tabbed}
       active={!!current && sameView(current, view)}
     />
   );
@@ -100,16 +103,24 @@ export function Sidebar({ app, catalog }: { readonly app: AppController; readonl
         />
       </div>
       <div class="tk-sidebar-scroll">
-        <button type="button" class="tk-nav tk-nav-add" onClick={() => catalog.run('task.new')}>
+        <button type="button" class="tk-nav tk-nav-add tk-tabbed" onClick={() => catalog.run('task.new')}>
           <span class="tk-add-plus">
             <Icon name="plus" />
           </span>
           <span class="tk-nav-name">Add task</span>
         </button>
         <ul class="tk-nav-list">
-          {item({ type: 'project', id: INBOX_ID }, 'Inbox', 'inbox', counts.inbox, 'project')}
-          {item({ type: 'today' }, 'Today', 'today', counts.today, 'today')}
-          {item({ type: 'upcoming' }, 'Upcoming', 'calendar', null, null)}
+          {item(
+            { type: 'project', id: INBOX_ID },
+            'Inbox',
+            'inbox',
+            counts.inbox,
+            'project',
+            undefined,
+            true,
+          )}
+          {item({ type: 'today' }, 'Today', 'today', counts.today, 'today', undefined, true)}
+          {item({ type: 'upcoming' }, 'Upcoming', 'calendar', null, null, undefined, true)}
           {item({ type: 'completed' }, 'Completed', 'done', null, null)}
           {item({ type: 'trash' }, 'Trash', 'trash', counts.trash || null, 'trash')}
         </ul>
@@ -187,10 +198,18 @@ function NavItem(props: {
   readonly color: string | undefined;
   readonly count: number | null;
   readonly drop: DropKind | null;
+  /** On a phone the tab bar has it, so Browse leaves it out (PRD §5.5). */
+  readonly tabbed: boolean;
   readonly active: boolean;
 }) {
   const { app, view } = props;
   const [over, setOver] = useState(false);
+  const touch = useTouch({
+    onLongPress: (at) => {
+      const menu = navMenu(view);
+      if (menu) showMenu(app, props.catalog, menu.kind, menu.target, at);
+    },
+  });
   const onDrop = (ids: string[]) => {
     if (view.type === 'project') app.moveTo(ids, view.id);
     else if (view.type === 'today') app.scheduleToday(ids);
@@ -198,12 +217,15 @@ function NavItem(props: {
     else if (view.type === 'label') app.addLabel(ids, view.name);
   };
   return (
-    <li>
+    <li class={props.tabbed ? 'tk-tabbed' : undefined}>
       <button
         type="button"
         class={`tk-nav${props.active ? ' tk-active' : ''}${over ? ' tk-drop-target' : ''}`}
         aria-current={props.active ? 'page' : undefined}
-        onClick={() => app.go(view)}
+        {...touch.handlers}
+        onClick={() => {
+          if (!touch.swallowClick()) app.go(view);
+        }}
         onContextMenu={(e) => {
           const menu = navMenu(view);
           if (menu) openMenu(app, props.catalog, e, menu.kind, menu.target);

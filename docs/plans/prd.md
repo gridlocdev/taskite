@@ -153,7 +153,7 @@ Everything else, with spaces collapsed, is the title.
 
 Add task; Inbox (open count); Today (count due today or overdue); Upcoming; Completed; Trash (count); **Projects** with a + button (each with colour dot and open count; "No projects yet." when none); **Labels** (every label used by a live task, alphabetical, ignoring case duplicates; hidden when none). A search box at the top.
 
-In a window narrower than 600 px (a phone), the sidebar sits above the list, full width, and scrolls within about a third of the screen.
+In a window narrower than 600 px (a phone), a tab bar replaces the sidebar (§5.5).
 
 The app opens on the view it showed last (`settings.lastView`), else Today. A project or label view whose project or label no longer exists falls back to the Inbox.
 
@@ -182,6 +182,18 @@ A ⋯ button by the title holds actions for the view: Inbox and project → Add 
 ### §5.4 Search
 
 Typing in the search box (`/`, ⌘F) shows Search results; clearing it, or Esc, returns to the previous view. ↓ or Enter moves into the results.
+
+### §5.5 Phones and touch screens
+
+- **Tab bar.** In a window narrower than 600 px, the sidebar gives way to a bar along the bottom with four tabs: **Today**, **Upcoming** and **Inbox** (Today and Inbox with their counts as badges), and **Browse**. Tapping a tab goes to that view. Browse fills the screen with the rest of the sidebar: the search box, the command menu and Settings buttons, Completed, Trash, Projects (with +) and Labels; picking one shows it, and Browse stays the lit tab. Typing in Browse's search box shows the results under the box. Going to any view by any means leaves Browse. Search (`/`, ⌘F) opens Browse.
+- **Add button.** A round + button floats above the tab bar, bottom right, in every view but Browse. It does what New Task does (§4.1), and the keyboard comes up in the add-task row. It hides while the row is open.
+- **Status bar.** On a phone it sits above the tab bar and takes no room while there's no notice and nothing is being saved.
+- **Gestures.** These work wherever the pointer is a finger (phones and tablets, any width); a mouse keeps its clicks, drags and right-click menus.
+  - Tapping a task opens the task editor (§4.4); in the Trash it chooses the task.
+  - Holding a finger on a task for half a second opens its menu (§8); on a project, label, Completed or Trash in Browse, that item's menu. The press doesn't also open the task or the view. At phone width menus open as a sheet along the bottom of the screen, with a shade over the rest; a tap outside closes it.
+  - Sliding a list row sideways shows what letting go will do: right, a green band with a check (Complete, §4.3; Mark Not Done for a done task); left, a red band with a bin (Move to Trash, §4.6). Past a third of the row (at most 120 px) the band turns solid and letting go does it, with the usual notice and Undo; short of that the row slides back. Up-and-down movement scrolls instead. Board cards, rows in the Trash and a row being renamed don't slide.
+  - Rows aren't dragged by finger; Move to Project…, Move Up / Down and the section commands in the menu do that job.
+- **Fit.** The page runs to the edges of the screen and keeps clear of the notch, the rounded corners and the home indicator. Text fields use 16 px text so iOS doesn't zoom in on them. Rows and Browse items are at least 44 px tall.
 
 ## §6 Projects and labels
 
@@ -302,5 +314,6 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
 
 - Capacitor wraps the same web client for iPhone and iPad. A bridge script loads before the client and provides `taskiteNative` (§12), so the client uses the native store as it does on the desktop.
 - The tasks file and `attachments/` live in the app's Documents folder, which the Files app shows under On My iPhone › Taskite. Saves follow §3.3 and §3.4: one at a time, refused if the file changed since it was read, and written to a temp file that is then renamed over `tasks.json`.
+- The web client's phone and touch layout applies (§5.5); the page runs edge to edge under the status bar and home indicator.
 - There is no menu bar or full screen. When iOS sends the app to the background, it finishes saving, as the desktop app does before a window closes.
 - The app is built from source and installed with the builder's own Apple developer account; it isn't on the App Store. The Xcode project names no Apple team: the team ID goes in `apps/ios/ios/signing.local.xcconfig`, which git ignores. App id `dev.gridloc.taskite`.

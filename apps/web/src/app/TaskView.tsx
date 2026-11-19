@@ -1,31 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import {
-  PROJECT_COLORS,
-  RECURRENCE_LABELS,
-  dueTone,
-  formatDue,
-  plural,
-  resolveDraft,
-  trashAge,
-  type Row,
-  type Section,
-} from '@taskite/core';
+import { PROJECT_COLORS, RECURRENCE_LABELS, formatDue, resolveDraft, type Section } from '@taskite/core';
 import { Icon, isComposingKey, type CommandCatalog } from '@taskite/ui';
 import { addStop, type AppController } from './controller.ts';
 import { openMenu } from './ContextMenu.tsx';
-import { NameField } from './NameField.tsx';
-import { setFaintDragImage } from './dragImage.ts';
-import { dropOrder } from './forms.ts';
 import { SectionHeading } from './SectionHeading.tsx';
-
-/** A coloured label's text colour (PRD §4.7); none for a plain label. */
-function labelStyle(app: AppController, label: string) {
-  const color = app.list.labelColor(label);
-  return color ? { color: PROJECT_COLORS[color] } : undefined;
-}
-
-/** The drag payload type: the dragged task ids as JSON. */
-export const DRAG_TYPE = 'application/x-taskite-tasks';
+import { DRAG_TYPE, TaskRow } from './TaskRow.tsx';
 
 export function TaskView({
   app,
@@ -219,12 +198,6 @@ export function menuArrows(e: KeyboardEvent): void {
 }
 
 /** Where a project section's rows can be dropped: the section's key, or none outside project views. */
-/** Which half of the row the pointer is over during a drag. */
-function dropSide(e: DragEvent): 'before' | 'after' {
-  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-  return e.clientY > r.top + r.height / 2 ? 'after' : 'before';
-}
-
 function sectionDrop(app: AppController, section: Section): { sectionId: string | undefined } | null {
   if (app.shown.value.type !== 'project') return null;
   if (section.key === 'tasks') return { sectionId: undefined };
@@ -333,184 +306,6 @@ function SectionView({
         )
       )}
     </section>
-  );
-}
-
-function TaskRow({
-  app,
-  row,
-  showContext,
-  tabStop,
-  card,
-}: {
-  readonly app: AppController;
-  readonly row: Row;
-  readonly showContext: boolean;
-  readonly tabStop: boolean;
-  /** A board card: its priority shows as a chip too. */
-  readonly card: boolean;
-}) {
-  const { task, isSubtask } = row;
-  const list = app.list;
-  const view = app.shown.value;
-  const today = app.today.value;
-  const chosen = app.selected.value.has(task.id);
-  const isCursor = app.cursor.value === task.id;
-  const completing = app.completing.value.has(task.id);
-  const leaving = app.leaving.value.has(task.id);
-  const [drop, setDrop] = useState<'before' | 'after' | null>(null);
-  const canReorder = view.type === 'project';
-  const done = task.completed || completing;
-  const subs = list.getSubtasks(task.id);
-  const parent = task.parentId ? list.getTask(task.parentId) : undefined;
-  const project = list.getProject(task.projectId);
-  const inTrash = task.deletedAt !== null;
-  const attached = task.attachments?.length ?? 0;
-  const renaming = app.renaming.value?.id === task.id;
-
-  const classes = ['tk-row'];
-  if (isSubtask) classes.push('tk-subtask');
-  if (chosen) classes.push('tk-chosen');
-  if (done) classes.push('tk-done');
-  if (completing) classes.push('tk-completing');
-  if (leaving) classes.push('tk-leaving');
-  if (drop) classes.push(`tk-drop-${drop}`);
-
-  return (
-    <div
-      class={classes.join(' ')}
-      role="option"
-      aria-selected={chosen}
-      data-id={task.id}
-      tabIndex={tabStop ? 0 : -1}
-      // Tab into another board column puts the cursor there. A click does that itself (and ⌘-click mustn't
-      // choose the row first), so only keyboard focus counts.
-      onFocus={(e) => {
-        if (!isCursor && (e.currentTarget as HTMLElement).matches(':focus-visible')) app.click(task.id);
-      }}
-      // Only top-level tasks are dragged; subtasks follow their parent (PRD §4.5).
-      draggable={!inTrash && !task.parentId && !renaming}
-      onClick={(e) => {
-        if ((e.target as HTMLElement).closest('.tk-check, .tk-name-field')) return;
-        app.click(task.id, { toggle: e.metaKey || e.ctrlKey, range: e.shiftKey });
-      }}
-      onDblClick={(e) => {
-        if (!(e.target as HTMLElement).closest('.tk-check, .tk-name-field') && !inTrash) app.edit(task.id);
-      }}
-      onContextMenu={(e) => {
-        // A task always has something to offer (Complete, or Restore in the Trash).
-        e.preventDefault();
-        e.stopPropagation();
-        if (!app.selected.value.has(task.id)) app.click(task.id);
-        app.menu.value = { x: e.clientX, y: e.clientY, kind: 'task' };
-      }}
-      onDragStart={(e) => {
-        if (!app.selected.value.has(task.id)) app.click(task.id);
-        const tops = app.targetIds().filter((id) => !list.getTask(id)?.parentId);
-        e.dataTransfer?.setData(DRAG_TYPE, JSON.stringify(tops));
-        if (e.dataTransfer) {
-          e.dataTransfer.effectAllowed = 'move';
-          setFaintDragImage(e, e.currentTarget as HTMLElement);
-        }
-      }}
-      onDragOver={(e) => {
-        if (!canReorder || !e.dataTransfer?.types.includes(DRAG_TYPE)) return;
-        e.preventDefault();
-        setDrop(dropSide(e));
-      }}
-      onDragLeave={(e) => {
-        // Moving onto the row's own title or check fires dragleave too; only leaving the row clears the line.
-        if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)) setDrop(null);
-      }}
-      onDrop={(e) => {
-        // The side comes from where the drop is, not the last dragover, which may have been cleared.
-        const after = dropSide(e) === 'after';
-        setDrop(null);
-        const data = e.dataTransfer?.getData(DRAG_TYPE);
-        if (!canReorder || !data) return;
-        e.preventDefault();
-        e.stopPropagation();
-        const dragged = JSON.parse(data) as string[];
-        const order = dropOrder(app.ids.value, dragged, task.id, after);
-        const moved = dragged.some((id) => {
-          const t = list.getTask(id);
-          return t && !t.parentId && t.sectionId !== task.sectionId;
-        });
-        if (moved) app.dropInto(dragged, task.sectionId, order);
-        else if (order) app.reorder(order);
-      }}
-    >
-      {inTrash ? (
-        <span class="tk-check tk-check-trash" aria-hidden="true">
-          <Icon name="trash" />
-        </span>
-      ) : (
-        <button
-          type="button"
-          class={`tk-check tk-p${task.priority}`}
-          role="checkbox"
-          aria-checked={done}
-          aria-label={done ? `Mark "${task.title}" not done` : `Complete "${task.title}"`}
-          tabIndex={-1}
-          onClick={() => void app.toggleComplete([task.id])}
-        >
-          <Icon name="check" />
-        </button>
-      )}
-      <div class="tk-row-body">
-        {renaming ? <NameField app={app} title={task.title} /> : <div class="tk-row-title">{task.title}</div>}
-        {task.description && <div class="tk-row-desc">{task.description.split('\n')[0]}</div>}
-        <div class="tk-row-meta">
-          {inTrash && <span>{trashAge(task.deletedAt ?? 0, Date.now())}</span>}
-          {task.due && !inTrash && (
-            <span class={`tk-due tk-due-${dueTone(task.due, today) ?? 'later'}`}>
-              <Icon name="calendar" />
-              {formatDue(task.due, today)}
-              {task.recurrence && (
-                <span title={RECURRENCE_LABELS[task.recurrence]} class="tk-repeat">
-                  <Icon name="repeat" />
-                </span>
-              )}
-            </span>
-          )}
-          {card && task.priority < 4 && (
-            <span class={`tk-priority tk-p${task.priority}`} title={`Priority ${task.priority}`}>
-              <Icon name="flag" />P{task.priority}
-            </span>
-          )}
-          {subs.length > 0 && (
-            <span title="Subtasks done">
-              <Icon name="subtasks" />
-              {subs.filter((s) => s.completed).length}/{subs.length}
-            </span>
-          )}
-          {attached > 0 && (
-            <span class="tk-attached" title={plural(attached, 'attachment')}>
-              <Icon name="paperclip" />
-              {attached}
-            </span>
-          )}
-          {task.labels.map((l) => (
-            <span key={l} class="tk-label" style={labelStyle(app, l)}>
-              <Icon name="tag" />
-              {l}
-            </span>
-          ))}
-          {showContext && parent && (
-            <span class="tk-context">
-              <Icon name="parent" />
-              {parent.title}
-            </span>
-          )}
-          {showContext && project && (
-            <span class="tk-context tk-row-project">
-              {project.name}
-              <span class="tk-dot" style={{ background: PROJECT_COLORS[project.color] }} />
-            </span>
-          )}
-        </div>
-      </div>
-    </div>
   );
 }
 

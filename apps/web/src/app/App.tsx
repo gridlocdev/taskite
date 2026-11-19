@@ -5,6 +5,7 @@ import type { AppController } from './controller.ts';
 import { Dialogs } from './Dialogs.tsx';
 import { Sidebar } from './Sidebar.tsx';
 import { StatusBar } from './StatusBar.tsx';
+import { AddButton, TabBar } from './TabBar.tsx';
 import { TaskView } from './TaskView.tsx';
 
 /** Where keyboard focus is, for deciding which keys are commands (PRD §8). */
@@ -52,13 +53,19 @@ export function App({ app, catalog }: { readonly app: AppController; readonly ca
     };
   }, [app, catalog]);
 
+  // On a phone (PRD §5.5) these pick what fills the screen: the Browse tab, or search results under the search box.
+  const classes = ['tk-app'];
+  if (app.browsing.value) classes.push('tk-browsing');
+  if (app.search.value.trim()) classes.push('tk-searching');
   return (
-    <div class="tk-app">
+    <div class={classes.join(' ')}>
       <div class="tk-body">
         <Sidebar app={app} catalog={catalog} />
         <TaskView app={app} catalog={catalog} />
       </div>
+      <AddButton app={app} catalog={catalog} />
       <StatusBar app={app} />
+      <TabBar app={app} />
       <ContextMenu app={app} catalog={catalog} />
       <Dialogs app={app} catalog={catalog} />
     </div>

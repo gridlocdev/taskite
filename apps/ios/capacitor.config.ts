@@ -6,8 +6,8 @@ const config: CapacitorConfig = {
   // Filled by `pnpm build`: the web client plus the bridge script (scripts/assemble.mjs).
   webDir: 'www',
   ios: {
-    // Keeps the page out from under the notch and the home bar.
-    contentInset: 'always',
+    // The page runs edge to edge and keeps clear of the notch and the home bar itself (safe-area insets).
+    contentInset: 'never',
   },
 };
 

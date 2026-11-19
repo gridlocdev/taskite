@@ -1,7 +1,9 @@
 // Drive the app from the command line for a quick look, instead of writing a one-off browser script.
 // Starts the NAS server on a fixture, opens one headless browser, runs the steps, prints what happened.
 //
-//   just drive [--fixture basic] [--dark] <step>…
+//   just drive [--fixture basic] [--dark] [--phone] <step>…
+//
+//   --phone opens a 390 × 844 touch screen, as an iPhone shows the app.
 //
 //   cmd:<command name>   run a command from the ⌘K menu       key:<chord>     press keys (ControlOrMeta+KeyS: key codes, not letters)
 //   type:<text>          type text                           click:<text>    click the first element showing it
@@ -25,17 +27,19 @@ const SERVER_START_MS = 15_000;
  */
 const STEP_PAUSE_MS = 50;
 
-function parseArgs(args: string[]): { fixture: string; dark: boolean; steps: string[] } {
+function parseArgs(args: string[]): { fixture: string; dark: boolean; phone: boolean; steps: string[] } {
   let fixture = 'basic';
   let dark = false;
+  let phone = false;
   const steps: string[] = [];
   for (let i = 0; i < args.length; i++) {
     const arg = args[i] ?? '';
     if (arg === '--fixture') fixture = args[++i] ?? fixture;
     else if (arg === '--dark') dark = true;
+    else if (arg === '--phone') phone = true;
     else steps.push(arg);
   }
-  return { fixture, dark, steps };
+  return { fixture, dark, phone, steps };
 }
 
 async function waitForServer(): Promise<void> {
@@ -51,10 +55,10 @@ async function waitForServer(): Promise<void> {
   throw new Error(`the server did not answer on ${BASE_URL}; run \`just build-web\` first`);
 }
 
-const { fixture, dark, steps } = parseArgs(process.argv.slice(2));
+const { fixture, dark, phone, steps } = parseArgs(process.argv.slice(2));
 if (steps.length === 0) {
   console.error(
-    'usage: just drive [--fixture basic] [--dark] cmd:<name> key:<chord> type:<text> shot:<name> aria …',
+    'usage: just drive [--fixture basic] [--dark] [--phone] cmd:<name> key:<chord> type:<text> shot:<name> aria …',
   );
   process.exit(2);
 }
@@ -82,7 +86,8 @@ try {
   await waitForServer();
   const browser = await chromium.launch();
   const page = await browser.newPage({
-    viewport: { width: 1280, height: 800 },
+    viewport: phone ? { width: 390, height: 844 } : { width: 1280, height: 800 },
+    ...(phone ? { hasTouch: true, isMobile: true, deviceScaleFactor: 2 } : {}),
     colorScheme: dark ? 'dark' : 'light',
     reducedMotion: 'reduce',
     baseURL: BASE_URL,

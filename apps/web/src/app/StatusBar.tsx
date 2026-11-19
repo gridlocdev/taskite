@@ -3,12 +3,17 @@ import type { AppController } from './controller.ts';
 
 const STATUS_TEXT = { saved: '', saving: 'Saving…', failed: 'Not saved', conflict: 'Not saved' } as const;
 
-/** The status bar: the latest notice with its action, and the save state (PRD §5.5). */
+/** Whether the status bar has nothing to show: no notice, and everything saved. On a phone it then takes no room. */
+export function statusQuiet(app: AppController): boolean {
+  return !app.notice.value && app.session.status.value === 'saved';
+}
+
+/** The status bar: the latest notice with its action, and the save state (PRD §9). */
 export function StatusBar({ app }: { readonly app: AppController }) {
   const notice = app.notice.value;
   const status = app.session.status.value;
   return (
-    <footer class="tk-status">
+    <footer class={`tk-status${statusQuiet(app) ? ' tk-quiet' : ''}`}>
       <div class={`tk-notice${notice?.tone === 'error' ? ' tk-notice-error' : ''}`}>
         {notice && (
           <>

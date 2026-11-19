@@ -5,6 +5,7 @@
 ### What's new
 
 - **Taskite for iPhone and iPad.** Build it from source with your own Apple developer account and install it from Xcode; see [Development](docs/development.md#the-ios-app). Your tasks are kept in a `tasks.json` you can see in the Files app, under On My iPhone › Taskite.
+- **Made for phones.** On a narrow screen a tab bar along the bottom holds Today, Upcoming, Inbox and Browse (search, projects, labels, Completed, Trash), and a round + button adds a task. With a finger, tap a task to open it, swipe right to complete it, swipe left to trash it, and hold it for its menu, which opens as a sheet along the bottom. This works in a phone's browser and in the iPhone app.
 
 ## 1.0.0
 

@@ -69,6 +69,18 @@ Every action is a command. Find any of them with the command menu (`⌘K`) by it
 
 A light and a dark theme, or follow the system (**Settings**, `⌘,`). Nothing animates when the system asks for reduced motion. Messages appear in the status bar at the bottom, with Undo where it helps.
 
+## Phones and touch screens
+
+On a phone, Taskite puts **Today**, **Upcoming**, **Inbox** and **Browse** in a tab bar along the bottom. Browse holds search, your projects and labels, Completed, Trash and Settings. The round **+** button adds a task to the view you're in.
+
+With a finger:
+
+- **Tap** a task to open it.
+- **Swipe right** to complete it, or **left** to move it to the Trash. Undo is in the notice, as always.
+- **Hold** a task, or a project or label in Browse, for its menu.
+
+The iPhone and iPad app gets all of this too.
+
 ## Desktop, browser, NAS and CLI
 
 - **Desktop** (macOS, Windows, Linux): keeps the tasks file in the app's data folder, and remembers the window's size and place.
