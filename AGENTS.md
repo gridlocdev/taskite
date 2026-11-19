@@ -26,7 +26,7 @@ Taskite is a to-do list for one person. One UI runs in the browser, in the NAS s
 ## Golden rules
 
 1. **The engine stays pure.** It has no UI, DOM or Node APIs, and runs the same in a browser, a worker or Node tests.
-2. **The file is the source of truth.** No database. A save writes exactly what the user has, in the 1.x format (PRD §3.1).
+2. **The file is the source of truth.** No database. A save writes exactly what the user has, in the Tasks 1.x format (PRD §3.1).
 3. **One command catalog.** The command menu, shortcuts, context menus, the Electron menu bar, the Keyboard Shortcuts window and `docs/controls.md` all read it. Don't wire a key or a menu item past it.
 4. **The UI reaches the file only through `TaskStore`.** It never knows whether data is in memory, in the browser, on the NAS or on disk.
 5. **Never lose data.** Saves are atomic everywhere. A conflict is shown and the user chooses; nothing merges or overwrites silently. Deleting goes to the Trash.

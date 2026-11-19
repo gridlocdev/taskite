@@ -9,11 +9,10 @@ Taskite is a to-do list for one person. It runs as a desktop app (Electron), in 
 3. Do everything from the keyboard, and everything from the mouse.
 4. Never lose a task: every change is saved at once, deletes go to a Trash, every change can be undone.
 
-## §2 Non-goals for 2.0
+## §2 Non-goals
 
 - Accounts, sharing or sync between people. The NAS server serves one person's file.
 - Reminders and notifications. Times of day (dates only).
-- Update checks (the repo is private, so GitHub Releases can't be read without a token).
 - Importing from other apps.
 
 ## §3 Data
