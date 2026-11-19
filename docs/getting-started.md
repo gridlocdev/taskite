@@ -93,4 +93,4 @@ See [Development](development.md) for every other way to run and build it.
 
 ## First run
 
-Taskite opens on Today, or on the view you had open last time. There's no welcome screen: press `Q` (or click **Add task**) and type your first task. Press `?` to see every shortcut.
+Taskite opens on Today, or on the view you had open last time. There's no welcome screen: press `N` (or click **Add task**) and type your first task. Press `?` to see every shortcut.

@@ -6,7 +6,7 @@ Taskite is a to-do list for one person, on one file. The desktop app, the browse
 
 ## Quick Add
 
-Press `Q` (or click **Add task**) and type a task in one line. Taskite pulls out:
+Press `N` (or click **Add task**) and type a task in one line. Taskite pulls out:
 
 | You type | It means |
 | --- | --- |
