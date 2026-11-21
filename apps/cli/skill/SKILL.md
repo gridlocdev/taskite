@@ -1,7 +1,7 @@
 ---
 name: taskite
 description: >-
-  Read and change someone's Taskite tasks from the terminal with the `taskite` command: list what is due today, upcoming, in the Inbox, in a project or with a label; add tasks with Quick Add text ("Call mum tomorrow p1 #Family @phone"); complete, reopen, trash and restore them, move them to a project or set their due date; attach files to them and find their attached files; list projects. Use it when a task involves their to-do list, Taskite, or "my tasks", or when a script needs to add or check tasks. Covers naming tasks by title or id, `--json` output, which file it uses, and the exit codes.
+  Read and change someone's Taskite tasks from the terminal with the `taskite` command: list what is due today, upcoming, in the Inbox, in a project or with a label; add tasks with Quick Add text ("Call mum tomorrow p1 #Family @phone"); complete, reopen, trash and restore them, move them to a project or set their due date; attach files to them and find their attached files; list projects; pick a workspace (a separate set of tasks, such as Work or Games). Use it when a task involves their to-do list, Taskite, or "my tasks", or when a script needs to add or check tasks. Covers naming tasks by title or id, `--json` output, which file it uses, and the exit codes.
 ---
 
 # Working with Taskite through `taskite`
@@ -24,7 +24,8 @@ description: >-
 | `taskite attach <task> <file...>` | Copies files (up to 25 MB each) into the `attachments` folder beside `tasks.json` and attaches them. A missing or too large file stops it before anything is attached. |
 | `taskite attachments <task>` | A task's attachments: size, name and the path of the file to read. |
 | `taskite projects` | Projects with their open task counts. |
-| `taskite path` | The tasks file it uses. |
+| `taskite workspaces` | Workspaces in order with their open task counts. |
+| `taskite path` | The tasks file it uses (the chosen workspace's). |
 
 ## Quick Add text
 
@@ -38,12 +39,16 @@ A `<task>` is part of its title, ignoring case: `taskite done call mum`. `move`,
 
 ## JSON
 
-Add `--json` to any command. Successes print `{ "ok": true, ... }` with `tasks`, `task` or `projects`, and `attach` and `attachments` add `attachments` (`id`, `name`, `size`, `type`, `path`); each task has `id`, `shortId`, `title`, `project`, `parentId`, `labels`, `priority`, `due` (`YYYY-MM-DD` or null), `recurrence`, `completed` and `deleted`. Failures print `{ "ok": false, "error": "..." }` and still exit non-zero.
+Add `--json` to any command. Successes print `{ "ok": true, ... }` with `tasks`, `task`, `projects` or `workspaces` (`id`, `name`, `open`), and `attach` and `attachments` add `attachments` (`id`, `name`, `size`, `type`, `path`); each task has `id`, `shortId`, `title`, `project`, `parentId`, `labels`, `priority`, `due` (`YYYY-MM-DD` or null), `recurrence`, `completed` and `deleted`. Failures print `{ "ok": false, "error": "..." }` and still exit non-zero.
 
 ## Which file
 
 `--file <path>`, else `$TASKITE_FILE`, else the desktop app's file (macOS `~/Library/Application Support/Taskite/tasks.json`, Windows `%APPDATA%\Taskite\tasks.json`, Linux `~/.config/Taskite/tasks.json`). Use `--file` with a copy when trying things out.
 
+## Workspaces
+
+Each workspace is its own set of tasks, projects and settings, kept in its own file. Without `--workspace` every command uses the first workspace (the main file above). `--workspace <name>`, else `$TASKITE_WORKSPACE`, picks another by name, ignoring case: `taskite add "Fix the boss fight" --workspace games`. Run `taskite workspaces` to see the names. The list lives in `workspaces.json` beside the main file and each other workspace in `workspaces/<id>/tasks.json`, with its own `attachments` folder; add, rename and delete workspaces in the app.
+
 ## Exit codes
 
-`0` done. `1` a problem: no task or several tasks match, the file changed during the run (run it again), a file that isn't valid JSON (it is left alone), or a desktop app that hasn't brought over the old Tasks app's file yet. `2` a command-line mistake. Errors print one line, `taskite: <message>`, to stderr.
+`0` done. `1` a problem: no task or several tasks match, the file changed during the run (run it again), a file that isn't valid JSON (it is left alone), a `workspaces.json` that can't be read, or a desktop app that hasn't brought over the old Tasks app's file yet. `2` a command-line mistake, including a `--workspace` name that no workspace has (the message lists the names). Errors print one line, `taskite: <message>`, to stderr.

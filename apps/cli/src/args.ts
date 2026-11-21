@@ -12,6 +12,7 @@ export const COMMANDS = [
   'attach',
   'attachments',
   'projects',
+  'workspaces',
   'path',
   'help',
 ] as const;
@@ -23,6 +24,8 @@ export interface Args {
   readonly command: CommandName;
   readonly words: readonly string[];
   readonly file: string | null;
+  /** The workspace's name from `--workspace` (PRD §14.4). */
+  readonly workspace: string | null;
   readonly json: boolean;
   readonly help: boolean;
   readonly version: boolean;
@@ -38,7 +41,7 @@ export class UsageError extends Error {}
 /** Something went wrong that isn't the command line (unknown id, a conflict): exit code 1. */
 export class ProblemError extends Error {}
 
-const VALUE_OPTIONS = new Set(['--file', '--project', '--label', '--section']);
+const VALUE_OPTIONS = new Set(['--file', '--workspace', '--project', '--label', '--section']);
 
 export function parseArgs(argv: readonly string[]): Args {
   const words: string[] = [];
@@ -77,6 +80,7 @@ export function parseArgs(argv: readonly string[]): Args {
     command,
     words: first === undefined ? [] : others,
     file: values.get('--file') ?? null,
+    workspace: values.get('--workspace') ?? null,
     json,
     help: help || command === 'help',
     version,
@@ -105,13 +109,16 @@ Commands:
   attach <task> <file...>                        Copy files into the attachments folder and attach them
   attachments <task>                             List a task's attachments with their paths
   projects                                       List projects with their open task counts
-  path                                           Print the tasks file's path
+  workspaces                                     List workspaces with their open task counts
+  path                                           Print the tasks file's path (the workspace's)
 
 A <task> is part of its title ("call mum", quoted when a date or project follows) or the short id that
 list prints. When several titles match, taskite lists them and changes nothing.
 
 Options:
   --file <path>   The tasks file (else $TASKITE_FILE, else the desktop app's file)
+  --workspace <name>
+                  The workspace to use (else $TASKITE_WORKSPACE, else the first one)
   --json          Print JSON instead of text
   --help          Show this help
   --version       Show the version

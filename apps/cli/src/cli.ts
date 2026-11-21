@@ -5,15 +5,19 @@ import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import {
   INBOX_ID,
+  MAIN_WORKSPACE_ID,
   MAX_ATTACHMENT_BYTES,
   TaskList,
   addDraft,
   describeAutomations,
+  defaultWorkspaceList,
   emptyData,
+  findWorkspaceByName,
   formatDue,
   formatSize,
   parseDataFile,
   parseDueText,
+  parseWorkspaces,
   projectNameFromTag,
   resolveDraft,
   serialize,
@@ -24,11 +28,14 @@ import {
   type Draft,
   type Task,
   type View,
+  type WorkspaceList,
 } from '@taskite/core';
 import {
   attachmentPath,
   readDataFile,
   removeUnusedAttachments,
+  workspaceFile,
+  workspaceListFile,
   writeAttachment,
   writeDataFile,
 } from '@taskite/node-files';
@@ -49,28 +56,62 @@ interface Loaded {
   readonly today: string;
 }
 
+/** The workspaces beside the main file (PRD §14.4), and why they can't be read, if they can't. */
+async function readWorkspaces(mainFile: string): Promise<{ list: WorkspaceList; problem: string | null }> {
+  const parsed = parseWorkspaces((await readDataFile(workspaceListFile(mainFile))).text);
+  if (parsed.ok) return { list: parsed.list, problem: null };
+  const problem =
+    parsed.reason === 'newer'
+      ? 'the list of workspaces was saved by a newer Taskite; update taskite'
+      : "the list of workspaces (workspaces.json) isn't valid JSON";
+  return { list: defaultWorkspaceList(), problem };
+}
+
+interface Chosen {
+  /** The chosen workspace's tasks file. */
+  readonly file: string;
+  /** True when this is the desktop app's own main file, found without being named. */
+  readonly isDefault: boolean;
+}
+
+/** The workspace this run uses: --workspace, else $TASKITE_WORKSPACE, else `main` (PRD §14.4). */
+async function chooseWorkspace(args: Args, io: CliIo): Promise<Chosen> {
+  const { file: mainFile, isDefault } = chooseFile(args.file, io);
+  const name = args.workspace ?? (io.env.TASKITE_WORKSPACE || null);
+  if (name === null) return { file: mainFile, isDefault };
+  const { list, problem } = await readWorkspaces(mainFile);
+  if (problem) throw new ProblemError(`can't pick the workspace "${name}": ${problem}`);
+  const found = findWorkspaceByName(list, name);
+  if (!found)
+    throw new UsageError(
+      `no workspace is called "${name}"; the workspaces are ${list.workspaces.map((w) => `"${w.name}"`).join(', ')}`,
+    );
+  const isMain = found.id === MAIN_WORKSPACE_ID;
+  return { file: workspaceFile(mainFile, found.id), isDefault: isDefault && isMain };
+}
+
+/** Reads a tasks file; a file that isn't there yet is an empty list. */
+function parseTasks(text: string | null, file: string, io: CliIo) {
+  if (text === null) return emptyData();
+  const parsed = parseDataFile(text, io.now());
+  if (!parsed.ok && parsed.reason === 'newer')
+    throw new ProblemError(`${file} was saved by a newer Taskite (format ${parsed.version}); update taskite`);
+  if (!parsed.ok)
+    throw new ProblemError(
+      `${file} isn't valid JSON; open it in Taskite, which keeps a copy and starts over`,
+    );
+  return parsed.data;
+}
+
 async function load(args: Args, io: CliIo): Promise<Loaded> {
-  const { file, isDefault } = chooseFile(args.file, io);
+  const { file, isDefault } = await chooseWorkspace(args, io);
   const read = await readDataFile(file);
   // Making the desktop file now would hide the old app's tasks from the desktop app's one-time import.
   if (read.text === null && isDefault && existsSync(legacyFile(io)))
     throw new ProblemError(
       'open the Taskite app once first, so it can bring over your tasks from the old Tasks app',
     );
-  let data = emptyData();
-  if (read.text !== null) {
-    const parsed = parseDataFile(read.text, io.now());
-    if (!parsed.ok && parsed.reason === 'newer')
-      throw new ProblemError(
-        `${file} was saved by a newer Taskite (format ${parsed.version}); update taskite`,
-      );
-    if (!parsed.ok)
-      throw new ProblemError(
-        `${file} isn't valid JSON; open it in Taskite, which keeps a copy and starts over`,
-      );
-    data = parsed.data;
-  }
-  const list = new TaskList(data, { now: () => io.now() });
+  const list = new TaskList(parseTasks(read.text, file, io), { now: () => io.now() });
   return { list, file, version: read.version, today: todayISO(new Date(io.now())) };
 }
 
@@ -244,9 +285,10 @@ type Out = (value: unknown, text: string) => void;
 
 async function run(args: Args, io: CliIo, out: Out): Promise<void> {
   if (args.command === 'path') {
-    const { file } = chooseFile(args.file, io);
+    const { file } = await chooseWorkspace(args, io);
     return out({ ok: true, path: file }, file);
   }
+  if (args.command === 'workspaces') return listWorkspaces(args, io, out);
   const l = await load(args, io);
   // Files no task names, left by Delete Forever, go once they are a day old (PRD §4.8).
   await removeUnusedAttachments(l.file, io.now()).catch((e: unknown) => {
@@ -403,6 +445,24 @@ async function run(args: Args, io: CliIo, out: Out): Promise<void> {
     case 'help':
       return;
   }
+}
+
+/** `taskite workspaces`: each workspace in order with its open task count (PRD §14.4). */
+async function listWorkspaces(args: Args, io: CliIo, out: Out): Promise<void> {
+  const { file: mainFile } = chooseFile(args.file, io);
+  const { list, problem } = await readWorkspaces(mainFile);
+  if (problem) throw new ProblemError(problem);
+  const rows = [];
+  for (const w of list.workspaces) {
+    const file = workspaceFile(mainFile, w.id);
+    const data = parseTasks((await readDataFile(file)).text, file, io);
+    const open = data.tasks.filter((t) => t.deletedAt === null && !t.completed).length;
+    rows.push({ id: w.id, name: w.name, open });
+  }
+  return out(
+    { ok: true, workspaces: rows },
+    rows.map((r) => `${String(r.open).padStart(4)}  ${r.name}`).join('\n'),
+  );
 }
 
 /** Runs one command line; returns the exit code. A bug (not the user's mistake) is rethrown. */

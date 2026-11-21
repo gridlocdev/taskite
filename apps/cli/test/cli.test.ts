@@ -4,6 +4,7 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  rmSync,
   utimesSync,
   writeFileSync,
 } from 'node:fs';
@@ -346,5 +347,76 @@ describe('taskite', () => {
 
     await cli('add', 'Empty');
     expect((await cli('attachments', 'empty')).out).toBe('"Empty" has no attachments.\n');
+  });
+});
+
+describe('taskite --workspace (PRD §14.4)', () => {
+  const GAMES = '7d3e2f10-5b6c-4d7e-8f90-a1b2c3d4e5f6';
+  const gamesFile = () => path.join(dir, 'workspaces', GAMES, 'tasks.json');
+
+  beforeEach(() => {
+    writeFileSync(
+      path.join(dir, 'workspaces.json'),
+      JSON.stringify({
+        version: 1,
+        workspaces: [
+          { id: 'main', name: 'Personal' },
+          { id: GAMES, name: 'Games' },
+        ],
+      }),
+    );
+  });
+
+  async function cliWith(env: Record<string, string>, ...argv: string[]) {
+    const t = io(env);
+    const code = await runCli(argv, t.io, '2.0.0');
+    return { code, out: t.out(), err: t.err() };
+  }
+
+  it('works on the workspace named by --workspace or $TASKITE_WORKSPACE, ignoring case, and main without', async () => {
+    expect((await cli('add', 'Boss fight', '--workspace', 'games')).code).toBe(0);
+    expect(readFileSync(gamesFile(), 'utf8')).toContain('Boss fight');
+    expect(existsSync(file)).toBe(false);
+    expect((await cliWith({ TASKITE_WORKSPACE: 'GAMES' }, 'list', 'inbox')).out).toContain('Boss fight');
+    expect((await cli('list', 'inbox')).out).toBe('No tasks.\n');
+    await cli('add', 'Water the plants');
+    expect((await cli('list', 'inbox', '--workspace', 'Personal')).out).toContain('Water the plants');
+  });
+
+  it('prints the chosen workspace file for path', async () => {
+    expect((await cli('path', '--workspace', 'Games')).out).toBe(`${gamesFile()}\n`);
+    expect((await cli('path')).out).toBe(`${file}\n`);
+  });
+
+  it('lists the workspaces in order with their open task counts', async () => {
+    await cli('add', 'One', '--workspace', 'Games');
+    await cli('add', 'Two', '--workspace', 'Games');
+    await cli('done', 'two', '--workspace', 'Games');
+    await cli('add', 'Three');
+    expect((await cli('workspaces')).out).toBe('   1  Personal\n   1  Games\n');
+    expect(JSON.parse((await cli('workspaces', '--json')).out)).toEqual({
+      ok: true,
+      workspaces: [
+        { id: 'main', name: 'Personal', open: 1 },
+        { id: GAMES, name: 'Games', open: 1 },
+      ],
+    });
+  });
+
+  it('lists the workspaces when the name is unknown, with exit 2', async () => {
+    const r = await cli('list', '--workspace', 'Work');
+    expect(r.code).toBe(2);
+    expect(r.err).toBe('taskite: no workspace is called "Work"; the workspaces are "Personal", "Games"\n');
+  });
+
+  it('works on main alone with no workspaces.json, and refuses a list it cannot read', async () => {
+    rmSync(path.join(dir, 'workspaces.json'));
+    expect((await cli('workspaces')).out).toBe('   0  Tasks\n');
+    expect((await cli('add', 'X', '--workspace', 'tasks')).code).toBe(0);
+    writeFileSync(path.join(dir, 'workspaces.json'), '{');
+    const r = await cli('list', '--workspace', 'Games');
+    expect(r.code).toBe(1);
+    expect(r.err).toContain("workspaces.json) isn't valid JSON");
+    expect(readFileSync(path.join(dir, 'workspaces.json'), 'utf8')).toBe('{');
   });
 });
