@@ -73,7 +73,7 @@ All data is one JSON file, `tasks.json`, written pretty-printed (two-space inden
 | NAS | `$TASKITE_DATA/tasks.json` on the server (§10) |
 | CLI | `--file`, else `$TASKITE_FILE`, else the desktop location (§11) |
 
-Attached files live in an `attachments/` folder beside `tasks.json`, wherever it is (§4.8).
+Attached files live in an `attachments/` folder beside `tasks.json`, wherever it is (§4.8). Other workspaces' files live in `workspaces/<id>/` beside it (§14).
 
 ## §4 Tasks
 
@@ -251,7 +251,7 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
   - Shift+F10 and the context-menu key open the menu for the focused task (or the view) and the focused sidebar item.
   - Text fields keep the system's edit menu (§12).
 - **Keyboard Shortcuts** (`?`, ⌘/) is built from the catalog, grouped, with a filter box, plus the mouse gestures (⌘-click, Shift-click) and Enter/Esc in the composer.
-- **Settings…** (⌘,): theme (System, Light, Dark), and whether a new section named Done completes tasks moved in and reopens ones moved out (§6.1).
+- **Settings…** (⌘,), for the open workspace (§14): theme (System, Light, Dark), and whether a new section named Done completes tasks moved in and reopens ones moved out (§6.1).
 - **About Taskite**: name, version, licence (in the app menu on macOS, Help elsewhere).
 
 ## §9 Look and feedback
@@ -319,3 +319,45 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
 - The web client's phone and touch layout applies (§5.5); the page runs edge to edge under the status bar and home indicator.
 - There is no menu bar or full screen. When iOS sends the app to the background, it finishes saving, as the desktop app does before a window closes.
 - The app is built from source and installed with the builder's own Apple developer account; it isn't on the App Store. The Xcode project names no Apple team: the team ID goes in `apps/ios/ios/signing.local.xcconfig`, which git ignores. App id `dev.gridloc.taskite`.
+
+## §14 Workspaces
+
+A workspace is a whole separate set of tasks, projects, labels, Trash, attachments and settings (theme included), such as Work, Games and Personal. Nothing is shared between workspaces, and nothing in one workspace counts or shows in another.
+
+### §14.1 Files
+
+- Each workspace is its own data file with its own `attachments/` folder beside it. Every rule in §3 (reading, saving, versions, conflicts, recovery, the Trash's 30 days) applies to each file on its own.
+- The first workspace is the existing `tasks.json` (§3.6), so a file from before workspaces opens as the only workspace with nothing moved. Its id is `main`, and it can't be deleted.
+- Every other workspace lives in `workspaces/<id>/tasks.json` (and `workspaces/<id>/attachments/`) next to `tasks.json`. An id is a UUID.
+- The list of workspaces is `workspaces.json` next to `tasks.json`, written pretty-printed and saved like the data file (atomic, versioned, refused on a conflict):
+
+  ```json
+  { "version": 1, "workspaces": [{ "id": "main", "name": "Personal" }, { "id": "<uuid>", "name": "Work" }] }
+  ```
+
+  The order of the list is the order in the switcher. Reading follows §3.2: a missing file is the single workspace `main` named "Tasks"; a missing `main` entry is put first; an entry without a UUID id or a name, or a repeated id, is dropped; unknown fields are kept. A `workspaces/<id>/` folder with no entry is left alone (never read, never deleted).
+- `taskite.unsaved` (§3.5) becomes `taskite.unsaved.<id>`, one per workspace; the old key is read as `main`'s.
+- Which workspace is open is remembered per device (in `localStorage`, `taskite.workspace`), not in the files: two devices on one NAS can each show a different workspace. A remembered id that no longer exists falls back to `main`.
+
+### §14.2 Switching
+
+- The sidebar's top row shows the open workspace's name with a chevron. A click (or Enter on it) opens a menu: every workspace in order with a check on the open one and its shortcut, then **New Workspace…**, **Rename Workspace…**, **Delete Workspace…**.
+- **Switch to <name>** for each workspace is in ⌘K and, on the desktop, in the Go menu. ⌃1 … ⌃9 switch to the first nine workspaces (Ctrl+1 … Ctrl+9 on Windows and Linux too).
+- Switching first finishes any pending save of the open workspace (as when a window closes, §12). If that save fails or conflicts, the switch stops and the save's own notice or dialog shows. Then the other workspace's file loads and opens on its own `lastView` (§5.1). Undo history doesn't cross workspaces: switching clears it.
+- The window title and the phone tab bar's header show "<workspace> — Taskite" when there is more than one workspace, and "Taskite" when there is one.
+- With one workspace, the switcher row still shows its name, and the menu still offers New Workspace….
+
+### §14.3 Managing
+
+- **New Workspace…** asks for a name (required, at most 80 characters, not the same as another workspace's ignoring case), creates an empty workspace after the last one, and switches to it. It opens on Today with its empty state (§9); its settings start at the defaults.
+- **Rename Workspace…** changes the open workspace's name (same rules).
+- **Delete Workspace…** (not for `main`) asks first, naming the workspace and how many open tasks it has. It removes the entry from `workspaces.json` and moves the folder to `workspaces/.deleted/<id>-<epoch ms>/`, never deleting it for good, then switches to `main` with the notice "Deleted workspace <name>." and Undo, which puts the folder and entry back and switches to it.
+- Workspace changes aren't steps in a workspace's own undo history.
+- If `workspaces.json` changed somewhere else, the app reads it again when its window comes to the front (as §3.4) and updates the switcher. A save that conflicts on it is read again and retried once, because its changes are small and named; if the open workspace was deleted elsewhere, the app switches to `main` with the notice "Workspace <name> was deleted somewhere else."
+
+### §14.4 Platforms
+
+- **Desktop and iOS:** the bridge takes a workspace id with every data and attachment call, and the native side checks that it is `main` or a UUID before it builds any path.
+- **Browser:** the same layout inside the origin's private file system.
+- **NAS:** `GET`/`PUT /api/workspaces` for `workspaces.json` (same `ETag`/`If-Match` rules as `/api/data`). `/api/data`, `/api/copies` and `/api/attachments/…` take `?workspace=<id>` (`main` when left out); an id that isn't `main` or a UUID gets 400. `POST /api/workspaces/<id>/delete` and `/restore` move the folder to and from `workspaces/.deleted/`.
+- **CLI:** `--workspace <name>` (or `$TASKITE_WORKSPACE`) picks a workspace by name, ignoring case; without it the CLI uses `main`. An unknown name fails listing the workspaces (exit 2). `taskite workspaces` lists them in order with open counts (`--json`: `id`, `name`, `open`). `taskite path` prints the chosen workspace's file.
