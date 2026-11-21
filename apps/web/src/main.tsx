@@ -1,7 +1,16 @@
 import { effect } from '@preact/signals';
 import { render } from 'preact';
 import '@taskite/ui/styles.css';
-import { NasClient, TaskSession, localRecovery, localTokenStorage, BrowserStore, every } from '@taskite/ui';
+import { MAIN_WORKSPACE_ID } from '@taskite/core';
+import {
+  NasClient,
+  TaskSession,
+  localRecovery,
+  localTokenStorage,
+  localWorkspaceMemory,
+  BrowserStore,
+  every,
+} from '@taskite/ui';
 import { App } from './app/App.tsx';
 import { buildCommands } from './app/commands.ts';
 import { AppController } from './app/controller.ts';
@@ -10,6 +19,7 @@ import { nativeBridge } from './app/native.ts';
 import { menuSender, nativeMenu, watchMenuInputs } from './app/nativeMenu.ts';
 import { followKeyboard } from './app/keyboard.ts';
 import { chooseStore } from './app/openStore.ts';
+import { WorkspaceDirectory, recoveryKey } from './app/workspaces.ts';
 import pkg from '../package.json';
 
 /** How often an open window looks for changes made elsewhere. */
@@ -41,24 +51,42 @@ async function start(): Promise<void> {
     setToken: (t) => tokens.set(t),
     browserAvailable: BrowserStore.available(),
   });
-  const { session, notice } = await TaskSession.open(choice.workspaces.open('main'), {
-    recovery: localRecovery(),
+  // The workspace this device had open, if it's still listed (PRD §14.1).
+  const workspaces = new WorkspaceDirectory(choice.workspaces);
+  const listFailed = await workspaces.load().then(
+    () => null,
+    (e: unknown) => `Couldn't read your list of workspaces: ${e instanceof Error ? e.message : String(e)}`,
+  );
+  const memory = localWorkspaceMemory();
+  const remembered = memory.get();
+  const workspaceId = remembered && workspaces.find(remembered) ? remembered : MAIN_WORKSPACE_ID;
+  const openWorkspace = (id: string) =>
+    TaskSession.open(choice.workspaces.open(id), { recovery: localRecovery(recoveryKey(id)) });
+  const { session, notice } = await openWorkspace(workspaceId);
+  const app = new AppController(session, {
+    version: native?.version ?? pkg.version,
+    workspaces,
+    openWorkspace,
+    workspaceId,
+    workspaceMemory: memory,
   });
-  const app = new AppController(session, { version: native?.version ?? pkg.version });
   const catalog = buildCommands(app);
   // The phone layout sizes itself to the part of the screen the on-screen keyboard leaves (PRD §5.5).
   followKeyboard();
   render(<App app={app} catalog={catalog} />, root);
-  const startNotice = notice ?? choice.notice;
+  const startNotice = notice ?? choice.notice ?? listFailed ?? workspaces.problem.peek();
   if (startNotice) app.say(startNotice, { sticky: true, tone: 'error' });
-  effect(() => app.saveStatusChanged(session.status.value));
+  effect(() => app.saveStatusChanged(app.session.status.value));
+  effect(() => {
+    document.title = app.windowTitle.value;
+  });
   // Saves still waiting when the tab closes are kept by the recovery snapshot; ask the browser to wait.
   // Not in the desktop app: Electron shows no prompt for this and the window would just refuse to close.
   // It closes through onCloseRequested below, which saves first.
   if (!native)
     addEventListener('beforeunload', (e) => {
       app.flushDraft();
-      if (session.status.peek() !== 'saved') e.preventDefault();
+      if (app.session.status.peek() !== 'saved') e.preventDefault();
     });
   if (import.meta.env.DEV) Object.assign(globalThis, { taskite: { app, catalog } });
 
@@ -67,12 +95,15 @@ async function start(): Promise<void> {
   const refresh = () => {
     // Typed text not yet saved waits until the field is left, so a refresh can't pull it out from under the user.
     if (document.hidden || app.hasDraft()) return;
+    const session = app.session;
     void session.refresh().then((changed) => {
-      if (changed)
+      if (changed && session === app.session)
         app.sayUndoable(`Updated with ${changed === 1 ? 'a change' : `${changed} changes`} made elsewhere.`);
     });
   };
   addEventListener('focus', refresh);
+  // A workspace added, renamed or deleted elsewhere shows up when the window comes back (PRD §14.3).
+  addEventListener('focus', () => void app.refreshWorkspaces());
   document.addEventListener('visibilitychange', refresh);
   every(REFRESH_MS, refresh);
 
@@ -96,7 +127,7 @@ async function start(): Promise<void> {
     });
     native.onCloseRequested(() => {
       app.flushDraft();
-      void session.flush().finally(() => native.closeReady());
+      void app.session.flush().finally(() => native.closeReady());
     });
     const menu = menuSender((items) => native.setMenu(items));
     addEventListener('focus', () => {

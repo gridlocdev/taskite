@@ -35,7 +35,22 @@ import {
   type Theme,
   type View,
 } from '@taskite/core';
-import { after, wait, type TaskSession } from '@taskite/ui';
+import {
+  DEFAULT_WORKSPACE_NAME,
+  MAIN_WORKSPACE_ID,
+  defaultWorkspaceList,
+  workspaceNameProblem,
+  type Workspace,
+} from '@taskite/core';
+import {
+  after,
+  memoryWorkspaceMemory,
+  wait,
+  type OpenResult,
+  type OpenWorkspaceMemory,
+  type TaskSession,
+} from '@taskite/ui';
+import type { DeletedWorkspace, WorkspaceDirectory } from './workspaces.ts';
 import { stepOrder } from './forms.ts';
 
 /** How long a checked-off row shows its tick before it leaves, and how long a leaving row fades (PRD §5.3). */
@@ -127,6 +142,14 @@ export interface ControllerOptions {
   readonly version?: string;
   /** Where the tasks file lives, for About and Settings. */
   readonly location?: string;
+  /** The list of workspaces (PRD §14); without one the app has `main` alone and can't switch. */
+  readonly workspaces?: WorkspaceDirectory;
+  /** Opens a workspace's file as a session. */
+  readonly openWorkspace?: (id: string) => Promise<OpenResult>;
+  /** The workspace `session` is (default `main`). */
+  readonly workspaceId?: string;
+  /** Remembers which workspace this device has open. */
+  readonly workspaceMemory?: OpenWorkspaceMemory;
 }
 
 /** What the editor needs of a file picked or dropped on it: a `File`. */
@@ -146,9 +169,16 @@ export function stopSlot(id: string | null): string | undefined {
 const DEFAULT_VIEW: View = { type: 'today' };
 
 export class AppController {
-  readonly session: TaskSession;
+  readonly #session: Signal<TaskSession>;
   readonly version: string;
-  readonly location: string;
+  readonly #location: string | undefined;
+  readonly workspaces: WorkspaceDirectory | null;
+  readonly #openWorkspace: ((id: string) => Promise<OpenResult>) | null;
+  readonly #workspaceMemory: OpenWorkspaceMemory;
+  /** The workspace on screen (PRD §14). */
+  readonly workspaceId: Signal<string>;
+  /** True while a switch is loading the other workspace, so a second one waits its turn. */
+  readonly switching = signal(false);
   readonly #now: () => number;
   readonly #wait: (ms: number) => Promise<void>;
 
@@ -221,15 +251,36 @@ export class AppController {
   readonly stops = computed(() => this.content.value.sections.flatMap(sectionStops));
 
   constructor(session: TaskSession, opts: ControllerOptions = {}) {
-    this.session = session;
+    this.#session = signal(session);
     this.#now = opts.now ?? Date.now;
     this.#wait = opts.wait ?? wait;
     this.version = opts.version ?? '';
-    this.location = opts.location ?? session.store.location();
+    this.#location = opts.location;
+    this.workspaces = opts.workspaces ?? null;
+    this.#openWorkspace = opts.openWorkspace ?? null;
+    this.#workspaceMemory = opts.workspaceMemory ?? memoryWorkspaceMemory();
+    this.workspaceId = signal(opts.workspaceId ?? MAIN_WORKSPACE_ID);
     this.today = signal(todayISO(new Date(this.#now())));
+    this.#attach(session);
+  }
+
+  /** The open workspace's save session. Switching workspaces replaces it (PRD §14.2). */
+  get session(): TaskSession {
+    return this.#session.value;
+  }
+
+  /** Where the open workspace's file lives, for About and Settings. */
+  get location(): string {
+    return this.#location ?? this.session.store.location();
+  }
+
+  /** Shows `session`: its last view, and its changes from now on. */
+  #attach(session: TaskSession): void {
     const last = session.list.data.settings.lastView;
-    if (last) this.view.value = resolveView(session.list, last);
+    this.view.value = last ? resolveView(session.list, last) : DEFAULT_VIEW;
     session.list.onChange(() => {
+      // A workspace switched away from keeps no say over the screen.
+      if (session !== this.#session.peek()) return;
       const notice = this.notice.peek();
       if (notice?.action?.step !== undefined && notice.action.step !== this.list.step)
         this.notice.value = { ...notice, action: null };
@@ -245,6 +296,188 @@ export class AppController {
 
   get list() {
     return this.session.list;
+  }
+
+  // ---------- Workspaces (PRD §14) ----------
+
+  /** Every workspace, `main` first; `main` alone when the app has no list. */
+  readonly workspaceList = computed<readonly Workspace[]>(
+    () => this.workspaces?.list.value.workspaces ?? [{ id: MAIN_WORKSPACE_ID, name: DEFAULT_WORKSPACE_NAME }],
+  );
+
+  readonly currentWorkspace = computed<Workspace>(() => {
+    const id = this.workspaceId.value;
+    return this.workspaceList.value.find((w) => w.id === id) ?? { id, name: DEFAULT_WORKSPACE_NAME };
+  });
+
+  /** "<workspace> — Taskite" once there is more than one workspace (PRD §14.2). */
+  readonly windowTitle = computed(() =>
+    this.workspaceList.value.length > 1 ? `${this.currentWorkspace.value.name} — Taskite` : 'Taskite',
+  );
+
+  /** Whether workspaces can be added, renamed and switched between here. */
+  get canSwitch(): boolean {
+    return this.workspaces !== null && this.#openWorkspace !== null;
+  }
+
+  /**
+   * Opens another workspace (PRD §14.2): saves what's typed and waiting first, and stays put when that fails.
+   * `force` leaves unsaved changes to the recovery snapshot, for a workspace deleted elsewhere.
+   */
+  async switchWorkspace(id: string, opts: { force?: boolean } = {}): Promise<boolean> {
+    const open = this.#openWorkspace;
+    if (!open || !this.workspaces) return false;
+    if (id === this.workspaceId.peek()) return true;
+    const target = this.workspaces.find(id);
+    if (!target || this.switching.peek()) return false;
+    this.switching.value = true;
+    try {
+      // A row still playing its tick or fade finishes first, so its change lands in the workspace it was made in.
+      while (this.completing.peek().size || this.leaving.peek().size) await this.#wait(COMPLETE_MS);
+      this.flushDraft();
+      await this.session.flush();
+      if (!opts.force && this.session.status.peek() !== 'saved') {
+        this.say(`Couldn't switch to ${target.name}: the changes here aren't saved yet.`, { tone: 'error' });
+        return false;
+      }
+      const { session, notice } = await open(id);
+      batch(() => {
+        this.#session.value = session;
+        this.workspaceId.value = id;
+        this.#clearScreen();
+        this.#attach(session);
+        this.rev.value++;
+      });
+      this.#workspaceMemory.set(id);
+      this.dismissNotice();
+      if (notice) this.say(notice, { sticky: true, tone: 'error' });
+      this.announcement.value = `Switched to ${target.name}.`;
+      return true;
+    } catch (e) {
+      this.say(`Couldn't open ${target.name}: ${messageOf(e)}`, { sticky: true, tone: 'error' });
+      return false;
+    } finally {
+      this.switching.value = false;
+    }
+  }
+
+  /** What one workspace showed that means nothing in another. */
+  #clearScreen(): void {
+    this.search.value = '';
+    this.browsing.value = false;
+    this.selected.value = new Set();
+    this.cursor.value = null;
+    this.#anchor = null;
+    this.composer.value = null;
+    this.#seed = '';
+    this.dialog.value = null;
+    this.menu.value = null;
+    this.renaming.value = null;
+    this.focusList.value++;
+  }
+
+  /** The n-th workspace (1-based), for ⌃1–⌃9. */
+  switchToNumber(n: number): void {
+    const target = this.workspaceList.peek()[n - 1];
+    if (target) void this.switchWorkspace(target.id);
+  }
+
+  /** Why `name` can't name a workspace (`selfId` when renaming), or null. */
+  workspaceNameProblem(name: string, selfId?: string): string | null {
+    return workspaceNameProblem(this.workspaces?.list.peek() ?? defaultWorkspaceList(), name, selfId);
+  }
+
+  /** New Workspace: adds it and opens it (PRD §14.3). */
+  async newWorkspace(name: string): Promise<boolean> {
+    if (!this.workspaces) return false;
+    const problem = this.workspaceNameProblem(name);
+    if (problem) {
+      this.say(problem, { tone: 'error' });
+      return false;
+    }
+    let added: Workspace;
+    try {
+      added = await this.workspaces.add(name);
+    } catch (e) {
+      this.say(`Couldn't add the workspace: ${messageOf(e)}`, { sticky: true, tone: 'error' });
+      return false;
+    }
+    return this.switchWorkspace(added.id);
+  }
+
+  async renameWorkspace(id: string, name: string): Promise<boolean> {
+    if (!this.workspaces) return false;
+    const problem = this.workspaceNameProblem(name, id);
+    if (problem) {
+      this.say(problem, { tone: 'error' });
+      return false;
+    }
+    try {
+      await this.workspaces.rename(id, name);
+      return true;
+    } catch (e) {
+      this.say(`Couldn't rename the workspace: ${messageOf(e)}`, { sticky: true, tone: 'error' });
+      return false;
+    }
+  }
+
+  /** Delete Workspace: asks first, then takes it away with Undo (PRD §14.3). Never `main`. */
+  deleteWorkspace(id: string = this.workspaceId.peek()): void {
+    const target = this.workspaces?.find(id);
+    if (!target || id === MAIN_WORKSPACE_ID) return;
+    this.confirm({
+      title: `Delete "${target.name}"?`,
+      message: 'Its tasks, projects and settings go with it.',
+      confirm: 'Delete Workspace',
+      run: () => void this.#deleteWorkspace(target),
+    });
+  }
+
+  async #deleteWorkspace(target: Workspace): Promise<void> {
+    const dir = this.workspaces;
+    if (!dir) return;
+    if (this.workspaceId.peek() === target.id && !(await this.switchWorkspace(MAIN_WORKSPACE_ID))) return;
+    let deleted: DeletedWorkspace | null;
+    try {
+      deleted = await dir.remove(target.id);
+    } catch (e) {
+      this.say(`Couldn't delete the workspace: ${messageOf(e)}`, { sticky: true, tone: 'error' });
+      return;
+    }
+    if (!deleted) return;
+    const undo = deleted;
+    this.say(`Deleted workspace ${target.name}.`, {
+      action: {
+        label: 'Undo',
+        run: () => {
+          dir.restore(undo).then(
+            () => this.say(`Restored workspace ${target.name}.`),
+            (e: unknown) =>
+              this.say(`Couldn't restore the workspace: ${messageOf(e)}`, { sticky: true, tone: 'error' }),
+          );
+        },
+      },
+    });
+  }
+
+  /**
+   * Reads `workspaces.json` again (on focus). A workspace deleted elsewhere while open falls back to `main`, its
+   * unsaved changes kept by the recovery snapshot (PRD §14.3).
+   */
+  async refreshWorkspaces(): Promise<void> {
+    const dir = this.workspaces;
+    if (!dir || this.switching.peek()) return;
+    const gone = this.currentWorkspace.peek().name;
+    const changed = await dir.load().catch(() => false);
+    const id = this.workspaceId.peek();
+    if (!changed || id === MAIN_WORKSPACE_ID || dir.find(id)) return;
+    if (await this.switchWorkspace(MAIN_WORKSPACE_ID, { force: true }))
+      this.say(
+        `The workspace ${gone} was deleted elsewhere, so Taskite opened ${this.currentWorkspace.peek().name}.`,
+        {
+          sticky: true,
+        },
+      );
   }
 
   // ---------- Notices ----------
@@ -1307,4 +1540,8 @@ function holds(section: Section, id: string): boolean {
     section.rows.some((r) => r.task.id === id) ||
     (section.addSlot !== null && addStop(section.addSlot) === id)
   );
+}
+
+function messageOf(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
 }
