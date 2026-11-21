@@ -220,7 +220,7 @@ export class NasWorkspaces implements WorkspaceStore {
 
   async loadList(): Promise<StoredFile> {
     const res = await this.client.request('/api/workspaces');
-    if (res.status === 404) return { text: null, version: null };
+    if (res.status === 204) return { text: null, version: null };
     if (!res.ok) throw await failure(res);
     return { text: await res.text(), version: unquote(res.headers.get('ETag')) };
   }

@@ -175,15 +175,22 @@ function dataFileOf(url: URL, opts: ServerOptions): string {
   return workspaceFile(opts.file, id);
 }
 
-/** `GET` of a versioned file, with `If-None-Match` answered by 304 (PRD §10). */
+/**
+ * `GET` of a versioned file, with `If-None-Match` answered by 304 (PRD §10). A missing file is a 404 with the
+ * `missing` message, or a 204 when `missing` is null because having none yet is normal (`workspaces.json`).
+ */
 async function sendVersioned(
   req: http.IncomingMessage,
   res: http.ServerResponse,
   file: string,
-  missing: string,
+  missing: string | null,
 ) {
   const { text, version } = await readDataFile(file);
-  if (text === null) throw new HttpError(404, missing);
+  if (text === null && missing === null) {
+    res.writeHead(204, { 'Cache-Control': 'no-store', ...SECURITY_HEADERS });
+    return void res.end();
+  }
+  if (text === null) throw new HttpError(404, missing ?? '');
   // The app reads every few seconds; an unchanged file costs a header, not the whole file (PRD §10).
   if (version && etagList(header(req, 'if-none-match')).includes(version)) {
     res.writeHead(304, { 'Cache-Control': 'no-store', ETag: `"${version}"`, ...SECURITY_HEADERS });
@@ -253,7 +260,7 @@ async function api(
     case 'GET /api/info':
       return send(res, 200, { name: 'Taskite', version: opts.version, auth: opts.token !== null });
     case 'GET /api/workspaces':
-      return sendVersioned(req, res, workspaceListFile(opts.file), 'No workspaces file yet');
+      return sendVersioned(req, res, workspaceListFile(opts.file), null);
     case 'PUT /api/workspaces':
       return putVersioned(req, res, workspaceListFile(opts.file), opts);
     case 'GET /api/data':

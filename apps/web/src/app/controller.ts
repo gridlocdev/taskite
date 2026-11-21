@@ -110,6 +110,8 @@ export type DialogState =
       readonly run: () => void;
     }
   | { readonly kind: 'move'; readonly ids: readonly string[] }
+  /** New Workspace (no id) or Rename Workspace (PRD §14.3). */
+  | { readonly kind: 'workspace'; readonly id: string | null }
   /** Section Automations… (PRD §6.1). */
   | { readonly kind: 'automations'; readonly projectId: string; readonly sectionId: string }
   | { readonly kind: 'sections' }
@@ -119,7 +121,8 @@ export type DialogState =
   | { readonly kind: 'shortcuts' };
 
 /** Which right-click menu is open (PRD §8). Its items are listed in `MENUS` in commands.ts. */
-export type MenuKind = 'task' | 'list' | 'project' | 'label' | 'section' | 'completed' | 'trash' | 'projects';
+export type MenuKind =
+  'task' | 'list' | 'project' | 'label' | 'section' | 'completed' | 'trash' | 'projects' | 'workspace';
 
 /** What a sidebar menu acts on, when it isn't the view on screen. */
 export type MenuTarget =

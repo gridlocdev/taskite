@@ -16,7 +16,7 @@ import { buildCommands } from './app/commands.ts';
 import { AppController } from './app/controller.ts';
 import { TokenPrompt } from './app/Dialogs.tsx';
 import { nativeBridge } from './app/native.ts';
-import { menuSender, nativeMenu, watchMenuInputs } from './app/nativeMenu.ts';
+import { SWITCH_TO, menuSender, nativeMenu, watchMenuInputs } from './app/nativeMenu.ts';
 import { followKeyboard } from './app/keyboard.ts';
 import { chooseStore } from './app/openStore.ts';
 import { WorkspaceDirectory, recoveryKey } from './app/workspaces.ts';
@@ -112,6 +112,11 @@ async function start(): Promise<void> {
     html.toggle('tk-unified', native.chrome === 'unified');
     native.onFullScreen((full) => html.toggle('tk-fullscreen', full));
     native.onCommand((id) => {
+      // A workspace past the ninth in the Go menu: its id comes with the command (PRD §14.2).
+      if (id.startsWith(SWITCH_TO)) {
+        if (!app.blocked()) void app.switchWorkspace(id.slice(SWITCH_TO.length));
+        return;
+      }
       // Menu accelerators reach the app before the page; in a text field ⌘Z and ⌘A stay the field's.
       const inText = !!document.activeElement?.closest('input, textarea, select');
       if (inText && !catalog.get(id)?.global) {
@@ -132,9 +137,9 @@ async function start(): Promise<void> {
     const menu = menuSender((items) => native.setMenu(items));
     addEventListener('focus', () => {
       menu.forget();
-      menu.send(nativeMenu(catalog));
+      menu.send(nativeMenu(catalog, app));
     });
-    watchMenuInputs(app, () => menu.send(nativeMenu(catalog)));
+    watchMenuInputs(app, () => menu.send(nativeMenu(catalog, app)));
   }
 }
 

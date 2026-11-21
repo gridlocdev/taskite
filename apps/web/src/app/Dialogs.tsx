@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import {
   MAX_PROJECT_NAME,
+  MAX_WORKSPACE_NAME,
   PROJECT_COLORS,
   PROJECT_COLOR_NAMES,
   RECURRENCES,
@@ -78,6 +79,8 @@ export function Dialogs({ app, catalog }: { readonly app: AppController; readonl
       );
     case 'move':
       return <MoveDialog app={app} ids={d.ids} />;
+    case 'workspace':
+      return <WorkspaceDialog app={app} id={d.id} />;
     case 'automations':
       return <AutomationsDialog app={app} projectId={d.projectId} sectionId={d.sectionId} />;
     case 'sections':
@@ -785,6 +788,43 @@ function SectionDialog({
           onInput={(e) => setName((e.target as HTMLInputElement).value)}
         />
       </label>
+    </Dialog>
+  );
+}
+
+/** New Workspace (no id) and Rename Workspace (PRD §14.3). A taken name is refused as it's typed. */
+function WorkspaceDialog({ app, id }: { readonly app: AppController; readonly id: string | null }) {
+  const [name, setName] = useState(id ? (app.workspaceList.value.find((w) => w.id === id)?.name ?? '') : '');
+  const [tried, setTried] = useState(false);
+  const problem = app.workspaceNameProblem(name, id ?? undefined);
+  return (
+    <Dialog
+      title={id ? 'Rename workspace' : 'New workspace'}
+      onClose={() => app.close()}
+      onSubmit={() => {
+        setTried(true);
+        if (problem) return;
+        app.close();
+        void (id ? app.renameWorkspace(id, name) : app.newWorkspace(name));
+      }}
+      actions={<Actions app={app} save={id ? 'Save' : 'Add Workspace'} />}
+    >
+      <label class="tk-field">
+        <span>Name</span>
+        <input
+          required
+          maxLength={MAX_WORKSPACE_NAME}
+          value={name}
+          placeholder={id ? undefined : 'Work, Games, Home…'}
+          aria-invalid={tried && !!problem}
+          aria-describedby="tk-workspace-problem"
+          onInput={(e) => setName((e.target as HTMLInputElement).value)}
+        />
+      </label>
+      {!id && <p class="tk-hint">A workspace has its own tasks, projects and settings.</p>}
+      <p id="tk-workspace-problem" class="tk-error-text" role="status">
+        {(tried || name.trim()) && problem ? problem : ''}
+      </p>
     </Dialog>
   );
 }

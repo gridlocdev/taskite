@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { MemoryWorkspaces, TaskSession, memoryRecovery, memoryWorkspaceMemory } from '@taskite/ui';
+import { buildCommands, dynamicEntries } from '../src/app/commands.ts';
 import { AppController } from '../src/app/controller.ts';
+import { SWITCH_TO, nativeMenu } from '../src/app/nativeMenu.ts';
 import { NEWER_LIST, UNREADABLE_LIST, WorkspaceDirectory, recoveryKey } from '../src/app/workspaces.ts';
 import { NOW } from './helpers.ts';
 
@@ -179,5 +181,56 @@ describe('managing workspaces (PRD §14.3)', () => {
       expect(app.notice.value?.text).toContain(problem);
       expect((await stores.loadList()).text).toBe(text);
     }
+  });
+});
+
+describe('workspace commands (PRD §14.2)', () => {
+  const many = () =>
+    listOf(
+      ['main', 'Personal'],
+      ...Array.from({ length: 10 }, (_, i): [string, string] => [
+        `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
+        `W${i + 2}`,
+      ]),
+    );
+
+  it('offers Switch to <name> in ⌘K for every other workspace', async () => {
+    const { app } = await makeApp(listOf(['main', 'Personal'], [A, 'Work']));
+    const titles = dynamicEntries(app).map((e) => e.title);
+    expect(titles).toContain('Switch to Work');
+    expect(titles).not.toContain('Switch to Personal');
+  });
+
+  it('keeps ⌃1–⌃9 to the workspaces there are, and Delete off main', async () => {
+    const { app } = await makeApp(listOf(['main', 'Personal'], [A, 'Work']));
+    const catalog = buildCommands(app);
+    const enabled = (id: string) => catalog.isEnabled(catalog.get(id)!);
+    expect(enabled('workspace.switch2')).toBe(true);
+    expect(enabled('workspace.switch3')).toBe(false);
+    expect(enabled('workspace.delete')).toBe(false);
+    await app.switchWorkspace(A);
+    expect(enabled('workspace.delete')).toBe(true);
+  });
+
+  it('lists the workspaces in the Go menu, ⌃1–⌃9 first and the open one ticked', async () => {
+    const { app } = await makeApp(many());
+    const go = nativeMenu(buildCommands(app), app).find((m) => 'label' in m && m.label === 'Go');
+    const items = (go && 'submenu' in go ? go.submenu : []) ?? [];
+    const named = items.filter((i) => 'checked' in i);
+    expect(named).toHaveLength(11);
+    expect(named[0]).toMatchObject({
+      label: 'Personal',
+      checked: true,
+      command: 'workspace.switch1',
+      accelerator: 'Ctrl+1',
+    });
+    expect(named[10]).toMatchObject({ label: 'W11', checked: false });
+    expect((named[10] as { command: string }).command.startsWith(SWITCH_TO)).toBe(true);
+  });
+
+  it('leaves the Go menu alone with one workspace', async () => {
+    const { app } = await makeApp();
+    const go = nativeMenu(buildCommands(app), app).find((m) => 'label' in m && m.label === 'Go');
+    expect(((go && 'submenu' in go ? go.submenu : []) ?? []).some((i) => 'checked' in i)).toBe(false);
   });
 });

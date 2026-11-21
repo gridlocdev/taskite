@@ -177,7 +177,7 @@ describe('workspaces (PRD §14.4)', () => {
 
   it('keeps each workspace in its own folder, and the list in workspaces.json', async () => {
     await start();
-    expect((await fetch(`${base}/api/workspaces`)).status).toBe(404);
+    expect((await fetch(`${base}/api/workspaces`)).status).toBe(204);
     const list = await fetch(`${base}/api/workspaces`, {
       method: 'PUT',
       headers: { 'If-None-Match': '*' },

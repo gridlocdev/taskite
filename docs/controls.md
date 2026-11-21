@@ -62,6 +62,15 @@ In a browser tab, the browser keeps **⌘N** and **⇧⌘N** (**Ctrl+N** and **C
 | Search | **/** or **⌘F** | **/** or **Ctrl+F** |
 | A project or label | **⌘K**, then type its name | **Ctrl+K**, then type its name |
 
+## Workspaces
+
+Each workspace has its own tasks, projects and settings. The workspace button at the top of the sidebar lists them, with New, Rename and Delete Workspace. The menu bar has them under **File** and **Go**.
+
+|  | macOS | Windows / Linux |
+| --- | --- | --- |
+| The first nine workspaces | **⌃1**, **⌃2**, **⌃3**, **⌃4**, **⌃5**, **⌃6**, **⌃7**, **⌃8**, **⌃9** | **Ctrl+1**, **Ctrl+2**, **Ctrl+3**, **Ctrl+4**, **Ctrl+5**, **Ctrl+6**, **Ctrl+7**, **Ctrl+8**, **Ctrl+9** |
+| Any workspace | **⌘K**, then type "switch to" and its name | **Ctrl+K**, then type "switch to" and its name |
+
 ## Settings and help
 
 |  | macOS | Windows / Linux |

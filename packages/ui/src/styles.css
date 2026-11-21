@@ -312,6 +312,43 @@ kbd {
 .tk-unified :is(button, input, select, textarea, a, [role='menu'], [role='dialog']) {
   -webkit-app-region: no-drag;
 }
+/* The open workspace, its own row under the top one (PRD §14.2). */
+.tk-workspace-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% - 24px);
+  margin: 0 12px 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--tk-border);
+  border-radius: var(--tk-radius);
+  background: var(--tk-raised);
+  color: var(--tk-text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.tk-workspace-switcher:hover {
+  background: var(--tk-hover);
+}
+.tk-workspace-switcher:focus-visible {
+  outline: 2px solid var(--tk-focus);
+  outline-offset: 1px;
+}
+.tk-workspace-switcher .tk-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--tk-text-3);
+}
+.tk-workspace-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .tk-search {
   position: relative;
   margin: 0 12px 8px;

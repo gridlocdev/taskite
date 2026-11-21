@@ -7,6 +7,7 @@ import {
   isSubmitKey,
   isUndoKey,
   listStep,
+  matchRank,
   parseSequence,
   sequenceAccelerator,
   type CommandSpec,
@@ -232,5 +233,24 @@ describe('list popups', () => {
     expect(listStep(k('Tab'), 0, 0)).toBe(0);
     expect(listStep({ ...k('Tab'), ctrlKey: true }, 0, 3)).toBeUndefined();
     expect(listStep(k('Enter'), 0, 3)).toBeUndefined();
+  });
+});
+
+describe('Ctrl shortcuts (⌃1 on macOS, Ctrl+1 elsewhere)', () => {
+  const ctrl1 = parseSequence('ctrl+1');
+  const one = { key: '1', code: 'Digit1' };
+
+  it('is ⌃ alone on macOS, not ⌘', () => {
+    const [s] = ctrl1;
+    expect(matchRank(s!, key({ ...one, ctrlKey: true }), true) > 0).toBe(true);
+    expect(matchRank(s!, key({ ...one, metaKey: true }), true) > 0).toBe(false);
+    expect(formatSequence(ctrl1, true)).toEqual(['⌃1']);
+  });
+
+  it('is Ctrl elsewhere', () => {
+    const [s] = ctrl1;
+    expect(matchRank(s!, key({ ...one, ctrlKey: true }), false) > 0).toBe(true);
+    expect(matchRank(s!, key(one), false) > 0).toBe(false);
+    expect(formatSequence(ctrl1, false)).toEqual(['Ctrl+1']);
   });
 });

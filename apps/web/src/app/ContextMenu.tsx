@@ -2,7 +2,7 @@ import { batch } from '@preact/signals';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { plural } from '@taskite/core';
 import { Icon, type CommandCatalog } from '@taskite/ui';
-import { MENUS } from './commands.ts';
+import { MENUS, NUMBERED_WORKSPACES } from './commands.ts';
 import type { AppController, ContextMenuState } from './controller.ts';
 import { menuArrows } from './TaskView.tsx';
 import { phone, touchScreen } from './touch.ts';
@@ -43,6 +43,9 @@ const ICONS: Record<string, string> = {
   'task.restore': 'restore',
   'task.delete': 'trash',
   'task.purge': 'trash',
+  'workspace.new': 'plus',
+  'workspace.rename': 'edit',
+  'workspace.delete': 'trash',
 };
 
 /** A menu's enabled items, with no separator first, last or twice in a row. */
@@ -184,6 +187,7 @@ export function ContextMenu({
       }}
     >
       {ids.length > 1 && <div class="tk-menu-header">{plural(ids.length, 'task')} chosen</div>}
+      {menu.kind === 'workspace' && <WorkspaceItems app={app} catalog={catalog} pressed={pressed} />}
       {items.map((id, i) => {
         if (id === '|') return <div key={`sep${i}`} class="tk-menu-sep" role="separator" />;
         // In a sheet the four priorities share one row of flags, so the rest of the menu sits lower (PRD §5.5).
@@ -229,5 +233,49 @@ export function ContextMenu({
         );
       })}
     </div>
+  );
+}
+
+/** The ⌃1–⌃9 key of the i-th workspace (0-based), from the catalog. */
+function keyOf(catalog: CommandCatalog, i: number): string {
+  const c = i < NUMBERED_WORKSPACES ? catalog.get(`workspace.switch${i + 1}`) : undefined;
+  return c ? catalog.keys(c).join(' ') : '';
+}
+
+/** The workspace menu's first part: every workspace, the open one ticked, with its ⌃1–⌃9 key (PRD §14.2). */
+function WorkspaceItems({
+  app,
+  catalog,
+  pressed,
+}: {
+  readonly app: AppController;
+  readonly catalog: CommandCatalog;
+  readonly pressed: { current: boolean };
+}) {
+  const open = app.workspaceId.value;
+  const list = app.workspaceList.value;
+  return (
+    <>
+      {list.map((w, i) => (
+        <button
+          key={w.id}
+          type="button"
+          role="menuitemradio"
+          aria-checked={w.id === open}
+          class="tk-menu-item"
+          onPointerDown={(e) => e.preventDefault()}
+          onClick={(e) => {
+            if (e.detail !== 0 && !pressed.current) return;
+            app.menu.value = null;
+            void app.switchWorkspace(w.id);
+          }}
+        >
+          {w.id === open ? <Icon name="check" /> : <span class="tk-icon" aria-hidden="true" />}
+          <span class="tk-menu-title">{w.name}</span>
+          <span class="tk-menu-key">{keyOf(catalog, i)}</span>
+        </button>
+      ))}
+      <div class="tk-menu-sep" role="separator" />
+    </>
   );
 }

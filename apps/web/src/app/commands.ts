@@ -2,7 +2,7 @@
  * Every command in the app (PRD §8). The keyboard, ⌘K, the right-click menu, the menu bar, the Keyboard
  * Shortcuts window and docs/controls.md all come from this list.
  */
-import { INBOX_ID, plural, type Priority } from '@taskite/core';
+import { INBOX_ID, MAIN_WORKSPACE_ID, plural, type Priority } from '@taskite/core';
 import { CommandCatalog, type CommandSpec, type MenuEntry } from '@taskite/ui';
 import type { AppController, MenuKind } from './controller.ts';
 
@@ -68,7 +68,15 @@ export const MENUS: Readonly<Record<MenuKind, readonly string[]>> = {
   completed: ['task.clearCompleted'],
   trash: ['trash.empty'],
   projects: ['project.new'],
+  // The sidebar's workspace row; the workspaces themselves come first, drawn by the menu (PRD §14.2).
+  workspace: ['workspace.new', 'workspace.rename', '|', 'workspace.delete'],
 };
+
+/** How many workspaces have a ⌃1–⌃9 key. */
+export const NUMBERED_WORKSPACES = 9;
+
+/** `workspace.switch<n>` → n, for the ⌃1–⌃9 commands. */
+export const SWITCH_NUMBER = /^workspace\.switch([1-9])$/;
 
 const PRIORITY_NAMES: Record<Priority, string> = { 1: 'urgent', 2: 'high', 3: 'medium', 4: 'normal' };
 
@@ -148,6 +156,47 @@ export function buildCommands(app: AppController): CommandCatalog {
       global: true,
       run: () => app.open({ kind: 'project', id: null }),
     },
+    {
+      id: 'workspace.new',
+      title: 'New Workspace…',
+      keywords: 'add create space profile context separate',
+      description: 'Makes a workspace: its own tasks, projects and settings, and opens it.',
+      group: 'File',
+      enabled: () => app.canSwitch,
+      run: () => app.open({ kind: 'workspace', id: null }),
+    },
+    {
+      id: 'workspace.rename',
+      title: 'Rename Workspace…',
+      keywords: 'name space profile',
+      description: 'Renames the open workspace.',
+      group: 'File',
+      enabled: () => app.canSwitch,
+      run: () => app.open({ kind: 'workspace', id: app.workspaceId.value }),
+    },
+    {
+      id: 'workspace.delete',
+      title: 'Delete Workspace…',
+      keywords: 'remove space profile',
+      description:
+        'Deletes the open workspace and everything in it, after asking. The first workspace stays.',
+      group: 'File',
+      danger: true,
+      enabled: () => app.canSwitch && app.workspaceId.value !== MAIN_WORKSPACE_ID,
+      run: () => app.deleteWorkspace(),
+    },
+    ...Array.from({ length: NUMBERED_WORKSPACES }, (_, i): CommandSpec => ({
+      id: `workspace.switch${i + 1}`,
+      title: `Switch to Workspace ${i + 1}`,
+      description: `Opens the workspace that is number ${i + 1} in the list.`,
+      group: 'Go',
+      shortcuts: [`ctrl+${i + 1}`],
+      // ⌘K and the menu bar list the workspaces by name instead.
+      hidden: true,
+      global: true,
+      enabled: () => app.canSwitch && i < app.workspaceList.value.length,
+      run: () => app.switchToNumber(i + 1),
+    })),
     {
       id: 'app.settings',
       title: 'Settings…',
@@ -801,6 +850,16 @@ export function dynamicEntries(app: AppController): DynamicEntry[] {
       keywords: 'jump heading column group board',
       run: () => app.goToSection(s.key),
     });
+  if (app.canSwitch)
+    for (const w of app.workspaceList.value)
+      if (w.id !== app.workspaceId.value)
+        entries.push({
+          id: `workspace.switch:${w.id}`,
+          title: `Switch to ${w.name}`,
+          group: 'Go',
+          keywords: 'workspace open space profile',
+          run: () => void app.switchWorkspace(w.id),
+        });
   const ids = app.shown.value.type === 'trash' ? [] : app.targetIds();
   if (ids.length)
     for (const p of list.data.projects)

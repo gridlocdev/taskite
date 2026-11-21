@@ -9,10 +9,15 @@ import {
   type Shortcut,
   debounce,
 } from '@taskite/ui';
+import { NUMBERED_WORKSPACES } from './commands.ts';
 import type { AppController } from './controller.ts';
+
+/** The menu-bar id of a workspace past the ninth, which has no command of its own. */
+export const SWITCH_TO = 'workspace.switch:';
 
 /** Separators go before these ids. */
 const BREAKS = new Set([
+  'workspace.new',
   'app.settings',
   'task.due',
   'task.priority1',
@@ -56,8 +61,34 @@ function item(catalog: CommandCatalog, c: Command): NativeMenuItem {
   };
 }
 
+/**
+ * The Go menu's workspaces (PRD §14.2), the open one ticked: the first nine run their ⌃1–⌃9 command, the rest
+ * `workspace.switch:<id>`. None while there is only one.
+ */
+function workspaceItems(catalog: CommandCatalog, app: AppController): NativeMenuItem[] {
+  const list = app.workspaceList.value;
+  if (!app.canSwitch || list.length < 2) return [];
+  const open = app.workspaceId.value;
+  const enabled = !app.blocked();
+  return [
+    { type: 'separator' },
+    ...list.map((w, i): NativeMenuItem => {
+      const numbered = i < NUMBERED_WORKSPACES ? catalog.get(`workspace.switch${i + 1}`) : undefined;
+      const accel = numbered ? accelerator(numbered.sequences[0]?.[0]) : undefined;
+      return {
+        label: w.name,
+        command: numbered ? numbered.id : `${SWITCH_TO}${w.id}`,
+        enabled,
+        type: 'checkbox',
+        checked: w.id === open,
+        ...(accel ? { accelerator: accel } : {}),
+      };
+    }),
+  ];
+}
+
 /** The menu bar: one menu per command group, in catalog order, with each command's current state. */
-export function nativeMenu(catalog: CommandCatalog): NativeMenuItem[] {
+export function nativeMenu(catalog: CommandCatalog, app?: AppController): NativeMenuItem[] {
   return COMMAND_GROUPS.map((group) => {
     const items: NativeMenuItem[] = [];
     for (const c of catalog.all) {
@@ -66,6 +97,7 @@ export function nativeMenu(catalog: CommandCatalog): NativeMenuItem[] {
       items.push(item(catalog, c));
       if (c.id === CLIPBOARD_AFTER) items.push(...CLIPBOARD);
     }
+    if (group === 'Go' && app) items.push(...workspaceItems(catalog, app));
     return { label: group, submenu: items };
   }).filter((m) => 'submenu' in m && m.submenu && m.submenu.length > 0);
 }
@@ -99,6 +131,8 @@ export function watchMenuInputs(app: AppController, changed: () => void, settleM
     void app.selected.value;
     void app.cursor.value;
     void app.dialog.value;
+    void app.workspaceList.value;
+    void app.workspaceId.value;
     later.call();
   });
   return () => {

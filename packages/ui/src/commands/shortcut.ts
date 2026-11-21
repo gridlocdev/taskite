@@ -8,7 +8,7 @@ export interface Shortcut {
   readonly mod: boolean;
   readonly shift: boolean;
   readonly alt: boolean;
-  /** Literal Ctrl on macOS (rare; e.g. ⌃Tab). */
+  /** Literal Ctrl (⌃ on macOS, e.g. ⌃1); elsewhere it is the same key as `mod`. */
   readonly ctrl: boolean;
 }
 
@@ -124,7 +124,10 @@ function isAltGraph(e: ShortcutEvent, mac: boolean): boolean {
 export function matchRank(s: Shortcut, e: ShortcutEvent, mac = isMac): number {
   const mod = mac ? e.metaKey : e.ctrlKey;
   const ctrl = mac ? e.ctrlKey : false;
-  if (mod !== s.mod || e.altKey !== s.alt || ctrl !== s.ctrl) return 0;
+  // Off macOS, Ctrl is the ⌘ key's stand-in: `ctrl+1` is pressed as Ctrl+1 there too.
+  const wantMod = s.mod || (!mac && s.ctrl);
+  const wantCtrl = mac && s.ctrl;
+  if (mod !== wantMod || e.altKey !== s.alt || ctrl !== wantCtrl) return 0;
   if (isAltGraph(e, mac)) return 0;
   if (/^[\x21-\x7e]$/.test(e.key)) {
     const ch = e.key.toLowerCase();
@@ -172,7 +175,7 @@ export function formatShortcut(s: Shortcut, mac = isMac): string {
   const key =
     s.key.length === 1 ? s.key.toUpperCase() : ((mac ? MAC_SYMBOLS[s.key] : undefined) ?? cap(s.key));
   if (mac) return `${s.ctrl ? '⌃' : ''}${s.alt ? '⌥' : ''}${s.shift ? '⇧' : ''}${s.mod ? '⌘' : ''}${key}`;
-  return [s.mod && 'Ctrl', s.alt && 'Alt', s.shift && 'Shift', key].filter(Boolean).join('+');
+  return [(s.mod || s.ctrl) && 'Ctrl', s.alt && 'Alt', s.shift && 'Shift', key].filter(Boolean).join('+');
 }
 
 /** Electron accelerator string (CmdOrCtrl+Shift+K). */

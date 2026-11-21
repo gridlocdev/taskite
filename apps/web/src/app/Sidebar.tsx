@@ -87,6 +87,7 @@ export function Sidebar({ app, catalog }: { readonly app: AppController; readonl
           <Icon name="plus" />
         </button>
       </div>
+      {app.canSwitch && <WorkspaceSwitcher app={app} catalog={catalog} />}
       <div class="tk-search">
         <Icon name="search" />
         <input
@@ -276,5 +277,40 @@ function NavItem(props: {
         {props.count !== null && props.count > 0 && <span class="tk-count">{props.count}</span>}
       </button>
     </li>
+  );
+}
+
+/**
+ * The open workspace, under the top row (PRD §14.2): a click lists the workspaces and New, Rename and Delete
+ * Workspace. Its own row, since the desktop's unified title bar leaves no room beside the app name.
+ */
+function WorkspaceSwitcher({
+  app,
+  catalog,
+}: {
+  readonly app: AppController;
+  readonly catalog: CommandCatalog;
+}) {
+  const name = app.currentWorkspace.value.name;
+  const open = (e: MouseEvent) => {
+    const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    if (showMenu(app, catalog, 'workspace', undefined, { x: box.left, y: box.bottom + 2 }))
+      e.preventDefault();
+  };
+  return (
+    <button
+      type="button"
+      class="tk-workspace-switcher"
+      aria-haspopup="menu"
+      aria-expanded={app.menu.value?.kind === 'workspace'}
+      title="Switch workspace"
+      aria-label={`Switch workspace (${name})`}
+      onClick={open}
+      onContextMenu={open}
+    >
+      <Icon name="layers" />
+      <span class="tk-workspace-name">{name}</span>
+      <Icon name="chevron-down" />
+    </button>
   );
 }

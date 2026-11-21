@@ -53,6 +53,14 @@ Drop a task on a project, a label, Today or the Trash in the sidebar to move it 
 - **Reorder** the chosen tasks with `⌥↑` and `⌥↓` in the Inbox and projects. A task moves with its subtasks.
 - **Right-click** a task, the empty part of a list, or a project, label, Completed or the Trash in the sidebar for the actions that fit it. Text fields get Cut, Copy, Paste and spelling suggestions.
 
+## Workspaces
+
+- A **workspace** is a separate set of tasks, projects, labels and settings, such as one for work, one for games you're making and one for home. Each has its own file, its own theme and its own undo.
+- The button at the top of the sidebar shows the open workspace. Click it to switch, or to add, rename or delete one. `⌃1` to `⌃9` (`Ctrl+1` to `Ctrl+9` on Windows and Linux) open the first nine, and ⌘K offers **Switch to** each by name. The Go menu lists them too.
+- Taskite opens the workspace you last had open on that device. With more than one workspace, the window title names the open one.
+- **Delete Workspace** asks first, then the notice offers **Undo**. The first workspace can't be deleted. A deleted workspace's folder is kept under `workspaces/.deleted/`.
+- The command line works on any workspace with `--workspace <name>`.
+
 ## Never losing a task
 
 - Every change saves at once. If a save fails, Taskite tries again, keeps your changes in the browser's storage, and shows **Try again** until it works. If the app closes first, it offers to restore them next time.
