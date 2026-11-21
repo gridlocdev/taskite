@@ -163,10 +163,11 @@ e2e *args: build-web
     pnpm exec playwright test -c e2e/playwright.config.ts --project=web "$@"
 
 # Accept the current screenshots as the new baseline (macOS; look at the diff in .e2e-results first).
+# Arguments filter the tests, as for `just e2e`: `just e2e-update look`.
 [group('quality')]
 [positional-arguments]
 e2e-update *args: build-web
-    pnpm exec playwright test -c e2e/playwright.config.ts --project=web --update-snapshots "$@"
+    pnpm exec playwright test -c e2e/playwright.config.ts --project=web --update-snapshots=changed "$@"
 
 # Drive the app headlessly for a quick look: just drive cmd:"Go to Inbox" key:KeyQ type:"Buy milk" shot:after aria
 [group('quality')]
