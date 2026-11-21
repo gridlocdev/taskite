@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AuthError, MemoryStore, NasClient, type NasInfo, type NativeData } from '@taskite/ui';
+import { AuthError, MemoryWorkspaces, NasClient, type NasInfo, type NativeData } from '@taskite/ui';
 import { chooseStore } from '../src/app/openStore.ts';
 
 class FakeNas extends NasClient {
@@ -28,7 +28,7 @@ const base = { askToken: async () => null, setToken: () => undefined, browserAva
 describe('chooseStore', () => {
   it('uses the desktop bridge first', async () => {
     const native = { load: async () => ({}) } as unknown as NativeData;
-    expect((await chooseStore({ ...base, native, nas: null })).store.kind).toBe('native');
+    expect((await chooseStore({ ...base, native, nas: null })).workspaces.kind).toBe('native');
   });
 
   it('asks for the token until one works', async () => {
@@ -46,16 +46,16 @@ describe('chooseStore', () => {
       },
       setToken: (t) => (token.value = t),
     });
-    expect(choice.store.kind).toBe('nas');
+    expect(choice.workspaces.kind).toBe('nas');
     expect(asked).toEqual([false, true]);
   });
 
   it('keeps tasks in memory, and says so, when sign-in is cancelled or nothing else works', async () => {
     const nas = new FakeNas({ name: 'Taskite', version: '1', auth: true }, 'right', { value: null });
     const cancelled = await chooseStore({ ...base, native: null, nas });
-    expect(cancelled.store).toBeInstanceOf(MemoryStore);
+    expect(cancelled.workspaces).toBeInstanceOf(MemoryWorkspaces);
     expect(cancelled.notice).toMatch(/Not signed in/);
     const none = await chooseStore({ ...base, native: null, nas: new FakeNas(null, '', { value: null }) });
-    expect(none.store).toBeInstanceOf(MemoryStore);
+    expect(none.workspaces).toBeInstanceOf(MemoryWorkspaces);
   });
 });

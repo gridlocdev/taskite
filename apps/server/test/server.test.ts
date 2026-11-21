@@ -171,6 +171,67 @@ describe('attachments (PRD §4.8, §10)', () => {
   });
 });
 
+describe('workspaces (PRD §14.4)', () => {
+  const ws = '0b6f1c1e-3a4d-4c8e-9f00-1a2b3c4d5e6f';
+  const att = '7d3e2f10-5b6c-4d7e-8f90-a1b2c3d4e5f6';
+
+  it('keeps each workspace in its own folder, and the list in workspaces.json', async () => {
+    await start();
+    expect((await fetch(`${base}/api/workspaces`)).status).toBe(404);
+    const list = await fetch(`${base}/api/workspaces`, {
+      method: 'PUT',
+      headers: { 'If-None-Match': '*' },
+      body: '{"version":1}',
+    });
+    expect(list.status).toBe(204);
+    expect(await readFile(path.join(dir, 'workspaces.json'), 'utf8')).toBe('{"version":1}');
+    const put = await fetch(`${base}/api/data?workspace=${ws}`, {
+      method: 'PUT',
+      headers: { 'If-None-Match': '*' },
+      body: '{"w":1}',
+    });
+    expect(put.status).toBe(204);
+    expect(await readFile(path.join(dir, 'workspaces', ws, 'tasks.json'), 'utf8')).toBe('{"w":1}');
+    expect((await fetch(`${base}/api/data`)).status).toBe(404);
+    expect((await fetch(`${base}/api/data?workspace=main`)).status).toBe(404);
+    const file = await fetch(`${base}/api/attachments/${att}?workspace=${ws}`, { method: 'PUT', body: 'x' });
+    expect(file.status).toBe(201);
+    expect(await readdir(path.join(dir, 'workspaces', ws, 'attachments'))).toEqual([att]);
+  });
+
+  it('moves a deleted workspace aside and back', async () => {
+    await start();
+    await fetch(`${base}/api/data?workspace=${ws}`, {
+      method: 'PUT',
+      headers: { 'If-None-Match': '*' },
+      body: '{"w":1}',
+    });
+    expect((await fetch(`${base}/api/workspaces/${ws}/delete?at=1700`, { method: 'POST' })).status).toBe(200);
+    expect((await fetch(`${base}/api/data?workspace=${ws}`)).status).toBe(404);
+    expect(await readdir(path.join(dir, 'workspaces', '.deleted'))).toEqual([`${ws}-1700`]);
+    expect((await fetch(`${base}/api/workspaces/${ws}/restore?at=1700`, { method: 'POST' })).status).toBe(
+      200,
+    );
+    expect(await (await fetch(`${base}/api/data?workspace=${ws}`)).text()).toBe('{"w":1}');
+  });
+
+  it('refuses ids that are not main or a UUID, and never moves main', async () => {
+    await start();
+    for (const bad of ['..%2F..', 'Main', ws.toUpperCase(), 'workspaces', ''])
+      expect((await fetch(`${base}/api/data?workspace=${bad}`)).status).toBe(400);
+    expect((await fetch(`${base}/api/workspaces/main/delete?at=1`, { method: 'POST' })).status).toBe(400);
+    expect((await fetch(`${base}/api/workspaces/${ws}/delete?at=soon`, { method: 'POST' })).status).toBe(400);
+    expect((await fetch(`${base}/api/workspaces/${ws}/delete?at=1`)).status).not.toBe(204);
+    expect(await readdir(dir)).toEqual([]);
+  });
+
+  it('needs the token for the list', async () => {
+    await start('secret');
+    expect((await fetch(`${base}/api/workspaces`)).status).toBe(401);
+    expect((await fetch(`${base}/api/workspaces/${ws}/delete?at=1`, { method: 'POST' })).status).toBe(401);
+  });
+});
+
 describe('who the server answers', () => {
   it('knows loopback addresses and allowed hosts', () => {
     expect(['127.0.0.1', '::1', 'localhost', '[::1]'].every(isLoopback)).toBe(true);

@@ -41,7 +41,9 @@ async function start(): Promise<void> {
     setToken: (t) => tokens.set(t),
     browserAvailable: BrowserStore.available(),
   });
-  const { session, notice } = await TaskSession.open(choice.store, { recovery: localRecovery() });
+  const { session, notice } = await TaskSession.open(choice.workspaces.open('main'), {
+    recovery: localRecovery(),
+  });
   const app = new AppController(session, { version: native?.version ?? pkg.version });
   const catalog = buildCommands(app);
   // The phone layout sizes itself to the part of the screen the on-screen keyboard leaves (PRD §5.5).

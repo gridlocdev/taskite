@@ -1,6 +1,6 @@
 // The store contract (packages/ui/test/storeContract.test.ts) run against the iOS bridge, plus what only iOS
 // does. A change to the contract belongs in both files.
-import { ConflictError, FileExistsError, NativeStore, sha256Hex } from '@taskite/ui';
+import { ConflictError, FileExistsError, NativeStore, NativeWorkspaces, sha256Hex } from '@taskite/ui';
 import { describe, expect, it } from 'vitest';
 import { DATA_LOCATION, documentsData } from '../src/documents.ts';
 import { memoryFiles } from './memoryFiles.ts';
@@ -94,5 +94,34 @@ describe('the iOS store', () => {
     await expect(store.save('{"a":2}', v1)).rejects.toThrow();
     expect([...files.entries.keys()]).toEqual(['tasks.json']);
     expect(await store.load()).toEqual({ text: '{"a":1}', version: v1 });
+  });
+});
+
+describe('workspaces on iOS (PRD §14)', () => {
+  it('saves the list with versions, and keeps each workspace in its own folder', async () => {
+    const files = memoryFiles();
+    const ws = new NativeWorkspaces(documentsData(files));
+    expect(await ws.loadList()).toEqual({ text: null, version: null });
+    const v1 = await ws.saveList('{"version":1}', null);
+    await expect(ws.saveList('{"version":1}', null)).rejects.toBeInstanceOf(ConflictError);
+    expect((await ws.loadList()).version).toBe(v1);
+    await ws.open(A).save('{"a":1}', null);
+    await ws.open(A).putFile(C, bytes(7));
+    expect(files.entries.has(`workspaces/${A}/tasks.json`)).toBe(true);
+    expect(files.entries.has(`workspaces/${A}/attachments/${C}`)).toBe(true);
+    expect((await ws.open('main').load()).text).toBeNull();
+  });
+
+  it('moves a deleted workspace aside and back', async () => {
+    const files = memoryFiles();
+    const ws = new NativeWorkspaces(documentsData(files));
+    await ws.open(A).save('{"a":1}', null);
+    await ws.deleteFolder(A, 1700);
+    expect(files.entries.has(`workspaces/.deleted/${A}-1700/tasks.json`)).toBe(true);
+    expect((await ws.open(A).load()).text).toBeNull();
+    await ws.restoreFolder(A, 1700);
+    expect((await ws.open(A).load()).text).toBe('{"a":1}');
+    await expect(ws.deleteFolder('main', 1)).rejects.toThrow();
+    expect(() => ws.open('../x')).toThrow();
   });
 });

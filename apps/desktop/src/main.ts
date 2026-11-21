@@ -6,9 +6,14 @@ import { app, BrowserWindow, ipcMain, Menu, nativeTheme, net, protocol, screen, 
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
+  deleteWorkspaceFolder,
+  isWorkspaceId,
   readAttachment,
   readDataFile,
   removeUnusedAttachments,
+  restoreWorkspaceFolder,
+  workspaceFile,
+  workspaceListFile,
   writeAttachment,
   writeCopy,
   writeDataFile,
@@ -156,39 +161,66 @@ function createWindow(): BrowserWindow {
 }
 
 function registerIpc(): void {
-  ipcMain.handle(Channels.load, async (e) => {
+  /** The workspace's data file, or throws: the id is checked before it becomes a path (PRD §14.4). */
+  const fileOf = (ws: unknown): string => {
+    if (!isWorkspaceId(ws)) throw new Error('Forbidden');
+    return workspaceFile(dataFile, ws);
+  };
+  const isStamp = (n: unknown): n is number => Number.isSafeInteger(n) && (n as number) >= 0;
+  ipcMain.handle(Channels.load, async (e, ws: unknown) => {
     if (!trusted(e)) throw new Error('Forbidden');
-    const own = await readDataFile(dataFile);
-    if (own.text !== null || !paths.legacyFile) return { ...own, path: dataFile, legacy: false };
+    const file = fileOf(ws);
+    const own = await readDataFile(file);
+    if (own.text !== null || !paths.legacyFile || file !== dataFile)
+      return { ...own, path: file, legacy: false };
     // The old app's file, read only: the first save writes Taskite's own and leaves it where it is.
     const old = await readDataFile(paths.legacyFile).catch(() => ({ text: null }));
     return old.text === null
       ? { ...own, path: dataFile, legacy: false }
       : { text: old.text, version: null, path: dataFile, legacy: true };
   });
-  ipcMain.handle(Channels.save, async (e, text: unknown, expected: unknown) => {
+  ipcMain.handle(Channels.save, async (e, ws: unknown, text: unknown, expected: unknown) => {
     if (!trusted(e) || typeof text !== 'string' || (expected !== null && typeof expected !== 'string'))
       throw new Error('Forbidden');
-    const r = await writeDataFile(dataFile, text, expected);
+    const r = await writeDataFile(fileOf(ws), text, expected);
     return r.ok ? { ok: true, version: r.version } : { ok: false, reason: 'conflict' };
   });
-  ipcMain.handle(Channels.saveCopy, async (e, text: unknown, label: unknown) => {
+  ipcMain.handle(Channels.saveCopy, async (e, ws: unknown, text: unknown, label: unknown) => {
     if (!trusted(e) || typeof text !== 'string' || (label !== 'copy' && label !== 'corrupt'))
       throw new Error('Forbidden');
-    return path.basename(await writeCopy(dataFile, text, label));
+    return path.basename(await writeCopy(fileOf(ws), text, label));
   });
   // Attached files (PRD §4.8). writeAttachment and readAttachment refuse ids that aren't UUIDs.
-  ipcMain.handle(Channels.putFile, async (e, id: unknown, bytes: unknown) => {
+  ipcMain.handle(Channels.putFile, async (e, ws: unknown, id: unknown, bytes: unknown) => {
     if (!trusted(e) || typeof id !== 'string' || !(bytes instanceof Uint8Array)) throw new Error('Forbidden');
-    return writeAttachment(dataFile, id, bytes);
+    return writeAttachment(fileOf(ws), id, bytes);
   });
-  ipcMain.handle(Channels.getFile, async (e, id: unknown) => {
+  ipcMain.handle(Channels.getFile, async (e, ws: unknown, id: unknown) => {
     if (!trusted(e) || typeof id !== 'string') throw new Error('Forbidden');
-    return readAttachment(dataFile, id);
+    return readAttachment(fileOf(ws), id);
   });
-  ipcMain.handle(Channels.cleanFiles, async (e) => {
+  ipcMain.handle(Channels.cleanFiles, async (e, ws: unknown) => {
     if (!trusted(e)) throw new Error('Forbidden');
-    return removeUnusedAttachments(dataFile);
+    return removeUnusedAttachments(fileOf(ws));
+  });
+  // Workspaces (PRD §14).
+  ipcMain.handle(Channels.loadWorkspaces, async (e) => {
+    if (!trusted(e)) throw new Error('Forbidden');
+    return readDataFile(workspaceListFile(dataFile));
+  });
+  ipcMain.handle(Channels.saveWorkspaces, async (e, text: unknown, expected: unknown) => {
+    if (!trusted(e) || typeof text !== 'string' || (expected !== null && typeof expected !== 'string'))
+      throw new Error('Forbidden');
+    const r = await writeDataFile(workspaceListFile(dataFile), text, expected);
+    return r.ok ? { ok: true, version: r.version } : { ok: false, reason: 'conflict' };
+  });
+  ipcMain.handle(Channels.deleteWorkspace, async (e, ws: unknown, stamp: unknown) => {
+    if (!trusted(e) || typeof ws !== 'string' || !isStamp(stamp)) throw new Error('Forbidden');
+    return deleteWorkspaceFolder(dataFile, ws, stamp);
+  });
+  ipcMain.handle(Channels.restoreWorkspace, async (e, ws: unknown, stamp: unknown) => {
+    if (!trusted(e) || typeof ws !== 'string' || !isStamp(stamp)) throw new Error('Forbidden');
+    return restoreWorkspaceFolder(dataFile, ws, stamp);
   });
   ipcMain.on(Channels.setMenu, (e, items: readonly NativeMenuItem[]) => {
     if (!trusted(e) || !Array.isArray(items)) return;

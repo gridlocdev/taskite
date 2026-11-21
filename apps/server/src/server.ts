@@ -9,10 +9,15 @@ import { isIP } from 'node:net';
 import path from 'node:path';
 import {
   MAX_ATTACHMENT_BYTES,
+  deleteWorkspaceFolder,
   isAttachmentId,
+  isWorkspaceId,
   readAttachment,
   readDataFile,
   removeUnusedAttachments,
+  restoreWorkspaceFolder,
+  workspaceFile,
+  workspaceListFile,
   writeAttachment,
   writeCopy,
   writeDataFile,
@@ -163,6 +168,74 @@ function etagList(h: string | null): string[] {
   });
 }
 
+/** The data file `?workspace=<id>` names (PRD §14.4); `main` when left out, 400 for an id that isn't one. */
+function dataFileOf(url: URL, opts: ServerOptions): string {
+  const id = url.searchParams.get('workspace') ?? 'main';
+  if (!isWorkspaceId(id)) throw new HttpError(400, 'A workspace id is main or a UUID');
+  return workspaceFile(opts.file, id);
+}
+
+/** `GET` of a versioned file, with `If-None-Match` answered by 304 (PRD §10). */
+async function sendVersioned(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  file: string,
+  missing: string,
+) {
+  const { text, version } = await readDataFile(file);
+  if (text === null) throw new HttpError(404, missing);
+  // The app reads every few seconds; an unchanged file costs a header, not the whole file (PRD §10).
+  if (version && etagList(header(req, 'if-none-match')).includes(version)) {
+    res.writeHead(304, { 'Cache-Control': 'no-store', ETag: `"${version}"`, ...SECURITY_HEADERS });
+    return void res.end();
+  }
+  res.writeHead(200, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Content-Length': Buffer.byteLength(text),
+    'Cache-Control': 'no-store',
+    ETag: `"${version}"`,
+    ...SECURITY_HEADERS,
+  });
+  res.end(text);
+}
+
+/** `PUT` of a versioned file: `If-Match`, or `If-None-Match: *` for a new one; 412 on a mismatch (PRD §10). */
+async function putVersioned(
+  req: http.IncomingMessage,
+  res: http.ServerResponse,
+  file: string,
+  opts: ServerOptions,
+) {
+  const text = await readJsonBody(req, opts.maxBytes ?? DEFAULT_MAX);
+  const ifNoneMatch = header(req, 'if-none-match');
+  const expected = ifNoneMatch?.trim() === '*' ? null : etagValue(header(req, 'if-match'));
+  if (expected === null && ifNoneMatch?.trim() !== '*')
+    throw new HttpError(428, 'Send If-Match with the version you read, or If-None-Match: * for a new file');
+  const result = await writeDataFile(file, text, expected);
+  if (!result.ok) {
+    res.setHeader('ETag', result.version === null ? '' : `"${result.version}"`);
+    throw new HttpError(412, 'The file changed since you read it');
+  }
+  res.writeHead(204, { ETag: `"${result.version}"`, 'Cache-Control': 'no-store', ...SECURITY_HEADERS });
+  res.end();
+}
+
+/** `POST /api/workspaces/<id>/delete|restore?at=<epoch ms>`: moves a workspace's folder (PRD §14.3). */
+async function moveWorkspace(
+  res: http.ServerResponse,
+  id: string,
+  action: string,
+  url: URL,
+  opts: ServerOptions,
+): Promise<void> {
+  if (!isAttachmentId(id)) throw new HttpError(400, 'Only a workspace with a UUID id can be deleted');
+  const at = Number(url.searchParams.get('at'));
+  if (!Number.isSafeInteger(at) || at < 0) throw new HttpError(400, 'at must be a time in epoch ms');
+  if (action === 'delete') await deleteWorkspaceFolder(opts.file, id, at);
+  else await restoreWorkspaceFolder(opts.file, id, at);
+  return send(res, 200, { id });
+}
+
 async function api(
   req: http.IncomingMessage,
   res: http.ServerResponse,
@@ -170,53 +243,32 @@ async function api(
   opts: ServerOptions,
 ): Promise<void> {
   const file = /^\/api\/attachments\/([^/]+)$/.exec(url.pathname)?.[1];
-  if (file !== undefined && file !== 'clean') return attachment(req, res, file, opts);
+  if (file !== undefined && file !== 'clean') return attachment(req, res, file, dataFileOf(url, opts), opts);
+  const move = /^\/api\/workspaces\/([^/]+)\/(delete|restore)$/.exec(url.pathname);
+  if (move) {
+    if (req.method !== 'POST') throw new HttpError(405, 'Method not allowed');
+    return moveWorkspace(res, decodeURIComponent(move[1] ?? ''), move[2] ?? '', url, opts);
+  }
   switch (`${req.method} ${url.pathname}`) {
     case 'GET /api/info':
       return send(res, 200, { name: 'Taskite', version: opts.version, auth: opts.token !== null });
-    case 'GET /api/data': {
-      const { text, version } = await readDataFile(opts.file);
-      if (text === null) throw new HttpError(404, 'No tasks file yet');
-      // The app reads every few seconds; an unchanged file costs a header, not the whole file (PRD §10).
-      if (version && etagList(header(req, 'if-none-match')).includes(version)) {
-        res.writeHead(304, { 'Cache-Control': 'no-store', ETag: `"${version}"`, ...SECURITY_HEADERS });
-        return void res.end();
-      }
-      res.writeHead(200, {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Content-Length': Buffer.byteLength(text),
-        'Cache-Control': 'no-store',
-        ETag: `"${version}"`,
-        ...SECURITY_HEADERS,
-      });
-      return void res.end(text);
-    }
-    case 'PUT /api/data': {
-      const text = await readJsonBody(req, opts.maxBytes ?? DEFAULT_MAX);
-      const ifNoneMatch = header(req, 'if-none-match');
-      const expected = ifNoneMatch?.trim() === '*' ? null : etagValue(header(req, 'if-match'));
-      if (expected === null && ifNoneMatch?.trim() !== '*')
-        throw new HttpError(
-          428,
-          'Send If-Match with the version you read, or If-None-Match: * for a new file',
-        );
-      const result = await writeDataFile(opts.file, text, expected);
-      if (!result.ok) {
-        res.setHeader('ETag', result.version === null ? '' : `"${result.version}"`);
-        throw new HttpError(412, 'The tasks file changed since you read it');
-      }
-      res.writeHead(204, { ETag: `"${result.version}"`, 'Cache-Control': 'no-store', ...SECURITY_HEADERS });
-      return void res.end();
-    }
+    case 'GET /api/workspaces':
+      return sendVersioned(req, res, workspaceListFile(opts.file), 'No workspaces file yet');
+    case 'PUT /api/workspaces':
+      return putVersioned(req, res, workspaceListFile(opts.file), opts);
+    case 'GET /api/data':
+      return sendVersioned(req, res, dataFileOf(url, opts), 'No tasks file yet');
+    case 'PUT /api/data':
+      return putVersioned(req, res, dataFileOf(url, opts), opts);
     case 'POST /api/copies': {
       const label = url.searchParams.get('label');
       if (label !== 'copy' && label !== 'corrupt') throw new HttpError(400, 'label must be copy or corrupt');
       const text = (await readBody(req, opts.maxBytes ?? DEFAULT_MAX)).toString('utf8');
-      const written = await writeCopy(opts.file, text, label);
+      const written = await writeCopy(dataFileOf(url, opts), text, label);
       return send(res, 201, { name: path.basename(written) });
     }
     case 'POST /api/attachments/clean':
-      return send(res, 200, { removed: await removeUnusedAttachments(opts.file) });
+      return send(res, 200, { removed: await removeUnusedAttachments(dataFileOf(url, opts)) });
     default:
       throw new HttpError(404, 'Not found');
   }
@@ -227,17 +279,18 @@ async function attachment(
   req: http.IncomingMessage,
   res: http.ServerResponse,
   id: string,
+  dataFile: string,
   opts: ServerOptions,
 ): Promise<void> {
   if (!isAttachmentId(id)) throw new HttpError(400, 'An attachment id is a UUID');
   if (req.method === 'PUT') {
     const bytes = await readBody(req, opts.maxFileBytes ?? MAX_ATTACHMENT_BYTES);
-    if ((await writeAttachment(opts.file, id, bytes)) === 'exists')
+    if ((await writeAttachment(dataFile, id, bytes)) === 'exists')
       throw new HttpError(409, 'That attachment already exists');
     return send(res, 201, { id });
   }
   if (req.method !== 'GET') throw new HttpError(405, 'Method not allowed');
-  const bytes = await readAttachment(opts.file, id);
+  const bytes = await readAttachment(dataFile, id);
   if (bytes === null) throw new HttpError(404, 'No such attachment');
   // Never shown as a page from this origin: the browser saves it, whatever it holds.
   res.writeHead(200, {

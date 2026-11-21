@@ -7,7 +7,7 @@ export {
   type DataFileRead,
   type WriteResult,
 } from './dataFile.ts';
-export { MAX_ATTACHMENT_BYTES, isAttachmentId } from '@taskite/core';
+export { MAX_ATTACHMENT_BYTES, isAttachmentId, isWorkspaceId } from '@taskite/core';
 export {
   attachmentPath,
   attachmentsDir,
@@ -16,3 +16,9 @@ export {
   writeAttachment,
   type AttachmentWrite,
 } from './attachmentFiles.ts';
+export {
+  deleteWorkspaceFolder,
+  restoreWorkspaceFolder,
+  workspaceFile,
+  workspaceListFile,
+} from './workspaceFiles.ts';

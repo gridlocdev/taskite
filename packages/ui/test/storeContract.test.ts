@@ -7,16 +7,21 @@ import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   BrowserStore,
+  BrowserWorkspaces,
   ConflictError,
   FileExistsError,
   MemoryStore,
+  MemoryWorkspaces,
   NasClient,
   NasStore,
+  NasWorkspaces,
   NativeStore,
+  NativeWorkspaces,
   sha256Hex,
   type DirHandle,
   type LockManagerLike,
   type TaskStore,
+  type WorkspaceStore,
 } from '../src/index.ts';
 import { fakeFolder } from './fakeFileSystem.ts';
 import { fakeNativeBridge } from './fakeNativeBridge.ts';
@@ -171,6 +176,67 @@ describe.each(Object.entries(stores))('the %s store', (_name, made) => {
     await store.save('{"version":99}', v1);
     await age(C);
     expect(await store.cleanFiles()).toBe(0);
+  });
+});
+
+const workspaceStores: Record<string, () => Promise<WorkspaceStore>> = {
+  memory: () => Promise.resolve(new MemoryWorkspaces()),
+  browser: () => {
+    const { root } = fakeFolder('opfs');
+    return Promise.resolve(new BrowserWorkspaces(() => Promise.resolve(root as unknown as DirHandle), null));
+  },
+  nas: async () => {
+    const { store } = await nasMade();
+    return new NasWorkspaces((store as NasStore).client);
+  },
+  native: () =>
+    Promise.resolve(new NativeWorkspaces(fakeNativeBridge(path.join(dir, `ws-${++n}`, 'tasks.json')))),
+};
+
+describe.each(Object.entries(workspaceStores))('the %s workspaces (PRD §14)', (_name, make) => {
+  it('starts with no list, then saves it only from the version it last saw', async () => {
+    const ws = await make();
+    expect(await ws.loadList()).toEqual({ text: null, version: null });
+    const v1 = await ws.saveList('{"version":1}', null);
+    await expect(ws.saveList('{"version":1,"x":1}', null)).rejects.toBeInstanceOf(ConflictError);
+    const v2 = await ws.saveList('{"version":1,"x":2}', v1);
+    await expect(ws.saveList('{"version":1,"x":3}', v1)).rejects.toBeInstanceOf(ConflictError);
+    expect(await ws.loadList()).toEqual({ text: '{"version":1,"x":2}', version: v2 });
+  });
+
+  it('keeps each workspace in its own file, with its own attached files', async () => {
+    const ws = await make();
+    await ws.open('main').save('{"main":1}', null);
+    expect(await ws.open(A).load()).toEqual({ text: null, version: null });
+    await ws.open(A).save('{"a":1}', null);
+    await ws.open(A).putFile(C, bytes(7));
+    expect((await ws.open('main').load()).text).toBe('{"main":1}');
+    expect((await ws.open(A).load()).text).toBe('{"a":1}');
+    expect(await ws.open('main').getFile(C)).toBeNull();
+    expect(await ws.open(A).getFile(C)).toEqual(bytes(7));
+    expect(await ws.open(B).getFile(C)).toBeNull();
+  });
+
+  it('moves a deleted workspace aside and puts it back on Undo', async () => {
+    const ws = await make();
+    await ws.open(A).save('{"a":1}', null);
+    await ws.open(A).putFile(C, bytes(7));
+    await ws.deleteFolder(A, 1700);
+    expect(await ws.open(A).load()).toEqual({ text: null, version: null });
+    // Reading the deleted workspace made nothing that would stop Undo.
+    await ws.restoreFolder(A, 1700);
+    expect((await ws.open(A).load()).text).toBe('{"a":1}');
+    expect(await ws.open(A).getFile(C)).toEqual(bytes(7));
+    // A workspace never saved has no folder, and deleting it is fine.
+    await ws.deleteFolder(B, 1700);
+  });
+
+  it('refuses ids that are not main or a UUID, and never deletes main', async () => {
+    const ws = await make();
+    for (const id of ['../x', 'Main', A.toUpperCase(), 'workspaces', ''])
+      expect(() => ws.open(id)).toThrow(/Not a workspace id/);
+    await expect(ws.deleteFolder('main', 1)).rejects.toThrow();
+    await expect(ws.deleteFolder('../x', 1)).rejects.toThrow();
   });
 });
 

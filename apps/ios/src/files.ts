@@ -18,7 +18,7 @@ export interface Files {
   readBytes(path: string): Promise<Uint8Array | null>;
   /** Writes the file, creating its folder; replaces a file that is there. */
   write(path: string, data: string | Uint8Array): Promise<void>;
-  /** Moves a file, replacing one already at `to`. */
+  /** Moves a file or a folder, replacing a file already at `to`. */
   rename(from: string, to: string): Promise<void>;
   remove(path: string): Promise<void>;
   /** The files (not folders) in a folder; empty when there is no folder. */

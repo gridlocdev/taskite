@@ -1,19 +1,28 @@
 export {
   BrowserStore,
+  BrowserWorkspaces,
   type DirHandle,
   type FileHandleLike,
   type LockManagerLike,
 } from './store/browserStore.ts';
-export { MemoryStore } from './store/memoryStore.ts';
+export { MemoryStore, MemoryWorkspaces } from './store/memoryStore.ts';
 export {
   AuthError,
   NasClient,
   NasStore,
+  NasWorkspaces,
   localTokenStorage,
   type NasInfo,
   type TokenStorage,
 } from './store/nasStore.ts';
-export { NativeStore, type NativeData, type TaskiteNative } from './store/nativeStore.ts';
+export { NativeStore, NativeWorkspaces, type NativeData, type TaskiteNative } from './store/nativeStore.ts';
+export {
+  checkedWorkspace,
+  localWorkspaceMemory,
+  memoryWorkspaceMemory,
+  type OpenWorkspaceMemory,
+  type WorkspaceStore,
+} from './store/workspaceStore.ts';
 export {
   ConflictError,
   FileExistsError,

@@ -34,12 +34,21 @@ export function memoryFiles(): Files & {
     },
     rename: (from: string, to: string) => {
       const e = entries.get(from);
-      if (files.failNextRename || !e) {
+      const inside = [...entries.keys()].filter((k) => k.startsWith(`${from}/`));
+      if (files.failNextRename || (!e && !inside.length)) {
         files.failNextRename = false;
         return Promise.reject(new Error(`Couldn't move ${from}`));
       }
-      entries.delete(from);
-      entries.set(to, e);
+      if (e) {
+        entries.delete(from);
+        entries.set(to, e);
+      }
+      // A folder: everything in it moves along.
+      for (const k of inside) {
+        const moved = entries.get(k);
+        entries.delete(k);
+        if (moved) entries.set(`${to}${k.slice(from.length)}`, moved);
+      }
       return Promise.resolve();
     },
     remove: (path: string) => {

@@ -73,7 +73,10 @@ export class FakeDir {
     this.children.set(this.key(name), f);
     return Promise.resolve(f);
   }
-  removeEntry(name: string): Promise<void> {
+  removeEntry(name: string, opts: { recursive?: boolean } = {}): Promise<void> {
+    const found = this.children.get(this.key(name));
+    if (found instanceof FakeDir && !opts.recursive && found.children.size)
+      return Promise.reject(new DOMException('not empty', 'InvalidModificationError'));
     if (!this.children.delete(this.key(name)))
       return Promise.reject(new DOMException('missing', 'NotFoundError'));
     return Promise.resolve();
