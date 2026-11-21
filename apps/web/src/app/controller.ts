@@ -428,9 +428,12 @@ export class AppController {
   deleteWorkspace(id: string = this.workspaceId.peek()): void {
     const target = this.workspaces?.find(id);
     if (!target || id === MAIN_WORKSPACE_ID) return;
+    const open =
+      id === this.workspaceId.peek() ? this.list.liveTasks().filter((t) => !t.completed).length : null;
+    const count = open === null ? '' : `It has ${open} open ${open === 1 ? 'task' : 'tasks'}. `;
     this.confirm({
       title: `Delete "${target.name}"?`,
-      message: 'Its tasks, projects and settings go with it.',
+      message: `${count}Its tasks, projects and settings go with it.`,
       confirm: 'Delete Workspace',
       run: () => void this.#deleteWorkspace(target),
     });
@@ -439,7 +442,8 @@ export class AppController {
   async #deleteWorkspace(target: Workspace): Promise<void> {
     const dir = this.workspaces;
     if (!dir) return;
-    if (this.workspaceId.peek() === target.id && !(await this.switchWorkspace(MAIN_WORKSPACE_ID))) return;
+    const wasOpen = this.workspaceId.peek() === target.id;
+    if (wasOpen && !(await this.switchWorkspace(MAIN_WORKSPACE_ID))) return;
     let deleted: DeletedWorkspace | null;
     try {
       deleted = await dir.remove(target.id);
@@ -454,7 +458,10 @@ export class AppController {
         label: 'Undo',
         run: () => {
           dir.restore(undo).then(
-            () => this.say(`Restored workspace ${target.name}.`),
+            async () => {
+              if (wasOpen && !(await this.switchWorkspace(target.id))) return;
+              this.say(`Restored workspace ${target.name}.`);
+            },
             (e: unknown) =>
               this.say(`Couldn't restore the workspace: ${messageOf(e)}`, { sticky: true, tone: 'error' }),
           );

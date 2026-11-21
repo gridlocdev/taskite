@@ -335,29 +335,29 @@ A workspace is a whole separate set of tasks, projects, labels, Trash, attachmen
   { "version": 1, "workspaces": [{ "id": "main", "name": "Personal" }, { "id": "<uuid>", "name": "Work" }] }
   ```
 
-  The order of the list is the order in the switcher. Reading follows §3.2: a missing file is the single workspace `main` named "Tasks"; a missing `main` entry is put first; an entry without a UUID id or a name, or a repeated id, is dropped; unknown fields are kept. A `workspaces/<id>/` folder with no entry is left alone (never read, never deleted).
-- `taskite.unsaved` (§3.5) becomes `taskite.unsaved.<id>`, one per workspace; the old key is read as `main`'s.
+  The order of the list is the order in the switcher. Reading follows §3.2: a missing file is the single workspace `main` named "Tasks"; a missing `main` entry is put first; an entry without a UUID id or a name, or a repeated id, is dropped; unknown fields are kept. A `workspaces/<id>/` folder with no entry is left alone (never read, never deleted). A `workspaces.json` that isn't JSON, or one with a newer `version`, is left as it is: the app shows `main` alone, refuses to add, rename or delete workspaces, and says why in a notice.
+- The recovery snapshot (§3.5) is kept per workspace: `main` keeps `taskite.unsaved`, and every other workspace uses `taskite.unsaved.<id>`.
 - Which workspace is open is remembered per device (in `localStorage`, `taskite.workspace`), not in the files: two devices on one NAS can each show a different workspace. A remembered id that no longer exists falls back to `main`.
 
 ### §14.2 Switching
 
-- The sidebar's top row shows the open workspace's name with a chevron. A click (or Enter on it) opens a menu: every workspace in order with a check on the open one and its shortcut, then **New Workspace…**, **Rename Workspace…**, **Delete Workspace…**.
-- **Switch to <name>** for each workspace is in ⌘K and, on the desktop, in the Go menu. ⌃1 … ⌃9 switch to the first nine workspaces (Ctrl+1 … Ctrl+9 on Windows and Linux too).
+- A row near the top of the sidebar, under the app's name, shows the open workspace's name with a chevron. On a phone it is the first row of Browse. A click (or Enter on it) opens a menu: every workspace in order with a check on the open one and its shortcut, then **New Workspace…**, **Rename Workspace…**, **Delete Workspace…**.
+- **Switch to <name>** for each workspace is in ⌘K and, on the desktop, in the Go menu. ⌃1 … ⌃9 switch to the first nine workspaces (Ctrl+1 … Ctrl+9 on Windows and Linux). A shortcut written `ctrl+` in the command list is ⌃ on macOS and Ctrl elsewhere.
 - Switching first finishes any pending save of the open workspace (as when a window closes, §12). If that save fails or conflicts, the switch stops and the save's own notice or dialog shows. Then the other workspace's file loads and opens on its own `lastView` (§5.1). Undo history doesn't cross workspaces: switching clears it.
-- The window title and the phone tab bar's header show "<workspace> — Taskite" when there is more than one workspace, and "Taskite" when there is one.
+- The window title is "<workspace> — Taskite" when there is more than one workspace, and "Taskite" when there is one.
 - With one workspace, the switcher row still shows its name, and the menu still offers New Workspace….
 
 ### §14.3 Managing
 
 - **New Workspace…** asks for a name (required, at most 80 characters, not the same as another workspace's ignoring case), creates an empty workspace after the last one, and switches to it. It opens on Today with its empty state (§9); its settings start at the defaults.
 - **Rename Workspace…** changes the open workspace's name (same rules).
-- **Delete Workspace…** (not for `main`) asks first, naming the workspace and how many open tasks it has. It removes the entry from `workspaces.json` and moves the folder to `workspaces/.deleted/<id>-<epoch ms>/`, never deleting it for good, then switches to `main` with the notice "Deleted workspace <name>." and Undo, which puts the folder and entry back and switches to it.
+- **Delete Workspace…** (not for `main`) asks first, naming the workspace and how many open tasks it has. It switches to `main` if the workspace is open, removes the entry from `workspaces.json` and moves the folder to `workspaces/.deleted/<id>-<epoch ms>/`, never deleting it for good, then shows the notice "Deleted workspace <name>." with Undo, which puts the folder and entry back and switches to it. A workspace that was never saved has no folder, and nothing is moved.
 - Workspace changes aren't steps in a workspace's own undo history.
-- If `workspaces.json` changed somewhere else, the app reads it again when its window comes to the front (as §3.4) and updates the switcher. A save that conflicts on it is read again and retried once, because its changes are small and named; if the open workspace was deleted elsewhere, the app switches to `main` with the notice "Workspace <name> was deleted somewhere else."
+- If `workspaces.json` changed somewhere else, the app reads it again when its window comes to the front (as §3.4) and updates the switcher. A save that conflicts on it is read again and retried once, because its changes are small and named; if the open workspace was deleted elsewhere, the app switches to `main` with the notice "The workspace <name> was deleted elsewhere, so Taskite opened <main's name>."
 
 ### §14.4 Platforms
 
 - **Desktop and iOS:** the bridge takes a workspace id with every data and attachment call, and the native side checks that it is `main` or a UUID before it builds any path.
-- **Browser:** the same layout inside the origin's private file system.
-- **NAS:** `GET`/`PUT /api/workspaces` for `workspaces.json` (same `ETag`/`If-Match` rules as `/api/data`). `/api/data`, `/api/copies` and `/api/attachments/…` take `?workspace=<id>` (`main` when left out); an id that isn't `main` or a UUID gets 400. `POST /api/workspaces/<id>/delete` and `/restore` move the folder to and from `workspaces/.deleted/`.
-- **CLI:** `--workspace <name>` (or `$TASKITE_WORKSPACE`) picks a workspace by name, ignoring case; without it the CLI uses `main`. An unknown name fails listing the workspaces (exit 2). `taskite workspaces` lists them in order with open counts (`--json`: `id`, `name`, `open`). `taskite path` prints the chosen workspace's file.
+- **Browser:** the same layout inside the origin's private file system. It can't rename a folder everywhere, so moving one to or from `.deleted` copies it, then deletes the original.
+- **NAS:** `GET`/`PUT /api/workspaces` for `workspaces.json` (same `ETag`/`If-Match` rules as `/api/data`); a `GET` with no file yet gets 204, since that is the usual case. `/api/data`, `/api/copies` and `/api/attachments/…` take `?workspace=<id>` (`main` when left out, and the app leaves it out for `main`); an id that isn't `main` or a UUID gets 400. `POST /api/workspaces/<id>/delete` and `/restore` move the folder to and from `workspaces/.deleted/`.
+- **CLI:** `--workspace <name>` (or `$TASKITE_WORKSPACE`) picks a workspace by name, ignoring case; without it the CLI uses `main`. An unknown name fails listing the workspaces (exit 2); a `workspaces.json` it can't read fails with exit 1 unless no workspace was named. `taskite workspaces` lists them in order with open counts (`--json`: `id`, `name`, `open`). `taskite path` prints the chosen workspace's file.

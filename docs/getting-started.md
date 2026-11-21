@@ -47,7 +47,7 @@ Open [gridloc.dev/apps/taskite](https://gridloc.dev/apps/taskite/) in any modern
 | NAS | `tasks.json` in the folder you mount at `/data` |
 | CLI | `--file <path>`, else `$TASKITE_FILE`, else the desktop app's file |
 
-It is plain JSON, so you can back it up, sync it, or read it with other tools.
+Each workspace other than the first is kept beside it in `workspaces/<id>/tasks.json`, and the list of workspaces in `workspaces.json`. It is all plain JSON, so you can back it up, sync it, or read it with other tools.
 
 ## Run it on a NAS (Docker)
 
@@ -84,7 +84,7 @@ just cli add "Call mum friday p1 #Home @phone"
 just cli done 3f2a9c1b
 ```
 
-`taskite help` lists every command: `list`, `add`, `done`, `reopen`, `trash`, `restore`, `move`, `due`, `attach`, `attachments`, `projects` and `path`. Add `--json` for output a script or an agent can read, and `--file <path>` to work on another file. An agent skill that teaches an AI coding agent to use it is in [apps/cli/skill/SKILL.md](../apps/cli/skill/SKILL.md).
+`taskite help` lists every command: `list`, `add`, `done`, `reopen`, `trash`, `restore`, `move`, `due`, `attach`, `attachments`, `projects`, `workspaces` and `path`. Add `--json` for output a script or an agent can read, `--workspace <name>` to work on another workspace, and `--file <path>` to work on another file. An agent skill that teaches an AI coding agent to use it is in [apps/cli/skill/SKILL.md](../apps/cli/skill/SKILL.md).
 
 ## Run it from source
 

@@ -127,13 +127,14 @@ describe('managing workspaces (PRD §14.3)', () => {
     expect(app.workspaceList.value[1]?.name).toBe('WORK');
   });
 
-  it('deletes after asking, opens main if it was open, and Undo brings it back', async () => {
+  it('deletes after asking with its open count, opens main if it was open, and Undo brings it back and opens it', async () => {
     const { app, stores } = await makeApp(listOf(['main', 'Personal'], [A, 'Work']), { remembered: A });
     app.list.addTask({ title: 'Ship it' });
     await app.session.flush();
     app.deleteWorkspace();
     const d = app.dialog.value;
     expect(d?.kind === 'confirm' && d.confirm).toBe('Delete Workspace');
+    expect(d?.kind === 'confirm' && d.message).toMatch(/^It has 1 open task\. /);
     if (d?.kind !== 'confirm') return;
     d.run();
     await vi.waitFor(() => expect(app.notice.value?.text).toBe('Deleted workspace Work.'));
@@ -142,8 +143,8 @@ describe('managing workspaces (PRD §14.3)', () => {
     expect(stores.deleted.size).toBe(1);
     expect(app.notice.value?.text).toBe('Deleted workspace Work.');
     app.notice.value?.action?.run();
-    await vi.waitFor(() => expect(app.workspaceList.value.map((w) => w.id)).toEqual(['main', A]));
-    await app.switchWorkspace(A);
+    await vi.waitFor(() => expect(app.workspaceId.value).toBe(A));
+    expect(app.workspaceList.value.map((w) => w.id)).toEqual(['main', A]);
     expect(app.list.liveTasks().map((t) => t.title)).toEqual(['Ship it']);
   });
 

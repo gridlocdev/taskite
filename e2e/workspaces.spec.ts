@@ -89,7 +89,7 @@ test.describe('Workspaces', () => {
     expect(readdirSync(`${DATA}/workspaces/.deleted`)).toHaveLength(1);
     await page.getByRole('button', { name: 'Undo' }).click();
     await expect.poll(() => listed().map((w) => w.name)).toEqual(['Tasks', 'Scratch']);
-    await page.keyboard.press('Control+Digit2');
+    await expect(switcher(page)).toContainText('Scratch');
     await expect(page.getByRole('main')).toContainText('Try an idea');
   });
 

@@ -57,9 +57,10 @@ Drop a task on a project, a label, Today or the Trash in the sidebar to move it 
 
 - A **workspace** is a separate set of tasks, projects, labels and settings, such as one for work, one for games you're making and one for home. Each has its own file, its own theme and its own undo.
 - The button at the top of the sidebar shows the open workspace. Click it to switch, or to add, rename or delete one. `⌃1` to `⌃9` (`Ctrl+1` to `Ctrl+9` on Windows and Linux) open the first nine, and ⌘K offers **Switch to** each by name. The Go menu lists them too.
+- On a phone, the switcher is the first row of Browse.
 - Taskite opens the workspace you last had open on that device. With more than one workspace, the window title names the open one.
-- **Delete Workspace** asks first, then the notice offers **Undo**. The first workspace can't be deleted. A deleted workspace's folder is kept under `workspaces/.deleted/`.
-- The command line works on any workspace with `--workspace <name>`.
+- **Delete Workspace** asks first and says how many open tasks it has, then the notice offers **Undo**, which brings it back and opens it. The first workspace can't be deleted. A deleted workspace's folder is kept under `workspaces/.deleted/`.
+- The command line works on any workspace with `--workspace <name>`, and `taskite workspaces` lists them.
 
 ## Never losing a task
 

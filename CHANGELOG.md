@@ -4,6 +4,8 @@
 
 ### What's new
 
+- **Workspaces.** Keep separate sets of tasks, projects, labels and settings, such as one for work, one for the games you're making and one for home. Switch from the button at the top of the sidebar, with `⌃1` to `⌃9` (`Ctrl+1` to `Ctrl+9` on Windows and Linux), from ⌘K or from the Go menu. Each workspace has its own file, theme and undo, and Taskite opens the one you last had open. Deleting a workspace asks first and can be undone. Your existing tasks become the first workspace, with nothing moved. On the command line, `--workspace <name>` works on another workspace and `taskite workspaces` lists them.
+
 - **Taskite for iPhone and iPad.** Build it from source with your own Apple developer account and install it from Xcode; see [Development](docs/development.md#the-ios-app). Your tasks are kept in a `tasks.json` you can see in the Files app, under On My iPhone › Taskite.
 - **Made for phones.** On a narrow screen a tab bar along the bottom holds Today, Upcoming, Inbox and Browse (search, projects, labels, Completed, Trash), and a round + button adds a task. With a finger, tap a task to open it, swipe right to complete it, swipe left to trash it, and hold it for its menu, which opens as a sheet along the bottom. This works in a phone's browser and in the iPhone app.
 - **Within reach of your thumb.** On a phone, Browse's search box sits at the bottom, and the new-task box docks there too with a ✓ to add; both ride on top of the keyboard. Dialogs open from the bottom, with the due date's quick picks next to Set Date and no keyboard until you tap a field. Hold the tab you're on for the view's menu, pick a priority from one row of flags, and tap a little outside a check circle to complete a task.
