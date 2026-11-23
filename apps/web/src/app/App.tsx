@@ -5,6 +5,7 @@ import type { AppController } from './controller.ts';
 import { Dialogs } from './Dialogs.tsx';
 import { keyboardUp } from './keyboard.ts';
 import { Sidebar } from './Sidebar.tsx';
+import { onCopy } from './clipboard.ts';
 import { StatusBar } from './StatusBar.tsx';
 import { AddButton, TabBar } from './TabBar.tsx';
 import { TaskView } from './TaskView.tsx';
@@ -43,12 +44,15 @@ export function App({ app, catalog }: { readonly app: AppController; readonly ca
       catalog.run(result.command.id);
     };
     addEventListener('keydown', onKey);
+    const copy = (e: ClipboardEvent) => onCopy(app, e);
+    addEventListener('copy', copy);
     // Midnight: Today, Upcoming and the due dates move on.
     const stopClock = every(30_000, () => app.tick());
     const wake = () => app.tick();
     addEventListener('focus', wake);
     return () => {
       removeEventListener('keydown', onKey);
+      removeEventListener('copy', copy);
       removeEventListener('focus', wake);
       stopClock();
     };

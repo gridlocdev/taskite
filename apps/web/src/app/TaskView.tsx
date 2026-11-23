@@ -65,7 +65,15 @@ export function TaskView({
     >
       <div class="tk-main-inner">
         <header class="tk-view-header">
-          {project && <span class="tk-dot" style={{ background: PROJECT_COLORS[project.color] }} />}
+          {project && (
+            <>
+              <span class="tk-crumb">Projects</span>
+              <span class="tk-crumb-sep" aria-hidden="true">
+                /
+              </span>
+              <span class="tk-dot" style={{ background: PROJECT_COLORS[project.color] }} />
+            </>
+          )}
           <h1 id="tk-view-title">{title}</h1>
           {viewMenu.length > 0 && <ViewMenu catalog={catalog} ids={viewMenu.map((c) => c!.id)} />}
         </header>

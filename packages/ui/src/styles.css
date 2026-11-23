@@ -477,6 +477,17 @@ kbd {
   gap: 10px;
   margin-bottom: 14px;
 }
+/* A project's header is a breadcrumb: "Projects / ● Work" (PRD §5.2). */
+.tk-crumb,
+.tk-crumb-sep {
+  flex: none;
+  color: var(--tk-text-3);
+  font-size: 22px;
+  font-weight: 500;
+}
+.tk-crumb-sep {
+  margin-right: 2px;
+}
 .tk-view-header h1 {
   flex: 1;
   min-width: 0;
@@ -718,6 +729,46 @@ kbd {
   left: 0;
   opacity: 0.35;
   pointer-events: none;
+}
+/* Several tasks dragged at once: the grabbed one on a stack of cards, with how many there are (PRD §4.5). */
+.tk-drag-stack {
+  position: fixed;
+  top: -1000px;
+  left: 0;
+  padding-bottom: 14px;
+  opacity: 0.9;
+  pointer-events: none;
+}
+.tk-drag-stack > .tk-row,
+.tk-drag-sheet {
+  background: var(--tk-raised);
+  border: 1px solid var(--tk-border-strong);
+  border-radius: var(--tk-radius);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.14);
+}
+.tk-drag-stack > .tk-row {
+  position: relative;
+  z-index: 1;
+}
+.tk-drag-sheet {
+  position: absolute;
+}
+.tk-drag-count {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--tk-accent);
+  color: var(--tk-accent-text);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+}
+/* The chosen rows fade while they ride in the stack. */
+.tk-dragging-many .tk-row.tk-chosen {
+  opacity: 0.4;
 }
 .tk-check {
   flex: none;

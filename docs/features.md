@@ -20,7 +20,7 @@ The row previews the date, project and labels while you type. Press Enter to add
 
 ## Views
 
-- **Inbox** and each **project** list their open tasks in the order you choose. Drag a task to reorder it.
+- **Inbox** and each **project** list their open tasks in the order you choose. Drag a task to reorder it. A project's title reads as a breadcrumb, Projects / Work.
 - **Sections** split a project into named groups, such as To do, Doing and Done. Add one from the project's ⋯ menu; right-click a section's heading to rename, move or delete it. **View as Board** shows the sections as columns side by side. Drag tasks between sections, or use `⌥←` and `⌥→`. Jump between sections with `⇧⌥↓` and `⇧⌥↑` in a list, or `→`, `←`, `⇧⌥→` and `⇧⌥←` on a board, and go to one by name with **Go to Section…** (`G` then `S`). On a board each task is a card showing its date, priority, labels, subtask count and attachments, and checked-off cards stay in their column, struck through.
 - **Today** lists what's due today, with anything overdue above it.
 - **Upcoming** shows the rest of this week one day at a time, then next week, then everything later. Weeks start on the day your system's region starts them.
@@ -51,6 +51,8 @@ Drop a task on a project, a label, Today or the Trash in the sidebar to move it 
 - **Subtasks** are one level deep. Completing a task completes its subtasks; reopening a subtask reopens its parent.
 - **Choose several tasks** with Shift and the arrow keys, ⌘-click or Shift-click, then complete, date, prioritise, move or delete them all at once.
 - **Reorder** the chosen tasks with `⌥↑` and `⌥↓` in the Inbox and projects. A task moves with its subtasks.
+- **Drag several at once.** The chosen tasks travel as one stack that says how many there are.
+- **Copy** the chosen tasks with `⌘C` as a Markdown task list, with their due dates, repeats, priorities, projects, labels, notes and subtasks. Each line pastes back into the add row as the same task.
 - **Right-click** a task, the empty part of a list, or a project, label, Completed or the Trash in the sidebar for the actions that fit it. Text fields get Cut, Copy, Paste and spelling suggestions.
 
 ## Workspaces

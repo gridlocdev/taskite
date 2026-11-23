@@ -141,3 +141,4 @@ export {
   type WorkspaceList,
   type WorkspaceParseResult,
 } from './workspaces.ts';
+export { quickAddLine, tasksAsText } from './copyText.ts';

@@ -174,4 +174,47 @@ test.describe('Working on tasks', () => {
     await expect.poll(() => fileTask('Book dentist appointment')?.completed).toBe(true);
     await expect.poll(() => fileTask('Water the plants')?.completed).toBe(true);
   });
+  test('⌘C copies the chosen tasks as a Markdown task list with their fields', async ({ page }) => {
+    // The page's copy event is caught here, so the run never touches the real clipboard.
+    await page.evaluate(() => {
+      const w = window as Window & { copied?: string };
+      document.execCommand = (command: string) => {
+        if (command !== 'copy') return false;
+        const data = new DataTransfer();
+        document.dispatchEvent(
+          new ClipboardEvent('copy', { clipboardData: data, bubbles: true, cancelable: true }),
+        );
+        w.copied = data.getData('text/plain');
+        return true;
+      };
+    });
+    await page.getByRole('button', { name: /^Work/ }).click();
+    await page.getByRole('option', { name: /Draft quarterly report/ }).click();
+    await page.getByRole('option', { name: /Plan team offsite/ }).click({ modifiers: ['ControlOrMeta'] });
+    await page.keyboard.press('ControlOrMeta+KeyC');
+    await expect(page.getByRole('status')).toContainText('Copied 2 tasks.');
+    expect(await page.evaluate(() => (window as Window & { copied?: string }).copied)).toBe(
+      '- [ ] Draft quarterly report 2027-01-18 p2 #Work @writing\n- [ ] Plan team offsite #Work',
+    );
+  });
+
+  test('dragging several chosen tasks carries them as one stack that counts them', async ({ page }) => {
+    await page.getByRole('button', { name: /^Work/ }).click();
+    await expect(page.locator('.tk-view-header .tk-crumb')).toHaveText('Projects');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Work');
+    const draft = page.getByRole('option', { name: /Draft quarterly report/ });
+    const plan = page.getByRole('option', { name: /Plan team offsite/ });
+    await draft.click();
+    await plan.click({ modifiers: ['ControlOrMeta'] });
+    await draft.hover();
+    await page.mouse.down();
+    const box = (await plan.boundingBox())!;
+    await page.mouse.move(box.x + 20, box.y + box.height - 4, { steps: 5 });
+    await expect(page.locator('.tk-drag-stack .tk-drag-count')).toHaveText('2 tasks');
+    await expect(page.locator('.tk-drag-stack .tk-drag-sheet')).toHaveCount(1);
+    await expect(page.locator('html')).toHaveClass(/tk-dragging-many/);
+    await page.mouse.up();
+    await expect(page.locator('.tk-drag-holder')).toHaveCount(0);
+    await expect(page.locator('html')).not.toHaveClass(/tk-dragging-many/);
+  });
 });

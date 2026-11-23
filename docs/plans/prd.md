@@ -123,6 +123,7 @@ Everything else, with spaces collapsed, is the title.
 - **Move to Previous / Next Section** (⌥← / ⌥→, Alt+Left / Alt+Right) move the chosen top-level tasks (a chosen subtask counts as its parent) to the end of the section before or after the first one's. Above the first section counts as a place. One undo step.
 - **Move Up** / **Move Down** (⌥↑ / ⌥↓, Alt+Up / Alt+Down elsewhere) move the chosen tasks one place, in the Inbox and projects only. A task moves with its subtasks. Chosen subtasks of one parent move among their siblings; a subtask chosen with other tasks moves its parent. Tasks already at the top or bottom stay; the rest keep their order. One undo step.
 - A task dropped on a sidebar project or the Inbox moves there; on Today becomes due today; on Trash goes to the Trash; on a label gets that label.
+- Dragging several chosen tasks carries them as one stack: the grabbed row on top of up to two cards, with an "N tasks" badge (N counts top-level tasks; a chosen subtask counts as its parent). The chosen rows fade while they're carried.
 
 ### §4.6 Trash
 
@@ -147,6 +148,13 @@ Everything else, with spaces collapsed, is the title.
 - Files no task names (the Trash included) are deleted when the file loads, if they are more than a day old. So a task deleted for good (§4.6) loses its files at the next load after that, and Undo right after Delete Forever still works. Files in the folder that aren't attachment ids are left alone.
 - A conflict choice (§3.4) never deletes files; the next load cleans up what no task names.
 
+### §4.9 Copy
+
+- **Copy** (⌘C, Ctrl+C; also in the task's right-click menu and ⌘K) puts the chosen tasks on the clipboard as a Markdown task list, in the order they're chosen, and a notice says "Copied N tasks." In a text field, or with text selected on the page, ⌘C copies that text instead.
+- Each line is `- [ ]` (`- [x]` when done) and then the task as Quick Add writes it (§4.2), so a line pastes back into the add row: title, due date as `YYYY-MM-DD`, repeat (`every day`, `every weekday`, `every week`, `every month`, `every year`), `p1`–`p3` (p4 is left out), `#Project` (spaces as `-`; left out for the Inbox and for subtasks) and each `@label`.
+- The description follows on the lines below, indented two spaces, blank lines dropped. A chosen task's subtasks (not trashed ones) follow it, indented two spaces, with their own descriptions under them. A subtask chosen with its parent comes once, under the parent; one chosen on its own is a line of its own.
+- Attachments, sections and completion times aren't copied.
+
 ## §5 Views
 
 ### §5.1 The sidebar
@@ -170,6 +178,8 @@ The app opens on the view it showed last (`settings.lastView`), else Today. A pr
 | Search | tasks whose title, description or a label contains the text (ignoring case), done ones included | open first, then date, priority, order |
 
 Rows show: circle (priority colour, filled when done), title, first line of the description, and a meta line: Trash age; due date ("Today", "Tomorrow", "Yesterday", weekday within a week, "Nov 20", with the year if not this year; overdue red, today green, this week purple), repeat icon, subtasks done/total, labels, parent title (outside project views), project (outside project views).
+
+A project's title reads as a breadcrumb, "Projects / ● Work": "Projects" and the slash in grey, then the project's colour dot and its name.
 
 Empty states: one line and a hint, e.g. "All clear! Nothing left to do here."
 

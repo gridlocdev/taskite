@@ -38,7 +38,7 @@ const CLIPBOARD: readonly NativeMenuItem[] = [
 ];
 
 /** Commands the menu bar leaves out: the browser-only ones and the ones Electron's own roles cover. */
-const LEFT_OUT = new Set(['help.docs']);
+const LEFT_OUT = new Set(['help.docs', 'task.copy']);
 
 /**
  * Only ⌘/Ctrl chords become accelerators. A plain key (Space, D, 1) as an accelerator would be taken from

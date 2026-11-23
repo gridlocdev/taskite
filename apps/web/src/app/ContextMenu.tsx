@@ -13,6 +13,7 @@ const ICONS: Record<string, string> = {
   'task.complete': 'check',
   'task.edit': 'edit',
   'task.due': 'calendar',
+  'task.copy': 'copy',
   'task.priority1': 'flag',
   'task.priority2': 'flag',
   'task.priority3': 'flag',

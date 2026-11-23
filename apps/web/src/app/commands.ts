@@ -4,6 +4,7 @@
  */
 import { INBOX_ID, MAIN_WORKSPACE_ID, plural, type Priority } from '@taskite/core';
 import { CommandCatalog, type CommandSpec, type MenuEntry } from '@taskite/ui';
+import { copyTasks } from './clipboard.ts';
 import type { AppController, MenuKind } from './controller.ts';
 
 /** The right-click menu on tasks: command ids in order, `|` between groups. */
@@ -12,6 +13,7 @@ export const TASK_MENU: readonly string[] = [
   'task.rename',
   'task.edit',
   'task.due',
+  'task.copy',
   '|',
   'task.priority1',
   'task.priority2',
@@ -271,6 +273,17 @@ export function buildCommands(app: AppController): CommandCatalog {
       context: true,
       keysOnly: true,
       run: () => app.rename(),
+    },
+    {
+      id: 'task.copy',
+      title: 'Copy',
+      keywords: 'clipboard text markdown share export',
+      description: 'Copies the chosen tasks as a Markdown task list, with their dates, projects and labels.',
+      group: 'Task',
+      shortcuts: ['mod+c'],
+      enabled: () => app.hasTargets(),
+      context: true,
+      run: () => copyTasks(app),
     },
     {
       id: 'task.due',

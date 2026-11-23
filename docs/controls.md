@@ -39,6 +39,7 @@ In a browser tab, the browser keeps **⌘N** and **⇧⌘N** (**Ctrl+N** and **C
 | Edit (one task, in the task editor) | **⌘↩**                     | **Ctrl+Enter**                 |
 | Save and close the task editor      | **⌘↩**                     | **Ctrl+Enter**                 |
 | Set due date                        | **D**                      | **D**                          |
+| Copy as a Markdown task list        | **⌘C**                     | **Ctrl+C**                     |
 | Priority 1 to 4                     | **1**, **2**, **3**, **4** | **1**, **2**, **3**, **4**     |
 | Move to a project                   | **M**                      | **M**                          |
 | Move up / down in the project       | **⌥↑** / **⌥↓**            | **Alt+Up** / **Alt+Down**      |

@@ -127,7 +127,7 @@ export function TaskRow({
         e.dataTransfer?.setData(DRAG_TYPE, JSON.stringify(tops));
         if (e.dataTransfer) {
           e.dataTransfer.effectAllowed = 'move';
-          setFaintDragImage(e, e.currentTarget as HTMLElement);
+          setFaintDragImage(e, e.currentTarget as HTMLElement, tops.length);
         }
       }}
       onDragOver={(e) => {

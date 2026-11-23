@@ -18,6 +18,7 @@ import {
   resolveView,
   sameView,
   stepId,
+  tasksAsText,
   todayISO,
   viewContent,
   visibleIds,
@@ -606,6 +607,12 @@ export class AppController {
   selectedIds(): string[] {
     const chosen = this.selected.value;
     return this.ids.value.filter((id) => chosen.has(id));
+  }
+
+  /** The chosen tasks as text for the clipboard (PRD §4.9), or null when there are none. */
+  copyText(): { text: string; count: number } | null {
+    const ids = this.targetIds();
+    return ids.length ? { text: tasksAsText(this.list, ids), count: ids.length } : null;
   }
 
   /** The chosen tasks, or the one under the cursor. */
