@@ -3,6 +3,7 @@ export {
   CommandCatalog,
   MAX_RECENT,
   filterEntries,
+  isGlobal,
   type Command,
   type CommandGroup,
   type CommandSpec,

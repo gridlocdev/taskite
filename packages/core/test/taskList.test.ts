@@ -360,6 +360,46 @@ describe('TaskList', () => {
     expect(list.nextProjectColor()).toBe('yellow');
   });
 
+  it('marks steps that change only what an editor shows, and hands them back on undo and redo', () => {
+    const t = list.addTask({ title: 'A' });
+    changes = [];
+    list.mark('labels added');
+    expect(changes).toEqual(['view']);
+    list.updateTasks(t.id, { labels: ['home'] });
+    expect(list.markLast('labels set')).toBe(true);
+
+    expect(list.undo()).toBe('labels set');
+    expect(task(t.id).labels).toEqual([]);
+    expect(list.undo()).toBe('labels added');
+    expect(list.undo()).toBeUndefined();
+    expect(list.canUndo).toBe(false);
+    expect(list.redo()).toBeUndefined();
+    expect(list.redo()).toBe('labels added');
+    expect(list.redo()).toBe('labels set');
+    expect(task(t.id).labels).toEqual(['home']);
+    // A step of its own changed nothing to save; the add, undo and redo of real changes did.
+    expect(changes).toEqual(['view', 'edit', 'edit', 'view', 'edit', 'edit', 'view', 'edit']);
+
+    // Once the editor closes, its marks go: steps that only held one, and the marks on the others.
+    list.undo();
+    list.dropMarks();
+    expect(list.redo()).toBeUndefined();
+    expect(task(t.id).labels).toEqual(['home']);
+    expect(list.undo()).toBeUndefined();
+    expect(list.undo()).toBeUndefined();
+    expect(list.canUndo).toBe(false);
+  });
+
+  it('markLast refuses when the last step changed nothing or only held a mark', () => {
+    const t = list.addTask({ title: 'A' });
+    list.updateTasks(t.id, { title: 'A' });
+    expect(list.markLast('x')).toBe(false);
+    list.mark('y');
+    list.updateTasks(t.id, { title: 'B' });
+    list.undo();
+    expect(list.markLast('z')).toBe(false);
+  });
+
   it('records no undo step for an edit that changes nothing', () => {
     const list = new TaskList(emptyData());
     const t = list.addTask({ title: 'A', priority: 2 });

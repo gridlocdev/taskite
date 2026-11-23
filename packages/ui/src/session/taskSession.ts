@@ -127,7 +127,7 @@ export class TaskSession {
     this.#wait = opts.wait ?? wait;
     this.#now = opts.now ?? Date.now;
     this.list.onChange((kind) => {
-      if (kind !== 'load' && kind !== 'outside') this.#fire('edit');
+      if (kind === 'edit' || kind === 'settings') this.#fire('edit');
     });
   }
 

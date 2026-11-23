@@ -10,6 +10,7 @@ import {
   localWorkspaceMemory,
   BrowserStore,
   every,
+  isGlobal,
 } from '@taskite/ui';
 import { App } from './app/App.tsx';
 import { buildCommands } from './app/commands.ts';
@@ -119,7 +120,7 @@ async function start(): Promise<void> {
       }
       // Menu accelerators reach the app before the page; in a text field ⌘Z and ⌘A stay the field's.
       const inText = !!document.activeElement?.closest('input, textarea, select');
-      if (inText && !catalog.get(id)?.global) {
+      if (inText && !isGlobal(catalog.get(id))) {
         const fallback: Record<string, string> = {
           'edit.undo': 'undo',
           'edit.redo': 'redo',

@@ -34,8 +34,11 @@ export interface CommandSpec {
   readonly checked?: () => boolean;
   /** Shown in red in menus. */
   readonly danger?: boolean;
-  /** Its shortcut also works in a text field or with a dialog open. Only for chords with ⌘/Ctrl. */
-  readonly global?: boolean;
+  /**
+   * Its shortcut also works in a text field or with a dialog open, always or while this returns true. Only for
+   * chords with ⌘/Ctrl.
+   */
+  readonly global?: boolean | (() => boolean);
   /** Its shortcuts work from the keyboard but don't go in the menu bar (Space, Enter, letters). */
   readonly keysOnly?: boolean;
 }
@@ -59,6 +62,11 @@ export interface MenuEntry {
 }
 
 export const MAX_RECENT = 5;
+
+/** Whether `c`'s shortcut works in a text field right now (`CommandSpec.global`). */
+export function isGlobal(c: CommandSpec | undefined): boolean {
+  return typeof c?.global === 'function' ? c.global() : c?.global === true;
+}
 
 function same(a: Shortcut, b: Shortcut): boolean {
   return a.key === b.key && a.mod === b.mod && a.shift === b.shift && a.alt === b.alt && a.ctrl === b.ctrl;
@@ -168,7 +176,7 @@ export class CommandCatalog {
 
   /** Disabled commands let their keys through, so two commands can share a key (Delete in the Trash). */
   #allowed(c: Command, focus: KeyFocus): boolean {
-    return (focus !== 'text' || c.global === true) && this.isEnabled(c);
+    return (focus !== 'text' || isGlobal(c)) && this.isEnabled(c);
   }
 }
 

@@ -80,6 +80,8 @@ export interface Notice {
 export interface Draft {
   flush(): void;
   dirty(): boolean;
+  /** Undo (`redo` false) or Redo reached a step the editor marked: it puts its fields as the step says. */
+  step(mark: unknown, redo: boolean): void;
 }
 
 /** A task's name being edited in its row (PRD §4.4): the text in the field, and the name it was last saved as. */
@@ -1216,13 +1218,15 @@ export class AppController {
       return;
     }
     if (!this.list.canUndo) return;
-    this.list.undo();
+    const mark = this.list.undo();
+    if (mark !== undefined) this.#draft?.step(mark, false);
     this.say('Undone.');
   }
 
   redo(): void {
     if (!this.list.canRedo) return;
-    this.list.redo();
+    const mark = this.list.redo();
+    if (mark !== undefined) this.#draft?.step(mark, true);
     this.say('Redone.');
   }
 
@@ -1476,6 +1480,16 @@ export class AppController {
   /** The editor registers its draft while it's open. */
   setDraft(draft: Draft | null): void {
     this.#draft = draft;
+    // Its marks mean nothing once it has closed.
+    if (!draft) this.list.dropMarks();
+  }
+
+  /**
+   * ⌘Z and ⇧⌘Z go to Undo and Redo in the task editor, unless a field holds text typed since it was last
+   * saved: that's the field's to undo (PRD §4.7).
+   */
+  editorTakesUndo(): boolean {
+    return this.dialog.value?.kind === 'task' && this.session.conflict.value === null && !this.hasDraft();
   }
 
   /** Saves the open editor's typed text, if any. */

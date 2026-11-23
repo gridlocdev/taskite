@@ -136,7 +136,8 @@ Everything else, with spaces collapsed, is the title.
 ### §4.7 Undo
 
 - Every change to tasks, projects and labels is one undo step, including multi-task changes. 100 steps. **Undo** ⌘Z, **Redo** ⇧⌘Z / ⌘Y. A new change clears redo. A change that leaves everything as it was records no step and shows no notice. Undo never changes settings or the current view.
-- While typing in a text field, ⌘Z belongs to the field.
+- While typing in a text field, ⌘Z belongs to the field. In the task editor, ⌘Z and ⇧⌘Z (Ctrl+Z and Ctrl+Shift+Z or Ctrl+Y) are Undo and Redo, from a field too, unless the field holds text typed since it was last saved; that typing is the field's to undo first.
+- In the task editor, adding a field from its button is an undo step of its own, so Undo hides it again and Redo brings it back. Taking a field away (× or by hand) is part of the step that clears its value, so Undo brings back the field with the value, and undoing a value set in an added field leaves the field showing, empty. These steps change nothing to save. Once the editor closes they leave the history, and the changes made in it stay as steps.
 - Completing or trashing a task plays a short animation before the change is made; Undo during it cancels the change. A notice's **Undo** goes away once anything else changes the tasks.
 
 ### §4.8 Attachments

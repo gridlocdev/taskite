@@ -304,6 +304,7 @@ describe('AppController', () => {
     app.setDraft({
       flush: () => app.saveTask(t.id, { title: typed }),
       dirty: () => typed !== app.list.getTask(t.id)?.title,
+      step: () => undefined,
     });
     expect(app.hasDraft()).toBe(true);
     app.toggle('commands');

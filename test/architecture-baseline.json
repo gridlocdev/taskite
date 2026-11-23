@@ -1,5 +1,5 @@
 {
-  "deep-copy: packages/core/src/taskList.ts": 5,
+  "deep-copy: packages/core/src/taskList.ts": 4,
   "effect: apps/web/src/app/App.tsx": 2,
   "effect: apps/web/src/app/Calendar.tsx": 2,
   "effect: apps/web/src/app/ContextMenu.tsx": 2,

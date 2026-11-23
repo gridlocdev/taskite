@@ -32,8 +32,20 @@ import {
 export const MAX_HISTORY = 100;
 
 /** `edit`: an undo step, an undo or a redo. `settings`: saved but not an undo step. `load`: new data replaced it all. */
-/** `load` and `outside` came from the file, so there is nothing to save. */
-export type ChangeKind = 'edit' | 'settings' | 'load' | 'outside';
+/**
+ * `load` and `outside` came from the file, so there is nothing to save. `view`: a step that changes only what an
+ * editor shows (`mark`), or its undo or redo; the data is as it was, so there is nothing to save either.
+ */
+export type ChangeKind = 'edit' | 'settings' | 'load' | 'outside' | 'view';
+
+/**
+ * One undo step: the data before it, or null for a step that changed only what an editor shows. `mark` is what
+ * that editor needs to take the step back or make it again; the engine only carries it.
+ */
+interface Step {
+  readonly data: AppData | null;
+  mark?: unknown;
+}
 
 export interface CompleteResult {
   id: string;
@@ -129,8 +141,8 @@ function sameData(a: AppData, b: AppData): boolean {
 
 export class TaskList {
   #data: AppData;
-  #undo: AppData[] = [];
-  #redo: AppData[] = [];
+  #undo: Step[] = [];
+  #redo: Step[] = [];
   #listeners = new Set<(kind: ChangeKind) => void>();
   #now: () => number;
   #newId: () => string;
@@ -186,7 +198,7 @@ export class TaskList {
    * along with one of this window's. Settings stay this window's.
    */
   takeOutside(data: AppData): void {
-    this.#undo = [structuredClone(this.#data)];
+    this.#undo = [{ data: structuredClone(this.#data) }];
     this.#redo = [];
     this.#data = { ...data, settings: this.#data.settings };
     this.#lastEditChanged = true;
@@ -223,10 +235,14 @@ export class TaskList {
 
   #record(before: AppData): void {
     this.#lastEditChanged = true;
-    this.#undo.push(before);
+    this.#push({ data: before });
+    this.#emit('edit');
+  }
+
+  #push(step: Step): void {
+    this.#undo.push(step);
     if (this.#undo.length > MAX_HISTORY) this.#undo.shift();
     this.#redo = [];
-    this.#emit('edit');
   }
 
   /** Runs several edits as one undo step. */
@@ -268,23 +284,62 @@ export class TaskList {
     return this.#redo.length > 0;
   }
 
-  /** Goes back one change. Settings stay as they are (PRD §4.7). */
-  undo(): void {
-    this.#automated = [];
-    const previous = this.#undo.pop();
-    if (!previous) return;
-    this.#redo.push(structuredClone(this.#data));
-    this.#data = { ...previous, settings: this.#data.settings };
-    this.#emit('edit');
+  /**
+   * Records an undo step that changes only what an editor shows, such as a field it added (PRD §4.7). Undo and
+   * Redo hand `mark` back to the editor, which puts its fields as they were.
+   */
+  mark(mark: unknown): void {
+    this.#push({ data: null, mark });
+    this.#emit('view');
   }
 
-  redo(): void {
+  /**
+   * Adds `mark` to the last undo step, so Undo takes back what the editor showed along with the change. False
+   * when the last step has no data to go with it; the caller records `mark` on its own then.
+   */
+  markLast(mark: unknown): boolean {
+    const last = this.#undo.at(-1);
+    if (!last?.data || !this.#lastEditChanged) return false;
+    last.mark = mark;
+    return true;
+  }
+
+  /** Forgets every mark, once the editor they belong to has closed: steps that only held one go. */
+  dropMarks(): void {
+    const strip = (steps: Step[]): Step[] => steps.filter((s) => s.data).map((s) => ({ data: s.data }));
+    this.#undo = strip(this.#undo);
+    this.#redo = strip(this.#redo);
+  }
+
+  /**
+   * Goes back one change. Settings stay as they are (PRD §4.7). Returns the step's mark, for the editor that
+   * made it.
+   */
+  undo(): unknown {
+    this.#automated = [];
+    const previous = this.#undo.pop();
+    if (!previous) return undefined;
+    this.#redo.push(this.#swap(previous));
+    this.#emit(previous.data ? 'edit' : 'view');
+    return previous.mark;
+  }
+
+  /** Makes the change Undo took back. Returns the step's mark, as `undo` does. */
+  redo(): unknown {
     this.#automated = [];
     const next = this.#redo.pop();
-    if (!next) return;
-    this.#undo.push(structuredClone(this.#data));
-    this.#data = { ...next, settings: this.#data.settings };
-    this.#emit('edit');
+    if (!next) return undefined;
+    this.#undo.push(this.#swap(next));
+    this.#emit(next.data ? 'edit' : 'view');
+    return next.mark;
+  }
+
+  /** Puts `step`'s data in place and returns the step that goes back to what was there. */
+  #swap(step: Step): Step {
+    if (!step.data) return { data: null, mark: step.mark };
+    const back: Step = { data: structuredClone(this.#data), mark: step.mark };
+    this.#data = { ...step.data, settings: this.#data.settings };
+    return back;
   }
 
   // ---------- Reading tasks ----------
@@ -674,7 +729,8 @@ export class TaskList {
    * Returns whether anything was removed.
    */
   purgeExpired(now: number = this.#now()): boolean {
-    for (const data of [...this.#undo, ...this.#redo]) removeTasks(data, expiredTaskIds(data, now));
+    for (const { data } of [...this.#undo, ...this.#redo])
+      if (data) removeTasks(data, expiredTaskIds(data, now));
     const ids = expiredTaskIds(this.#data, now);
     if (!ids.size) return false;
     removeTasks(this.#data, ids);

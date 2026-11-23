@@ -126,6 +126,12 @@ function Actions(props: { readonly app: AppController; readonly save: string }) 
 /** Fields the editor hides until a task uses them, or until they're added from the row of buttons under it. */
 type Extra = 'due' | 'recurrence' | 'priority' | 'labels' | 'subtasks';
 
+/** An undo step's note of a field added (`shown`) or taken away in the editor (PRD §4.7). */
+interface FieldMark {
+  readonly field: Extra;
+  readonly shown: boolean;
+}
+
 const EXTRAS: Readonly<Record<Extra, { readonly name: string; readonly icon: string }>> = {
   due: { name: 'Due date', icon: 'calendar' },
   recurrence: { name: 'Repeat', icon: 'repeat' },
@@ -265,10 +271,8 @@ function TaskEditor({ app, id }: { readonly app: AppController; readonly id: str
   const [due, setDue] = useState(task?.due ?? '');
   const [labels, setLabels] = useState(task?.labels.join(', ') ?? '');
   const [subtask, setSubtask] = useState('');
-  /** Fields added from their buttons that have had no value yet. */
+  /** Fields added from their buttons: they show with no value until they're taken away. */
   const [added, setAdded] = useState<readonly Extra[]>([]);
-  /** Fields that have had a value while the editor is open: taking it away hides them again. */
-  const filled = useRef(new Set<Extra>());
   /** Where the keyboard goes after the next render: a field just added, or the button of one just taken away. */
   const [focusOn, setFocusOn] = useState<string | null>(null);
   const body = useRef<HTMLDivElement>(null);
@@ -293,10 +297,21 @@ function TaskEditor({ app, id }: { readonly app: AppController; readonly id: str
   };
   const saveRef = useRef(saveText);
   saveRef.current = saveText;
+  /** Undo or Redo reached a field added or taken away here: it shows or hides again, with the keyboard kept. */
+  const stepField = (mark: unknown, redo: boolean) => {
+    const { field, shown } = mark as FieldMark;
+    const show = redo === shown;
+    setAdded((a) => (show ? (a.includes(field) ? a : [...a, field]) : a.filter((x) => x !== field)));
+    if (!show && (document.activeElement as HTMLElement | null)?.dataset.field === field)
+      setFocusOn(`[data-add="${field}"]`);
+  };
+  const stepRef = useRef(stepField);
+  stepRef.current = stepField;
   useEffect(() => {
     app.setDraft({
       flush: () => saveRef.current(),
       dirty: () => Object.keys(editorPatch(start.current, latest.current)).length > 0,
+      step: (mark, redo) => stepRef.current(mark, redo),
     });
     return () => {
       saveRef.current();
@@ -344,22 +359,44 @@ function TaskEditor({ app, id }: { readonly app: AppController; readonly id: str
     labels: task.labels.length > 0,
     subtasks: subtasks.length > 0,
   };
-  for (const x of Object.keys(has) as Extra[]) if (has[x]) filled.current.add(x);
-  const shows = (x: Extra) => has[x] || (added.includes(x) && !filled.current.has(x));
+  const shows = (x: Extra) => has[x] || added.includes(x);
   const extras = (Object.keys(EXTRAS) as Extra[]).filter(
     (x) => !shows(x) && !(x === 'subtasks' && task.parentId),
   );
   const save = (patch: TaskPatch) => app.saveTask(task.id, patch);
+  /**
+   * Records a field added or taken away as an undo step: part of the change made with it, if there was one
+   * since `step`, else a step of its own (PRD §4.7).
+   */
+  const markField = (field: Extra, shown: boolean, step: number) => {
+    const mark: FieldMark = { field, shown };
+    if (app.list.step === step || !app.list.markLast(mark)) app.list.mark(mark);
+  };
   const addField = (x: Extra) => {
-    filled.current.delete(x);
     setAdded([...added, x]);
     setFocusOn(`[data-field="${x}"]`);
+    markField(x, true, app.list.step);
   };
-  /** A field's value was taken away: its button gets the keyboard. */
-  const emptied = (x: Extra) => setFocusOn(`[data-add="${x}"]`);
-  const removeField = (x: Extra) => {
+  /** A field's value was taken away by hand (`step`: the list's step before): it hides, and its button gets the keyboard. */
+  const emptied = (x: Extra, step: number) => {
+    setFocusOn(`[data-add="${x}"]`);
+    if (!added.includes(x)) return;
     setAdded(added.filter((a) => a !== x));
-    filled.current.add(x);
+    markField(x, false, step);
+  };
+  /** A date or labels typed away and saved hides its field too. */
+  const saveTyped = () => {
+    const was = start.current;
+    const step = app.list.step;
+    saveText();
+    const now = app.list.getTask(id);
+    if (!now) return;
+    if (was.due && now.due === null) emptied('due', step);
+    if (was.labels.trim() && now.labels.length === 0) emptied('labels', step);
+  };
+  const removeField = (x: Extra) => {
+    const step = app.list.step;
+    setAdded(added.filter((a) => a !== x));
     if (x === 'due' || x === 'labels') {
       // Through the text fields, so a value typed and not yet saved goes too.
       latest.current = { ...latest.current, [x]: '' };
@@ -368,7 +405,8 @@ function TaskEditor({ app, id }: { readonly app: AppController; readonly id: str
       saveText();
     } else if (x === 'recurrence') save({ recurrence: null });
     else if (x === 'priority') save({ priority: 4 });
-    emptied(x);
+    setFocusOn(`[data-add="${x}"]`);
+    markField(x, false, step);
   };
   const remove = (x: Extra) => <RemoveField extra={x} onRemove={removeField} />;
   const done = () => {
@@ -381,6 +419,7 @@ function TaskEditor({ app, id }: { readonly app: AppController; readonly id: str
       class="tk-dialog-wide"
       onClose={done}
       onSubmit={done}
+      passUndo={() => app.editorTakesUndo()}
       actions={
         <>
           <button
@@ -466,7 +505,7 @@ function TaskEditor({ app, id }: { readonly app: AppController; readonly id: str
                   data-field="due"
                   value={due}
                   onInput={(e) => setDue((e.target as HTMLInputElement).value)}
-                  onBlur={saveText}
+                  onBlur={saveTyped}
                 />
               </label>
               {remove('due')}
@@ -481,10 +520,11 @@ function TaskEditor({ app, id }: { readonly app: AppController; readonly id: str
                   value={task.recurrence ?? ''}
                   onChange={(e) => {
                     const value = (e.target as HTMLSelectElement).value as Recurrence | '';
+                    const step = app.list.step;
                     save({ recurrence: value || null });
                     // Repeating gives an undated task today's date.
                     setDue(app.list.getTask(task.id)?.due ?? '');
-                    if (!value) emptied('recurrence');
+                    if (!value) emptied('recurrence', step);
                   }}
                 >
                   <option value="">Doesn't repeat</option>
@@ -507,8 +547,9 @@ function TaskEditor({ app, id }: { readonly app: AppController; readonly id: str
                   value={String(task.priority)}
                   onChange={(e) => {
                     const priority = Number((e.target as HTMLSelectElement).value) as Priority;
+                    const step = app.list.step;
                     save({ priority });
-                    if (priority === 4) emptied('priority');
+                    if (priority === 4) emptied('priority', step);
                   }}
                 >
                   <option value="1">Priority 1 (urgent)</option>
@@ -530,7 +571,7 @@ function TaskEditor({ app, id }: { readonly app: AppController; readonly id: str
                 placeholder="e.g. errands, phone"
                 value={labels}
                 onInput={(e) => setLabels((e.target as HTMLInputElement).value)}
-                onBlur={saveText}
+                onBlur={saveTyped}
               />
               <small class="tk-muted">Separate labels with commas.</small>
             </label>
@@ -559,8 +600,9 @@ function TaskEditor({ app, id }: { readonly app: AppController; readonly id: str
                     class="tk-icon-button tk-small"
                     aria-label={`Move "${s.title}" to the Trash`}
                     onClick={() => {
+                      const step = app.list.step;
                       app.list.deleteTasks(s.id);
-                      if (subtasks.length === 1) emptied('subtasks');
+                      if (subtasks.length === 1) emptied('subtasks', step);
                     }}
                   >
                     <Icon name="x" />

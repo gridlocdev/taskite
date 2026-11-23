@@ -167,6 +167,69 @@ test.describe('Working on tasks', () => {
     await expect(buttons.getByRole('button', { name: 'Labels' })).toBeVisible();
   });
 
+  test('in the editor, Undo and Redo take back and bring back fields added, along with their values', async ({
+    page,
+  }) => {
+    await page.getByRole('option', { name: /Water the plants/ }).click();
+    await page.keyboard.press('ControlOrMeta+Enter');
+    const editor = page.getByRole('dialog', { name: 'Task' });
+    const buttons = editor.getByRole('group', { name: 'Add to the task' });
+    const labels = editor.getByRole('textbox', { name: 'Labels' });
+
+    // Adding a field is a step of its own.
+    await buttons.getByRole('button', { name: 'Labels' }).click();
+    await expect(labels).toBeFocused();
+    await page.keyboard.press('ControlOrMeta+KeyZ');
+    await expect(labels).toBeHidden();
+    await expect(buttons.getByRole('button', { name: 'Labels' })).toBeFocused();
+    await page.keyboard.press('ControlOrMeta+Shift+KeyZ');
+    await expect(labels).toBeVisible();
+
+    // A value comes off first, then the field.
+    await labels.click();
+    await page.keyboard.type('errands');
+    await page.keyboard.press('Tab');
+    await expect.poll(() => fileTask('Water the plants')?.labels).toEqual(['errands']);
+    await page.keyboard.press('ControlOrMeta+KeyZ');
+    await expect.poll(() => fileTask('Water the plants')?.labels).toEqual([]);
+    await expect(labels).toHaveValue('');
+    await expect(labels).toBeVisible();
+    await page.keyboard.press('ControlOrMeta+KeyZ');
+    await expect(labels).toBeHidden();
+    await page.keyboard.press('ControlOrMeta+Shift+KeyZ');
+    await page.keyboard.press('ControlOrMeta+Shift+KeyZ');
+    await expect(labels).toHaveValue('errands');
+    await expect.poll(() => fileTask('Water the plants')?.labels).toEqual(['errands']);
+
+    // Taking a field away by hand, and with ×, is undone the same way.
+    await editor.getByRole('button', { name: 'Remove labels' }).click();
+    await expect(labels).toBeHidden();
+    await page.keyboard.press('ControlOrMeta+KeyZ');
+    await expect(labels).toHaveValue('errands');
+    const priority = editor.getByRole('combobox', { name: 'Priority' });
+    await buttons.getByRole('button', { name: 'Priority' }).click();
+    await priority.selectOption('2');
+    await priority.selectOption('4');
+    await expect(priority).toBeHidden();
+    await page.keyboard.press('ControlOrMeta+KeyZ');
+    await expect(priority).toHaveValue('2');
+    await page.keyboard.press('ControlOrMeta+KeyZ');
+    await expect(priority).toHaveValue('4');
+    await page.keyboard.press('ControlOrMeta+KeyZ');
+    await expect(priority).toBeHidden();
+    await expect.poll(() => fileTask('Water the plants')?.priority).toBe(4);
+
+    // Text typed and not yet saved is the field's to undo; the task keeps its name.
+    const name = editor.getByRole('textbox', { name: 'Task name' });
+    await name.click();
+    await page.keyboard.press('End');
+    await page.keyboard.type(' now');
+    await page.keyboard.press('ControlOrMeta+KeyZ');
+    await expect(name).not.toHaveValue('Water the plants now');
+    await expect(labels).toHaveValue('errands');
+    await expect(editor).toBeVisible();
+  });
+
   test('Shift and the arrow keys choose several tasks, and Space completes them all', async ({ page }) => {
     await page.getByRole('option', { name: /Book dentist appointment/ }).click();
     await page.keyboard.press('Shift+ArrowDown');

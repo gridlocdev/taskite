@@ -14,6 +14,8 @@ export function Dialog(props: {
   readonly children: ComponentChildren;
   readonly actions?: ComponentChildren;
   readonly onSubmit?: () => void;
+  /** While this returns true, ⌘Z and ⇧⌘Z go on to the app's Undo and Redo instead of stopping here. */
+  readonly passUndo?: () => boolean;
 }) {
   const ref = useRef<HTMLFormElement>(null);
   const titleId = useId();
@@ -57,7 +59,7 @@ export function Dialog(props: {
             e.preventDefault();
             e.stopPropagation();
             ref.current?.requestSubmit();
-          } else if (isUndoKey(e) && !keepsOwnUndo(e.target)) {
+          } else if (isUndoKey(e) && !keepsOwnUndo(e.target) && !props.passUndo?.()) {
             // The browser's own undo would take back typing in a field behind the dialog, and move the keyboard
             // there. A text field in the dialog keeps its undo.
             e.preventDefault();

@@ -67,7 +67,7 @@ Drop a task on a project, a label, Today or the Trash in the sidebar to move it 
 ## Never losing a task
 
 - Every change saves at once. If a save fails, Taskite tries again, keeps your changes in the browser's storage, and shows **Try again** until it works. If the app closes first, it offers to restore them next time.
-- Every change can be undone (`⌘Z`) and redone (`⇧⌘Z`), up to 100 steps.
+- Every change can be undone (`⌘Z`) and redone (`⇧⌘Z`), up to 100 steps. This works in the task editor too, where adding a field is a step of its own.
 - Deleted tasks go to the **Trash** for 30 days. Restore them with `R`.
 - If the file changed somewhere else (another window, another computer, the CLI) while you had changes, Taskite stops and asks: **Save Mine as a Copy** (keeps both, the default), **Keep Mine**, or **Use Theirs**. Nothing is merged or overwritten without asking.
 - A file that can't be read is copied aside, never deleted.

@@ -217,6 +217,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       description: 'Takes back the last change to your tasks.',
       group: 'Edit',
       shortcuts: ['mod+z'],
+      global: () => app.editorTakesUndo(),
       enabled: () => {
         void app.rev.value;
         return app.canUndo();
@@ -230,6 +231,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       description: 'Makes the change Undo took back.',
       group: 'Edit',
       shortcuts: ['mod+shift+z', 'mod+y'],
+      global: () => app.editorTakesUndo(),
       enabled: () => {
         void app.rev.value;
         return app.list.canRedo;
@@ -824,8 +826,13 @@ export function buildCommands(app: AppController): CommandCatalog {
   ];
 
   const catalog = new CommandCatalog(specs);
-  // A dialog or a save conflict holds every command except the ones that toggle their own window.
-  catalog.gate = (c) => !app.blocked() || c.id === 'help.commands' || c.id === 'help.shortcuts';
+  // A dialog or a save conflict holds every command except the ones that toggle their own window, and Undo
+  // and Redo in the task editor.
+  catalog.gate = (c) =>
+    !app.blocked() ||
+    c.id === 'help.commands' ||
+    c.id === 'help.shortcuts' ||
+    ((c.id === 'edit.undo' || c.id === 'edit.redo') && app.editorTakesUndo());
   return catalog;
 }
 

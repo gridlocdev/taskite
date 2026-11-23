@@ -60,6 +60,7 @@ export {
   formatSequence,
   formatShortcut,
   isComposingKey,
+  isGlobal,
   isSubmitKey,
   isUndoKey,
   isMac,
