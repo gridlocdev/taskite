@@ -84,7 +84,7 @@ just install-desktop      # macOS: package and install into /Applications
 ```
 
 - The package is signed ad hoc so it runs on Apple silicon. Swap the identity in `apps/desktop/electron-builder.yml` for a Developer ID to distribute it.
-- `just install-desktop` moves an existing copy to the Trash first, and refuses while the app is running.
+- `just install-desktop` moves an existing copy to the Trash first. If Taskite is running, it asks in a dialog whether to quit it; **Install and Restart** quits it the normal way (so open windows save first), installs, and opens it again, and **Cancel** stops the install.
 
 ### The app icon
 
