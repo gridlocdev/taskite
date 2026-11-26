@@ -38,15 +38,18 @@ test.describe('Commands and shortcuts', () => {
   test('going to a view by keys or the command menu takes the keyboard there', async ({ page }) => {
     const home = page.getByRole('button', { name: /^Home/ });
     await home.click();
+    // The list hands the keyboard to its first row, with the cursor on it (PRD §9).
+    const first = page.getByRole('listbox', { name: 'Today' }).getByRole('option').first();
     await page.keyboard.press('KeyG');
     await page.keyboard.press('KeyT');
-    await expect(page.getByRole('listbox', { name: 'Today' })).toBeFocused();
+    await expect(first).toBeFocused();
+    await expect(first).toHaveClass(/tk-cursor/);
     await home.click();
     await runCommand(page, 'Go to Today');
-    await expect(page.getByRole('listbox', { name: 'Today' })).toBeFocused();
-    // Down from there reaches the first task.
+    await expect(first).toBeFocused();
+    // Down from there reaches the next task.
     await page.keyboard.press('ArrowDown');
-    await expect(page.getByRole('option').first()).toBeFocused();
+    await expect(page.getByRole('option').nth(1)).toBeFocused();
   });
 
   test('? opens the Keyboard Shortcuts window', async ({ page }) => {

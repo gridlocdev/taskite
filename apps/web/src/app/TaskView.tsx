@@ -87,6 +87,9 @@ export function TaskView({
           aria-multiselectable="true"
           // A board's columns are Tab stops of their own (see SectionView), so the board itself isn't one.
           tabIndex={cursor || (content.board && app.ids.value.length) ? -1 : 0}
+          onFocus={(e) => {
+            if (e.target === e.currentTarget) app.cursorToFirst();
+          }}
           onKeyDown={(e) => {
             if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
               e.preventDefault();

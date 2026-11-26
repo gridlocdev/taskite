@@ -701,8 +701,15 @@ export class AppController {
         this.#anchor = to;
       }
       this.cursor.value = to;
+      // The keyboard goes with the cursor, also from the sidebar or the menu bar (PRD §9).
+      this.focusList.value++;
     });
     this.#announceSelection();
+  }
+
+  /** The list took the keyboard with no cursor: the cursor goes to its first row, as ↓ would (PRD §9). */
+  cursorToFirst(): void {
+    if (this.cursor.peek() === null && this.stops.peek().length) this.step(1);
   }
 
   // ---------- Going to a section (PRD §7) ----------

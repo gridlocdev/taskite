@@ -514,6 +514,13 @@ kbd {
   color: var(--tk-text-2);
   font-size: 13px;
 }
+/*
+ * A list with rows never keeps the keyboard itself: it hands it to the cursor's row (PRD §9). An empty one
+ * (the Trash with nothing in it) keeps it without a ring around its empty-state text.
+ */
+.tk-list:not(:has(.tk-row, .tk-add-row)):focus-visible {
+  outline: none;
+}
 .tk-section {
   margin-bottom: 18px;
 }
@@ -2010,7 +2017,7 @@ fieldset {
 }
 .tk-editor-title:focus,
 .tk-editor-notes:focus {
-  border-color: var(--tk-border-strong);
+  border-color: var(--tk-focus);
   background: var(--tk-bg);
   outline: none;
 }

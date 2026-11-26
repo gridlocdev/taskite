@@ -27,26 +27,37 @@ test.describe('Look', () => {
     const look = () =>
       page.evaluate(() => {
         const el = document.activeElement as HTMLElement | null;
-        if (!el || el === document.body) return { what: 'body', ok: true, browser: false };
+        if (!el || el === document.body) return { what: 'body', ok: true, animated: false, browser: false };
         const cs = getComputedStyle(el);
         const ok =
           (cs.outlineStyle === 'solid' && parseFloat(cs.outlineWidth) > 0) ||
           cs.boxShadow !== 'none' ||
-          el.matches('.tk-chosen, .tk-active, .tk-cursor, input, textarea, [contenteditable]');
+          el.matches('.tk-chosen, .tk-active, .tk-cursor, input, textarea, [contenteditable]') ||
+          // An empty list keeps the keyboard without a ring around its empty-state text.
+          el.matches('[role=listbox]:not(:has([role=option], .tk-add-row))');
+        // A ring appears at once: nothing fades or grows it in (reduced motion leaves 0.01 ms, which is nothing).
+        const props = cs.transitionProperty.split(',').map((p) => p.trim());
+        const durations = cs.transitionDuration.split(',').map((d) => parseFloat(d));
+        const animated = props.some(
+          (p, i) => /^(all|outline.*|box-shadow)$/.test(p) && (durations[i % durations.length] ?? 0) > 0.001,
+        );
         return {
           what: `${el.tagName.toLowerCase()}.${el.className} ${el.getAttribute('aria-label') ?? el.textContent?.slice(0, 20)}`,
           ok,
+          animated,
           browser: cs.outlineStyle === 'auto',
         };
       });
     for (const scheme of ['light', 'dark'] as const) {
-      await page.emulateMedia({ colorScheme: scheme });
+      // With motion on, so a transition on a ring would show.
+      await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'no-preference' });
       await openApp(page);
       for (let i = 0; i < 30; i++) {
         await page.keyboard.press('Tab');
         const now = await look();
         expect(now.browser, `${scheme}: the browser's outline on ${now.what}`).toBe(false);
         expect(now.ok, `${scheme}: nothing shows focus on ${now.what}`).toBe(true);
+        expect(now.animated, `${scheme}: the focus ring on ${now.what} is animated`).toBe(false);
       }
     }
   });
@@ -89,6 +100,40 @@ test.describe('Look', () => {
     await runCommand(page, 'Go to Today');
     await page.keyboard.press('ArrowUp');
     await agrees();
+  });
+
+  test('the keyboard goes to the cursor row when a key moves the cursor from outside the list', async ({
+    page,
+  }) => {
+    await page.getByRole('button', { name: /^Home/ }).click();
+    await expect(page.getByRole('button', { name: /^Home/ })).toBeFocused();
+    await page.keyboard.press('ArrowDown');
+    const cursor = page.locator('.tk-row.tk-cursor');
+    await expect(cursor).toBeFocused();
+    // So the right-click key acts on the marked task, not the sidebar item.
+    await page.keyboard.press('Shift+F10');
+    await expect(page.getByRole('menu').getByRole('menuitem', { name: /Rename Task/ })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(cursor).toBeFocused();
+  });
+
+  test('a list that takes the keyboard puts the cursor on its first row, and draws no ring around itself', async ({
+    page,
+  }) => {
+    const list = page.getByRole('listbox');
+    const ring = () =>
+      list.evaluate((el) => {
+        const cs = getComputedStyle(el);
+        return cs.outlineStyle !== 'none' || cs.boxShadow !== 'none';
+      });
+    await runCommand(page, 'Go to Inbox');
+    await expect(page.getByRole('option').first()).toHaveClass(/tk-cursor/);
+    await expect(page.getByRole('option').first()).toBeFocused();
+    expect(await ring()).toBe(false);
+    // An empty list keeps the keyboard, with no ring around its empty-state text.
+    await runCommand(page, 'Go to Trash');
+    await expect(list).toBeFocused();
+    expect(await ring()).toBe(false);
   });
 
   test("a menu's active item is state: arrows and the pointer move it, and the keyboard goes with it", async ({
