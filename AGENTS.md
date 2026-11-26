@@ -35,6 +35,7 @@ Taskite is a to-do list for one person. One UI runs in the browser, in the NAS s
 7. **Security.** The Electron renderer is sandboxed with context isolation; its only native access is the `taskiteNative` bridge, which reaches only the data file. The server serves only its data file and static folder, and checks `Host` when there is no token.
 8. **Dependencies.** The runtime dependencies are Preact and `@preact/signals`, plus the Capacitor packages in `apps/ios`. Don't add a package without the owner's approval. Pin versions exactly.
 9. **Nothing left to interpretation.** If a behaviour isn't in the PRD, stop and ask, then record the answer in the PRD.
+10. **One word per idea.** Use the terms in [GLOSSARY.md](GLOSSARY.md) in code, docs and commit messages, and add a term there when a new concept appears.
 
 ## TypeScript conventions
 
