@@ -315,6 +315,7 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
 ## §12 Desktop
 
 - Electron, sandboxed with context isolation; the page loads from `app://taskite/`; the only native access is the `taskiteNative` bridge, which reads and writes the data file and carries menu commands. IPC is accepted only from `app://taskite/` frames. Links open in the default browser.
+- The packaged app's Electron fuses are set before it's signed: it can't be run as plain Node (`ELECTRON_RUN_AS_NODE`), it ignores `NODE_OPTIONS` and `--inspect`, and it loads its code only from its `app.asar`.
 - The menu bar comes from the catalog (§8), with the standard app, Edit (clipboard roles) and Window menus.
 - **macOS unified toolbar:** the window has no title bar (`titleBarStyle: 'hidden'`). The traffic lights sit in the sidebar's top row, which keeps room for them and hides the app name; a strip across the top of the task view stands in for the title bar. Both drag the window; their buttons don't. In full screen the room for the lights goes. Windows and Linux keep the standard frame and menu bar.
 - Right-clicking text gets an edit menu: spelling suggestions and Learn Spelling for a misspelt word, then Cut, Copy, Paste, Select All (Copy only for selected text outside a field).

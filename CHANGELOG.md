@@ -14,6 +14,10 @@
 - **Made for phones.** On a narrow screen a tab bar along the bottom holds Today, Upcoming, Inbox and Browse (search, projects, labels, Completed, Trash), and a round + button adds a task. With a finger, tap a task to open it, swipe right to complete it, swipe left to trash it, and hold it for its menu, which opens as a sheet along the bottom. This works in a phone's browser and in the iPhone app.
 - **Within reach of your thumb.** On a phone, Browse's search box sits at the bottom, and the new-task box docks there too with a ✓ to add; both ride on top of the keyboard. Dialogs open from the bottom, with the due date's quick picks next to Set Date and no keyboard until you tap a field. Hold the tab you're on for the view's menu, pick a priority from one row of flags, and tap a little outside a check circle to complete a task.
 
+### Improvements
+
+- **Safer desktop app.** The packaged app can no longer be started as plain Node or with Node's debugging options, so other programs can't use it to run their own code, and it loads its code only from its own archive.
+
 ## 1.0.0
 
 ### Before you update
