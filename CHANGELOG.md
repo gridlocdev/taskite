@@ -17,7 +17,7 @@
 
 ### Improvements
 
-- **Safer desktop app.** The packaged app can no longer be started as plain Node or with Node's debugging options, so other programs can't use it to run their own code, and it loads its code only from its own archive.
+- **Safer desktop app.** The packaged app can no longer be started as plain Node or with Node's debugging options, so other programs can't use it to run their own code, and it loads its code only from its own archive, after checking the archive hasn't been changed.
 
 ## 1.0.0
 

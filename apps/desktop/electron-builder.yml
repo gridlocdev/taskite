@@ -11,12 +11,14 @@ files:
 asar: true
 # Electron fuses, flipped in the packaged binary before it's signed: no running it as plain Node, no
 # NODE_OPTIONS and no --inspect, so nobody can use the app's binary to run their own code; and the app's code
-# only from the asar.
+# only from the asar, checked against the hash in the binary; and file:// pages get no extra rights (pages come from app://).
 electronFuses:
   runAsNode: false
   enableNodeOptionsEnvironmentVariable: false
   enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
   onlyLoadAppFromAsar: true
+  grantFileProtocolExtraPrivileges: false
   resetAdHocDarwinSignature: true
 # One naming scheme on every system: Taskite-1.0.0-mac-arm64.dmg, Taskite-1.0.0-win-x64.exe, …
 artifactName: ${productName}-${version}-${os}-${arch}.${ext}
