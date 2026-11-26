@@ -174,6 +174,11 @@ export class CommandCatalog {
     return null;
   }
 
+  /** Forgets a first key waiting for its second (Press a Shortcut stopped between them). */
+  forgetPendingKey(): void {
+    this.#pending = null;
+  }
+
   /** Disabled commands let their keys through, so two commands can share a key (Delete in the Trash). */
   #allowed(c: Command, focus: KeyFocus): boolean {
     return (focus !== 'text' || isGlobal(c)) && this.isEnabled(c);

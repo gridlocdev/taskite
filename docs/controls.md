@@ -1,6 +1,6 @@
 # Controls
 
-Every action is in the menu bar, in the **command menu** (**⌘K** on a Mac, **Ctrl+K** on Windows and Linux), and in the **Keyboard Shortcuts** window (**?** or **Help → Keyboard shortcuts**). That window is built from the same list as the menus, so it is always up to date.
+Every action is in the menu bar, in the **command menu** (**⌘K** on a Mac, **Ctrl+K** on Windows and Linux), and in the **Keyboard Shortcuts** window (**?** or **Help → Keyboard shortcuts**). That window is built from the same list as the menus, so it is always up to date. Its **Press a Shortcut…** button shows what any key you press does, without running it; **Stop** or **Esc** ends it.
 
 Single-letter keys only work when you aren't typing in a box.
 

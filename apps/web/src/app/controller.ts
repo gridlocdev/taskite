@@ -45,8 +45,13 @@ import {
 } from '@taskite/core';
 import {
   after,
+  listenForKeys,
+  lookUpKey,
   memoryWorkspaceMemory,
   wait,
+  type CommandCatalog,
+  type KeyLookup,
+  type KeyTarget,
   type OpenResult,
   type OpenWorkspaceMemory,
   type TaskSession,
@@ -203,6 +208,11 @@ export class AppController {
   readonly composer = signal<string | null>(null);
   #seed = '';
   readonly dialog = signal<DialogState | null>(null);
+  /** Press a Shortcut in the Keyboard Shortcuts window is listening (PRD §8). */
+  readonly probing = signal(false);
+  /** The last key Press a Shortcut looked up; kept after it stops, until the window closes. */
+  readonly probed = signal<Extract<KeyLookup, { kind: 'found' }> | null>(null);
+  #stopProbe: (() => void) | null = null;
   readonly menu = signal<ContextMenuState | null>(null);
   readonly notice = signal<Notice | null>(null);
   /** Rows showing their tick before they leave. */
@@ -376,6 +386,7 @@ export class AppController {
     this.#anchor = null;
     this.composer.value = null;
     this.#seed = '';
+    this.#endProbe();
     this.dialog.value = null;
     this.menu.value = null;
     this.renaming.value = null;
@@ -1507,6 +1518,7 @@ export class AppController {
 
   open(dialog: DialogState): void {
     this.flushDraft();
+    if (dialog.kind !== 'shortcuts') this.#endProbe();
     batch(() => {
       this.menu.value = null;
       this.renaming.value = null;
@@ -1516,8 +1528,45 @@ export class AppController {
 
   close(): void {
     this.flushDraft();
+    this.#endProbe();
     this.dialog.value = null;
     this.focusList.value++;
+  }
+
+  /**
+   * Press a Shortcut (PRD §8): until it stops, keys pressed say what they'd run in the task list, and nothing
+   * runs. Stop, Esc, closing the window, a while without a key and a failed lookup all let go of the keyboard.
+   */
+  startProbe(catalog: CommandCatalog, target: KeyTarget): void {
+    this.stopProbe();
+    this.probed.value = null;
+    this.probing.value = true;
+    const stop = listenForKeys(
+      target,
+      (e, previous) => lookUpKey(catalog, e, previous),
+      (found) => (this.probed.value = found),
+      () => {
+        this.#stopProbe = null;
+        this.probing.value = false;
+        catalog.forgetPendingKey();
+      },
+    );
+    this.#stopProbe = () => {
+      stop();
+      catalog.forgetPendingKey();
+    };
+  }
+
+  stopProbe(): void {
+    this.#stopProbe?.();
+    this.#stopProbe = null;
+    this.probing.value = false;
+  }
+
+  /** The Keyboard Shortcuts window is going away: stop listening and forget the last key. */
+  #endProbe(): void {
+    this.stopProbe();
+    this.probed.value = null;
   }
 
   confirm(opts: { title: string; message: string; confirm: string; run: () => void }): void {

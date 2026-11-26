@@ -13,6 +13,7 @@
 - **Taskite for iPhone and iPad.** Build it from source with your own Apple developer account and install it from Xcode; see [Development](docs/development.md#the-ios-app). Your tasks are kept in a `tasks.json` you can see in the Files app, under On My iPhone › Taskite.
 - **Made for phones.** On a narrow screen a tab bar along the bottom holds Today, Upcoming, Inbox and Browse (search, projects, labels, Completed, Trash), and a round + button adds a task. With a finger, tap a task to open it, swipe right to complete it, swipe left to trash it, and hold it for its menu, which opens as a sheet along the bottom. This works in a phone's browser and in the iPhone app.
 - **Within reach of your thumb.** On a phone, Browse's search box sits at the bottom, and the new-task box docks there too with a ✓ to add; both ride on top of the keyboard. Dialogs open from the bottom, with the due date's quick picks next to Set Date and no keyboard until you tap a field. Hold the tab you're on for the view's menu, pick a priority from one row of flags, and tap a little outside a check circle to complete a task.
+- **Press a Shortcut.** In the Keyboard Shortcuts window (`?`), press any key to see which command it runs, or that it runs none. Nothing runs while it listens; **Stop** or `Esc` ends it.
 
 ### Improvements
 

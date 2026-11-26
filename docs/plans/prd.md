@@ -262,6 +262,7 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
   - Shift+F10 and the context-menu key open the menu for the focused task (or the view) and the focused sidebar item.
   - Text fields keep the system's edit menu (§12).
 - **Keyboard Shortcuts** (`?`, ⌘/) is built from the catalog, grouped, with a filter box, plus the mouse gestures (⌘-click, Shift-click) and Enter/Esc in the composer.
+- **Press a Shortcut…** in that window takes every key before the page does and says what it would run in the task list (`⌘K` runs Command Menu, `G` then `I` runs Go to Inbox, or no command), running nothing: no command runs while it listens, from a key or the menu bar. It has ways out that don't depend on anything else working: Esc is never taken (it stops listening and closes the window as usual), **Stop**, closing the window, 20 s without a key, and an error while looking a key up all let go of the keyboard.
 - **Settings…** (⌘,), for the open workspace (§14): theme (System, Light, Dark), and whether a new section named Done completes tasks moved in and reopens ones moved out (§6.1).
 - **About Taskite**: name, version, licence (in the app menu on macOS, Help elsewhere).
 

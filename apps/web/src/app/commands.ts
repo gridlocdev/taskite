@@ -3,7 +3,7 @@
  * Shortcuts window and docs/controls.md all come from this list.
  */
 import { INBOX_ID, MAIN_WORKSPACE_ID, plural, type Priority } from '@taskite/core';
-import { CommandCatalog, type CommandSpec, type MenuEntry } from '@taskite/ui';
+import { CommandCatalog, listeningForKeys, type CommandSpec, type MenuEntry } from '@taskite/ui';
 import { copyTasks } from './clipboard.ts';
 import type { AppController, MenuKind } from './controller.ts';
 
@@ -828,11 +828,13 @@ export function buildCommands(app: AppController): CommandCatalog {
   const catalog = new CommandCatalog(specs);
   // A dialog or a save conflict holds every command except the ones that toggle their own window, and Undo
   // and Redo in the task editor.
+  // Press a Shortcut in the Keyboard Shortcuts window holds every command, the menu bar's too.
   catalog.gate = (c) =>
-    !app.blocked() ||
-    c.id === 'help.commands' ||
-    c.id === 'help.shortcuts' ||
-    ((c.id === 'edit.undo' || c.id === 'edit.redo') && app.editorTakesUndo());
+    !listeningForKeys() &&
+    (!app.blocked() ||
+      c.id === 'help.commands' ||
+      c.id === 'help.shortcuts' ||
+      ((c.id === 'edit.undo' || c.id === 'edit.redo') && app.editorTakesUndo()));
   return catalog;
 }
 

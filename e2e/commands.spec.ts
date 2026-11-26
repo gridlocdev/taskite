@@ -55,4 +55,42 @@ test.describe('Commands and shortcuts', () => {
     await expect(dialog).toContainText('Command Menu');
     await expect(dialog).toContainText('Move to Trash');
   });
+
+  test('Press a Shortcut says what keys run and runs nothing, and Stop and Esc let the keys go', async ({
+    page,
+  }) => {
+    await runCommand(page, 'Keyboard Shortcuts');
+    const dialog = page.getByRole('dialog', { name: 'Keyboard shortcuts' });
+    const status = dialog.getByRole('status');
+    await dialog.getByRole('button', { name: 'Press a Shortcut…' }).click();
+    await expect(status).toContainText('Nothing runs');
+
+    await page.keyboard.press('ControlOrMeta+KeyK');
+    await expect(status).toContainText('runs Command Menu');
+    await expect(page.getByRole('dialog', { name: 'Command menu' })).toHaveCount(0);
+    await page.keyboard.press('KeyG');
+    await expect(status).toContainText('press the next key');
+    await page.keyboard.press('KeyI');
+    await expect(status).toContainText('runs Go to Inbox');
+    await page.keyboard.press('KeyQ');
+    await expect(status).toContainText('runs no command');
+    // ? toggles this window, but not while it listens.
+    await page.keyboard.press('Shift+Slash');
+    await expect(dialog).toBeVisible();
+
+    await dialog.getByRole('button', { name: 'Stop' }).click();
+    await expect(dialog.getByRole('button', { name: 'Press a Shortcut…' })).toBeVisible();
+    await page.keyboard.press('Shift+Slash');
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 1 })).not.toHaveText('Inbox');
+
+    // Esc is never taken: it stops listening and closes the window, and keys work again.
+    await page.keyboard.press('Shift+Slash');
+    await dialog.getByRole('button', { name: 'Press a Shortcut…' }).click();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await page.keyboard.press('KeyG');
+    await page.keyboard.press('KeyI');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Inbox');
+  });
 });

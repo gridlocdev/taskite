@@ -29,3 +29,12 @@ export {
   type Shortcut,
   type ShortcutEvent,
 } from './shortcut.ts';
+export {
+  LISTEN_IDLE_MS,
+  listenForKeys,
+  listeningForKeys,
+  lookUpKey,
+  pressedLabel,
+  type KeyLookup,
+  type KeyTarget,
+} from './keyLookup.ts';

@@ -1035,17 +1035,52 @@ function ShortcutsDialog({
   readonly catalog: CommandCatalog;
 }) {
   const groups = shortcutGroups(catalog, isMac);
+  const listening = app.probing.value;
+  const found = app.probed.value;
   return (
     <Dialog
       title="Keyboard shortcuts"
       class="tk-dialog-wide"
       onClose={() => app.close()}
       actions={
-        <button type="button" class="tk-button tk-button-primary" onClick={() => app.close()}>
-          Close
-        </button>
+        <>
+          {/* One button, so focus stays on it when it turns into Stop. */}
+          <button
+            type="button"
+            class="tk-button"
+            onClick={() => (listening ? app.stopProbe() : app.startProbe(catalog, window))}
+          >
+            {listening ? 'Stop' : 'Press a Shortcut…'}
+          </button>
+          <button type="button" class="tk-button tk-button-primary" onClick={() => app.close()}>
+            Close
+          </button>
+        </>
       }
     >
+      <p class="tk-key-probe" role="status" aria-live="polite" hidden={!listening && !found}>
+        {found ? (
+          <>
+            {found.keys.map((k, i) => (
+              <span key={i} class="tk-way">
+                {i > 0 && <span class="tk-or">then</span>}
+                <kbd>{k}</kbd>
+              </span>
+            ))}{' '}
+            {found.command === 'more' ? (
+              'starts a shortcut: press the next key.'
+            ) : found.command ? (
+              <>
+                runs <strong>{found.command.title}</strong>.
+              </>
+            ) : (
+              'runs no command.'
+            )}
+          </>
+        ) : (
+          'Press a shortcut to see what it does. Nothing runs. Esc stops.'
+        )}
+      </p>
       <div class="tk-shortcuts">
         {groups.map((g) => (
           <section key={g.title}>

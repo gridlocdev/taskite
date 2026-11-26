@@ -1334,6 +1334,16 @@ fieldset {
 }
 
 /* Keyboard shortcuts */
+.tk-key-probe {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--tk-hover);
+  font-size: 13px;
+}
+.tk-key-probe[hidden] {
+  display: none;
+}
 .tk-shortcuts {
   columns: 2 260px;
   column-gap: 28px;

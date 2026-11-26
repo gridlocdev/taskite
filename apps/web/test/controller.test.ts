@@ -1,8 +1,49 @@
 import { describe, expect, it } from 'vitest';
 import { INBOX_ID, MAX_ATTACHMENT_BYTES } from '@taskite/core';
+import { listeningForKeys } from '@taskite/ui';
+import { buildCommands } from '../src/app/commands.ts';
 import { makeApp } from './helpers.ts';
 
 describe('AppController', () => {
+  it('Press a Shortcut holds every command, and closing or leaving the window lets go of the keys (PRD §8)', async () => {
+    const { app } = await makeApp();
+    const catalog = buildCommands(app);
+    const window = new EventTarget();
+    const reached: string[] = [];
+    const press = (key: string, code: string) => {
+      const e = Object.assign(new Event('keydown', { cancelable: true }), {
+        key,
+        code,
+        metaKey: false,
+        ctrlKey: false,
+        altKey: false,
+        shiftKey: false,
+      });
+      window.dispatchEvent(e);
+      if (!e.cancelBubble) reached.push(key);
+    };
+    app.toggle('shortcuts');
+    app.startProbe(catalog, window);
+    expect(app.probing.value).toBe(true);
+    press('g', 'KeyG');
+    press('i', 'KeyI');
+    expect(app.probed.value).toMatchObject({ keys: ['G', 'I'], command: { id: 'go.inbox' } });
+    expect(reached).toEqual([]);
+    // The menu bar sends commands by id: none runs while listening.
+    expect(catalog.run('help.shortcuts')).toBe(false);
+    app.close();
+    expect(app.probing.value).toBe(false);
+    expect(app.probed.value).toBeNull();
+    expect(listeningForKeys()).toBe(false);
+    press('g', 'KeyG');
+    expect(reached).toEqual(['g']);
+    // Another dialog taking the window's place lets go too.
+    app.toggle('shortcuts');
+    app.startProbe(catalog, window);
+    app.open({ kind: 'about' });
+    expect(listeningForKeys()).toBe(false);
+  });
+
   it('deleting a project or label from another view stays on that view', async () => {
     const { app } = await makeApp();
     const work = app.list.addProject('Work');
