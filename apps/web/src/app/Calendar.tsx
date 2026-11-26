@@ -107,6 +107,7 @@ export function Calendar(props: {
                 d < today && 'tk-calendar-past',
                 d === today && 'tk-calendar-today',
                 d === selected && 'tk-calendar-selected',
+                d === focus && 'tk-cursor',
               ]
                 .filter(Boolean)
                 .join(' ');

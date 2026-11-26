@@ -4,7 +4,7 @@ import { plural } from '@taskite/core';
 import { Icon, type CommandCatalog } from '@taskite/ui';
 import { MENUS, NUMBERED_WORKSPACES } from './commands.ts';
 import type { AppController, ContextMenuState } from './controller.ts';
-import { menuArrows } from './TaskView.tsx';
+import { focusMenuItem, menuArrows, menuKeys } from './menuCursor.ts';
 import { phone, touchScreen } from './touch.ts';
 
 const PRIORITY = /^task\.priority(\d)$/;
@@ -108,6 +108,11 @@ export function ContextMenu({
   const ref = useRef<HTMLDivElement>(null);
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
   const pressed = useRef(false);
+  const [active, setActive] = useState<string | null>(null);
+  const move = (key: string | null) => {
+    setActive(key);
+    focusMenuItem(ref.current, key);
+  };
   const close = () => {
     app.menu.value = null;
     app.focusList.value++;
@@ -121,9 +126,8 @@ export function ContextMenu({
     };
     addEventListener('pointerdown', away, true);
     addEventListener('blur', close);
-    // A finger has no keyboard to drive the menu, and a focus ring on the first item would look chosen.
-    if (!touchScreen.peek())
-      ref.current?.querySelector<HTMLElement>('[role^=menuitem]:not([disabled])')?.focus();
+    // A finger has no keyboard to drive the menu, and a highlight on the first item would look chosen.
+    move(touchScreen.peek() ? null : (menuKeys(ref.current)[0] ?? null));
     return () => {
       removeEventListener('pointerdown', away, true);
       removeEventListener('blur', close);
@@ -174,7 +178,8 @@ export function ContextMenu({
           : {
               left: `${(at ?? menu).x}px`,
               top: `${(at ?? menu).y}px`,
-              visibility: at ? 'visible' : 'hidden',
+              // Unseen until placed, but not visibility: hidden, which would refuse the keyboard on the first item.
+              opacity: at ? 1 : 0,
             }
       }
       onContextMenu={(e) => e.preventDefault()}
@@ -184,11 +189,13 @@ export function ContextMenu({
           e.preventDefault();
           e.stopPropagation();
           close();
-        } else menuArrows(e);
+        } else menuArrows(e, active, move);
       }}
     >
       {ids.length > 1 && <div class="tk-menu-header">{plural(ids.length, 'task')} chosen</div>}
-      {menu.kind === 'workspace' && <WorkspaceItems app={app} catalog={catalog} pressed={pressed} />}
+      {menu.kind === 'workspace' && (
+        <WorkspaceItems app={app} catalog={catalog} pressed={pressed} active={active} move={move} />
+      )}
       {items.map((id, i) => {
         if (id === '|') return <div key={`sep${i}`} class="tk-menu-sep" role="separator" />;
         // In a sheet the four priorities share one row of flags, so the rest of the menu sits lower (PRD §5.5).
@@ -204,7 +211,9 @@ export function ContextMenu({
                   key={pid}
                   type="button"
                   role="menuitem"
-                  class={`tk-menu-flag tk-p${PRIORITY.exec(pid)![1]}`}
+                  data-key={pid}
+                  tabIndex={pid === active ? 0 : -1}
+                  class={`tk-menu-flag tk-p${PRIORITY.exec(pid)![1]}${pid === active ? ' tk-active' : ''}`}
                   aria-label={catalog.get(pid)!.title}
                   onPointerDown={(e) => e.preventDefault()}
                   onClick={(e) => choose(pid, e)}
@@ -223,8 +232,11 @@ export function ContextMenu({
             key={id}
             type="button"
             role="menuitem"
-            class={`tk-menu-item${c.danger ? ' tk-danger' : ''}${p ? ` tk-p${p}` : ''}`}
+            data-key={id}
+            tabIndex={id === active ? 0 : -1}
+            class={`tk-menu-item${c.danger ? ' tk-danger' : ''}${p ? ` tk-p${p}` : ''}${id === active ? ' tk-active' : ''}`}
             onPointerDown={(e) => e.preventDefault()}
+            onPointerMove={() => id !== active && move(id)}
             onClick={(e) => choose(id, e)}
           >
             <Icon name={ICONS[id] ?? 'square'} />
@@ -248,10 +260,14 @@ function WorkspaceItems({
   app,
   catalog,
   pressed,
+  active,
+  move,
 }: {
   readonly app: AppController;
   readonly catalog: CommandCatalog;
   readonly pressed: { current: boolean };
+  readonly active: string | null;
+  readonly move: (key: string) => void;
 }) {
   const open = app.workspaceId.value;
   const list = app.workspaceList.value;
@@ -263,8 +279,11 @@ function WorkspaceItems({
           type="button"
           role="menuitemradio"
           aria-checked={w.id === open}
-          class="tk-menu-item"
+          data-key={`workspace:${w.id}`}
+          tabIndex={`workspace:${w.id}` === active ? 0 : -1}
+          class={`tk-menu-item${`workspace:${w.id}` === active ? ' tk-active' : ''}`}
           onPointerDown={(e) => e.preventDefault()}
+          onPointerMove={() => `workspace:${w.id}` !== active && move(`workspace:${w.id}`)}
           onClick={(e) => {
             if (e.detail !== 0 && !pressed.current) return;
             app.menu.value = null;

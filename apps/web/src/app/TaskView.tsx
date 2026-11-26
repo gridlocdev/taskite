@@ -5,6 +5,7 @@ import { addStop, type AppController } from './controller.ts';
 import { openMenu } from './ContextMenu.tsx';
 import { SectionHeading } from './SectionHeading.tsx';
 import { DRAG_TYPE, TaskRow } from './TaskRow.tsx';
+import { focusMenuItem, menuArrows } from './menuCursor.ts';
 
 export function TaskView({
   app,
@@ -80,7 +81,7 @@ export function TaskView({
         {content.note && <p class="tk-note">{content.note}</p>}
         <div
           ref={listRef}
-          class={content.board ? 'tk-list tk-board' : 'tk-list'}
+          class={`tk-list${content.board ? ' tk-board' : ''}${app.selected.value.size > 1 ? ' tk-many-chosen' : ''}`}
           role="listbox"
           aria-labelledby="tk-view-title"
           aria-multiselectable="true"
@@ -131,14 +132,19 @@ export function TaskView({
 
 function ViewMenu({ catalog, ids }: { readonly catalog: CommandCatalog; readonly ids: readonly string[] }) {
   const [open, setOpen] = useState(false);
+  const [active, setActive] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const move = (key: string | null) => {
+    setActive(key);
+    focusMenuItem(ref.current, key);
+  };
   useEffect(() => {
     if (!open) return;
     const away = (e: PointerEvent) => {
       if (!ref.current?.contains(e.target as Node)) setOpen(false);
     };
     addEventListener('pointerdown', away, true);
-    ref.current?.querySelector<HTMLElement>('[role=menuitem]')?.focus();
+    move(ids[0] ?? null);
     return () => removeEventListener('pointerdown', away, true);
   }, [open]);
   return (
@@ -163,7 +169,7 @@ function ViewMenu({ catalog, ids }: { readonly catalog: CommandCatalog; readonly
               e.stopPropagation();
               setOpen(false);
               (ref.current?.firstElementChild as HTMLElement | null)?.focus();
-            } else menuArrows(e);
+            } else menuArrows(e, active, move);
           }}
         >
           {ids.map((id) => {
@@ -173,7 +179,10 @@ function ViewMenu({ catalog, ids }: { readonly catalog: CommandCatalog; readonly
                 key={id}
                 type="button"
                 role="menuitem"
-                class={`tk-menu-item${c.danger ? ' tk-danger' : ''}`}
+                data-key={id}
+                tabIndex={id === active ? 0 : -1}
+                class={`tk-menu-item${c.danger ? ' tk-danger' : ''}${id === active ? ' tk-active' : ''}`}
+                onPointerMove={() => id !== active && move(id)}
                 onClick={() => {
                   setOpen(false);
                   catalog.run(id);
@@ -187,22 +196,6 @@ function ViewMenu({ catalog, ids }: { readonly catalog: CommandCatalog; readonly
       )}
     </div>
   );
-}
-
-/** ↑ ↓ Home End move between a menu's items. */
-export function menuArrows(e: KeyboardEvent): void {
-  const menu = e.currentTarget as HTMLElement;
-  const items = [...menu.querySelectorAll<HTMLElement>('[role^=menuitem]:not([disabled])')];
-  const at = items.indexOf(document.activeElement as HTMLElement);
-  let next: number | null = null;
-  if (e.key === 'ArrowDown') next = (at + 1) % items.length;
-  else if (e.key === 'ArrowUp') next = (at - 1 + items.length) % items.length;
-  else if (e.key === 'Home') next = 0;
-  else if (e.key === 'End') next = items.length - 1;
-  if (next === null) return;
-  e.preventDefault();
-  e.stopPropagation();
-  items[next]?.focus();
 }
 
 /** Where a project section's rows can be dropped: the section's key, or none outside project views. */

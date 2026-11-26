@@ -82,6 +82,7 @@ export function TaskRow({
   const classes = ['tk-row'];
   if (isSubtask) classes.push('tk-subtask');
   if (chosen) classes.push('tk-chosen');
+  if (isCursor) classes.push('tk-cursor');
   if (done) classes.push('tk-done');
   if (completing) classes.push('tk-completing');
   if (leaving) classes.push('tk-leaving');

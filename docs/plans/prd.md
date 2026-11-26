@@ -271,6 +271,7 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
 - Plain CSS with `--tk-*` tokens, system font, Lucide-style icons; light and dark from the theme setting (System follows the OS). The accent is Taskite red (`#db4c3f`).
 - Notices appear in a status bar at the bottom of the window, one at a time, for 5 s, with an optional action (Undo, Try again). A screen-reader live region reads them.
 - Dialogs are modal, trap focus, close on Esc, and return focus to where it was. A click on empty space inside a dialog keeps focus in it. One dialog at a time.
+- **Focus is the app's own** and always visible: the browser's outline never shows. Buttons and fields get a ring in the focus colour (`--tk-focus`, light and dark) when the keyboard is on them. Where the keyboard is in the task list, a board, a menu or the calendar is app state (the cursor, the menu's active item, the calendar's day): it is drawn from that state, the keyboard follows it (one Tab stop per list), and after a click, a key, a command, a dialog closing, an undo or a reload the two agree. The cursor row shows a ring in the focus colour while the list has the keyboard; a lone chosen row shows the chosen tint instead, and with several chosen the cursor's ring shows on its tint. A menu's active item has the hover tint, and pointing at an item makes it the active one.
 - With `prefers-reduced-motion: reduce`, nothing animates.
 - No welcome screen: first start opens Today with its empty state.
 

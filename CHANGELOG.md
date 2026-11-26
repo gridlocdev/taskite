@@ -17,6 +17,7 @@
 
 ### Improvements
 
+- **You can always see where the keyboard is.** The task you're on has a ring of the theme's own colour (or its tint, when it's the only one chosen), menus mark the item you're on, and the browser's own focus outline is gone. After a click, a menu, a dialog or a command, the keyboard is back on the task you see marked.
 - **Safer desktop app.** The packaged app can no longer be started as plain Node or with Node's debugging options, so other programs can't use it to run their own code, and it loads its code only from its own archive, after checking the archive hasn't been changed.
 
 ## 1.0.0

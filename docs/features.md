@@ -78,7 +78,7 @@ Every action is a command. Find any of them with the command menu (`⌘K`) by it
 
 ## Look
 
-A light and a dark theme, or follow the system (**Settings**, `⌘,`). Nothing animates when the system asks for reduced motion. Messages appear in the status bar at the bottom, with Undo where it helps.
+A light and a dark theme, or follow the system (**Settings**, `⌘,`). Nothing animates when the system asks for reduced motion. The task the keyboard is on always shows, in the theme's colours: a ring, or the tint of a lone chosen task. In a menu the item you're on is marked, and it moves with the arrow keys and the pointer alike. Messages appear in the status bar at the bottom, with Undo where it helps.
 
 ## Phones and touch screens
 

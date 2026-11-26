@@ -115,6 +115,14 @@ textarea {
   font: inherit;
   color: inherit;
 }
+/*
+ * Focus is the app's own (PRD §9): never the browser's outline. Buttons and fields get this ring from the
+ * --tk-focus token when the keyboard is on them. Lists, menus and the calendar draw where the keyboard is from
+ * app state instead (.tk-cursor, .tk-active), and the keyboard follows that state.
+ */
+:focus {
+  outline: none;
+}
 :focus-visible {
   outline: 2px solid var(--tk-focus);
   outline-offset: 1px;
@@ -506,9 +514,6 @@ kbd {
   color: var(--tk-text-2);
   font-size: 13px;
 }
-.tk-list:focus {
-  outline: none;
-}
 .tk-section {
   margin-bottom: 18px;
 }
@@ -679,15 +684,18 @@ kbd {
 .tk-row:hover {
   background: var(--tk-hover);
 }
-.tk-row:focus {
+/* The cursor row (app.cursor), drawn from its class while it holds the keyboard: the keyboard follows the cursor, so the two agree, and a Tab stop elsewhere in the list shows alone. */
+.tk-row:focus-visible {
   outline: none;
 }
-.tk-row:focus-visible {
+.tk-row.tk-cursor:focus {
   box-shadow: inset 0 0 0 2px var(--tk-focus);
 }
-/* The chosen tint already shows where the keyboard is, so it doesn't get the focus ring as well. */
 .tk-row.tk-chosen {
   background: var(--tk-chosen);
+}
+/* A lone chosen row's tint already shows where the keyboard is; with several chosen, the cursor's ring shows too. */
+.tk-list:not(.tk-many-chosen) .tk-row.tk-cursor.tk-chosen:focus {
   box-shadow: none;
 }
 .tk-row.tk-subtask {
@@ -924,16 +932,15 @@ kbd {
   cursor: pointer;
   text-align: left;
 }
+/* The cursor on an add-task row (app.cursor) shows as the chosen tint while the list has the keyboard. */
+.tk-add-row:focus-visible {
+  outline: none;
+}
 .tk-add-row.tk-chosen:focus {
   background: var(--tk-chosen);
 }
-/* The chosen tint already shows where the keyboard is, so it doesn't get the focus ring as well. */
-.tk-add-row.tk-chosen:focus-visible {
-  outline: none;
-}
 .tk-add-row:hover,
-.tk-add-row.tk-chosen:focus,
-.tk-add-row:focus-visible {
+.tk-add-row.tk-chosen:focus {
   color: var(--tk-accent);
 }
 .tk-composer {
@@ -1048,9 +1055,11 @@ kbd {
   text-align: left;
   cursor: pointer;
 }
-.tk-menu-item:hover,
-.tk-menu-item:focus-visible {
+/* The active item is the menu's state: arrows and the pointer move it, and the keyboard follows it. */
+.tk-menu-item.tk-active {
   background: var(--tk-hover);
+}
+.tk-menu-item.tk-active:focus-visible {
   outline: none;
 }
 .tk-menu-item .tk-icon {
@@ -1729,6 +1738,9 @@ fieldset {
     font-size: 15px;
     font-weight: 600;
   }
+  .tk-menu-flag.tk-active {
+    background: var(--tk-hover);
+  }
   .tk-menu-flag .tk-icon {
     width: 18px;
     height: 18px;
@@ -1943,7 +1955,11 @@ fieldset {
 .tk-calendar-day:hover {
   background: var(--tk-hover);
 }
+/* The focused day is the calendar's state; the ring shows while the grid has the keyboard. */
 .tk-calendar-day:focus-visible {
+  outline: none;
+}
+.tk-calendar-day.tk-cursor:focus {
   outline: 2px solid var(--tk-focus);
   outline-offset: -2px;
 }
