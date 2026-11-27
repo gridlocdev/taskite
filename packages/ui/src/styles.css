@@ -82,13 +82,17 @@
   color-scheme: dark;
 }
 
+/*
+ * Reduced motion: no transitions at all. A tiny duration isn't enough: it still transitions every property,
+ * visibility included, so a menu that has just been shown stays hidden for a frame and refuses the keyboard.
+ */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    transition: none !important;
     scroll-behavior: auto !important;
   }
 }

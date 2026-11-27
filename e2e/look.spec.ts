@@ -136,6 +136,24 @@ test.describe('Look', () => {
     expect(await ring()).toBe(false);
   });
 
+  test('with reduced motion, a menu opened from the keyboard takes the keyboard at once, and Esc closes it', async ({
+    page,
+  }) => {
+    // A transition left on visibility, however short, kept a just-shown menu hidden, so it refused the keyboard
+    // and Esc went on to clear the choice instead.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.keyboard.press('ArrowDown');
+    const row = page.locator('.tk-row.tk-cursor');
+    await expect(row).toHaveClass(/tk-chosen/);
+    await page.keyboard.press('Shift+F10');
+    const menu = page.getByRole('menu');
+    await expect(menu.getByRole('menuitem').first()).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveCount(0);
+    await expect(row).toBeFocused();
+    await expect(row).toHaveClass(/tk-chosen/);
+  });
+
   test("a menu's active item is state: arrows and the pointer move it, and the keyboard goes with it", async ({
     page,
   }) => {

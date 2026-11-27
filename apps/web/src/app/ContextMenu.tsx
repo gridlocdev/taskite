@@ -1,5 +1,5 @@
 import { batch } from '@preact/signals';
-import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { plural } from '@taskite/core';
 import { Icon, type CommandCatalog } from '@taskite/ui';
 import { MENUS, NUMBERED_WORKSPACES } from './commands.ts';
@@ -118,9 +118,12 @@ export function ContextMenu({
     app.focusList.value++;
   };
 
-  useEffect(() => {
+  // Waits for the menu to be placed: until then it is hidden, and a hidden item can't take the keyboard. Before
+  // paint, so the menu never shows without the keyboard (a quick Esc would go to the list instead).
+  const placed = at !== null;
+  useLayoutEffect(() => {
     pressed.current = false;
-    if (!menu) return;
+    if (!menu || !placed) return;
     const away = (e: PointerEvent) => {
       if (!ref.current?.contains(e.target as Node)) close();
     };
@@ -132,7 +135,7 @@ export function ContextMenu({
       removeEventListener('pointerdown', away, true);
       removeEventListener('blur', close);
     };
-  }, [menu]);
+  }, [menu, placed]);
 
   // Keep it on screen: flip up or left when it would run off the window.
   useLayoutEffect(() => {
@@ -178,8 +181,9 @@ export function ContextMenu({
           : {
               left: `${(at ?? menu).x}px`,
               top: `${(at ?? menu).y}px`,
-              // Unseen until placed, but not visibility: hidden, which would refuse the keyboard on the first item.
-              opacity: at ? 1 : 0,
+              // Unseen and unclickable until placed. Nothing transitions visibility (see reduced motion in
+              // styles.css), so the first item can take the keyboard as soon as the menu is placed.
+              visibility: at ? 'visible' : 'hidden',
             }
       }
       onContextMenu={(e) => e.preventDefault()}
