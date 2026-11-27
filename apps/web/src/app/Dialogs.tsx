@@ -102,7 +102,7 @@ export function Dialogs({ app, catalog }: { readonly app: AppController; readonl
         >
           <p class="tk-about-name">Taskite {app.version}</p>
           <p>A to-do list for the desktop, the browser, a home server and the command line.</p>
-          <p class="tk-muted">Your tasks are kept in {app.location}.</p>
+          <p class="tk-muted tk-path">Your tasks are kept in {app.location}.</p>
         </Dialog>
       );
     case 'shortcuts':
@@ -1048,7 +1048,7 @@ function SettingsDialog({ app }: { readonly app: AppController }) {
       </label>
       <div class="tk-field">
         <span>Your tasks</span>
-        <p class="tk-muted">{app.location}</p>
+        <p class="tk-muted tk-path">{app.location}</p>
       </div>
     </Dialog>
   );

@@ -30,6 +30,18 @@ test.describe('Desktop, browser, NAS and CLI', () => {
       const errors = watchErrors(window);
       await window.getByRole('button', { name: 'Inbox' }).click();
       await expect(window.getByRole('option', { name: /Book dentist appointment/ })).toBeVisible();
+      // The data folder's long path wraps inside Settings instead of running out of it.
+      await window.getByRole('button', { name: /^Settings/ }).click();
+      const where = window.getByRole('dialog').locator('.tk-path');
+      await expect(where).toContainText(userData);
+      expect(
+        await where.evaluate((el) => {
+          const box = el.closest('dialog, [role=dialog]')!.getBoundingClientRect();
+          const p = el.getBoundingClientRect();
+          return p.right <= box.right && el.scrollWidth <= el.clientWidth;
+        }),
+        'the path stays inside the dialog',
+      ).toBe(true);
       expect(
         await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().some((w) => w.isVisible())),
         'no window shows on the screen',

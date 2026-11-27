@@ -164,6 +164,11 @@ kbd {
 .tk-muted {
   color: var(--tk-text-2);
 }
+/* A folder path has no spaces to wrap at: break it anywhere rather than run out of its dialog. */
+.tk-path {
+  overflow-wrap: anywhere;
+}
+
 .tk-error-text {
   color: var(--tk-danger);
 }
