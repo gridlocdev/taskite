@@ -26,6 +26,8 @@ export interface CommandSpec {
   readonly keywords?: string;
   readonly run: () => void | Promise<void>;
   readonly enabled?: () => boolean;
+  /** Why it can't run when `enabled` says no, in one short sentence: the command menu shows it. */
+  readonly unavailable?: string;
   /** Left out of the command menu (the command menu itself, say). */
   readonly hidden?: boolean;
   /** In a task's right-click menu. */

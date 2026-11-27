@@ -95,6 +95,7 @@ export function buildCommands(app: AppController): CommandCatalog {
     shortcuts: [String(p)],
     keywords: `p${p} flag importance urgency`,
     enabled: tasksChosen,
+    unavailable: 'Choose a task first.',
     context: true,
     keysOnly: true,
     run: () => app.setPriority(app.targetIds(), p),
@@ -248,6 +249,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       group: 'Task',
       shortcuts: ['space'],
       enabled: tasksChosen,
+      unavailable: 'Choose a task first.',
       context: true,
       keysOnly: true,
       run: () => app.toggleComplete(),
@@ -260,6 +262,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       group: 'Task',
       shortcuts: ['mod+enter'],
       enabled: () => !!app.single() && !inTrash(),
+      unavailable: 'Choose one task first.',
       context: true,
       keysOnly: true,
       run: () => app.edit(),
@@ -272,6 +275,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       group: 'Task',
       shortcuts: ['enter'],
       enabled: () => !!app.single() && !inTrash(),
+      unavailable: 'Choose one task first.',
       context: true,
       keysOnly: true,
       run: () => app.rename(),
@@ -284,6 +288,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       group: 'Task',
       shortcuts: ['mod+c'],
       enabled: () => app.hasTargets(),
+      unavailable: 'Choose a task first.',
       context: true,
       run: () => copyTasks(app),
     },
@@ -295,6 +300,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       group: 'Task',
       shortcuts: ['d'],
       enabled: tasksChosen,
+      unavailable: 'Choose a task first.',
       context: true,
       keysOnly: true,
       run: () => app.open({ kind: 'due', ids: app.targetIds() }),
@@ -311,6 +317,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       group: 'Task',
       shortcuts: ['m'],
       enabled: tasksChosen,
+      unavailable: 'Choose a task first.',
       context: true,
       keysOnly: true,
       run: () => app.open({ kind: 'move', ids: app.targetIds() }),
@@ -323,6 +330,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       group: 'Task',
       shortcuts: ['alt+up'],
       enabled: () => app.canMove(),
+      unavailable: 'Choose a task in a project first.',
       context: true,
       run: () => app.moveChosen(-1),
     },
@@ -334,6 +342,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       group: 'Task',
       shortcuts: ['alt+down'],
       enabled: () => app.canMove(),
+      unavailable: 'Choose a task in a project first.',
       context: true,
       run: () => app.moveChosen(1),
     },
@@ -367,6 +376,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       group: 'Task',
       shortcuts: ['backspace', 'delete'],
       enabled: tasksChosen,
+      unavailable: 'Choose a task first.',
       context: true,
       danger: true,
       keysOnly: true,
@@ -380,6 +390,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       group: 'Task',
       shortcuts: ['r'],
       enabled: trashChosen,
+      unavailable: 'Choose a task in the Trash first.',
       context: true,
       keysOnly: true,
       run: () => app.restore(),
@@ -392,6 +403,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       group: 'Task',
       shortcuts: ['backspace', 'delete'],
       enabled: trashChosen,
+      unavailable: 'Choose a task in the Trash first.',
       context: true,
       danger: true,
       keysOnly: true,
@@ -429,6 +441,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       description: "Renames or recolours the project you're looking at (or right-clicked).",
       group: 'Task',
       enabled: () => !!app.projectTarget(),
+      unavailable: 'Go to a project other than the Inbox first.',
       run: () => app.open({ kind: 'project', id: app.projectTarget()?.id ?? null }),
     },
     {
@@ -440,6 +453,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       group: 'Task',
       danger: true,
       enabled: () => !!app.projectTarget(),
+      unavailable: 'Go to a project other than the Inbox first.',
       run: () => {
         const p = app.projectTarget();
         if (p) app.deleteProject(p.id);
@@ -452,6 +466,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       description: 'Adds a named section to the project on screen (after the one right-clicked).',
       group: 'Task',
       enabled: () => !!app.shownProject(),
+      unavailable: 'Go to a project first.',
       run: () => {
         const p = app.shownProject();
         if (p)
@@ -465,6 +480,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       description: 'Opens the add-task row at the end of the section right-clicked.',
       group: 'Task',
       enabled: () => !!app.sectionTarget(),
+      unavailable: 'Right-click a section heading to use this.',
       run: () => {
         const t = app.sectionTarget();
         if (t) app.composer.value = `section:${t.section.id}`;
@@ -477,6 +493,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       description: 'Renames the section right-clicked.',
       group: 'Task',
       enabled: () => !!app.sectionTarget(),
+      unavailable: 'Right-click a section heading to use this.',
       run: () => {
         const t = app.sectionTarget();
         if (t) app.open({ kind: 'section', projectId: t.projectId, id: t.section.id });
@@ -490,6 +507,7 @@ export function buildCommands(app: AppController): CommandCatalog {
         'Edits the rules that change a task when it enters the section, or is completed there (the section right-clicked, else the one the cursor is in).',
       group: 'Task',
       enabled: () => !!app.automationTarget(),
+      unavailable: 'Put the cursor in a project section first.',
       run: () => {
         const t = app.automationTarget();
         if (t) app.open({ kind: 'automations', projectId: t.projectId, sectionId: t.section.id });
@@ -521,6 +539,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       group: 'Task',
       danger: true,
       enabled: () => !!app.sectionTarget(),
+      unavailable: 'Right-click a section heading to use this.',
       run: () => {
         const t = app.sectionTarget();
         if (t) app.deleteSection(t.projectId, t.section.id);
@@ -558,6 +577,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       description: "Renames or recolours the label you're looking at (or right-clicked).",
       group: 'Task',
       enabled: () => !!app.labelTarget(),
+      unavailable: 'Go to a label first.',
       run: () => {
         const l = app.labelTarget();
         if (l) app.open({ kind: 'label', name: l });
@@ -571,6 +591,7 @@ export function buildCommands(app: AppController): CommandCatalog {
       group: 'Task',
       danger: true,
       enabled: () => !!app.labelTarget(),
+      unavailable: 'Go to a label first.',
       run: () => {
         const l = app.labelTarget();
         if (l) app.removeLabel(l);

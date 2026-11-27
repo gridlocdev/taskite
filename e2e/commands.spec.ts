@@ -29,6 +29,15 @@ test.describe('Commands and shortcuts', () => {
     await expect(menu.getByRole('option').first()).toContainText('Keyboard Shortcuts');
   });
 
+  test('a command that cannot run here says why in the command menu', async ({ page }) => {
+    await page.keyboard.press('ControlOrMeta+KeyK');
+    const menu = page.getByRole('dialog', { name: 'Command menu' });
+    await page.keyboard.type('edit project');
+    const item = menu.getByRole('option', { name: /Edit Project/ });
+    await expect(item).toHaveAttribute('aria-disabled', 'true');
+    await expect(item).toContainText('Go to a project other than the Inbox first.');
+  });
+
   test('two-key shortcuts go to a view', async ({ page }) => {
     await page.keyboard.press('KeyG');
     await page.keyboard.press('KeyI');

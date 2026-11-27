@@ -249,6 +249,7 @@ Every action is a command in one catalog, which feeds the keyboard, the command 
 - Two-key shortcuts (`G` then `I`) wait 1.5 s for the second key, and aren't shown in the menu bar. A second key typed in a text field is just typed.
 - Digit shortcuts (Priority 1–4) go by the key cap on layouts whose digit keys type punctuation without Shift (AZERTY: `&` is 1).
 - In any dialog with a main button, ⌘Enter (Ctrl+Enter) presses it from any field.
+- A command that can't run where you are stays in the command menu, dimmed, and says why in place of its group ("Choose a task first.").
 - While an input method is composing (Japanese, Chinese, Korean), Enter and Esc belong to it: they don't add a task, close a dialog or clear the search.
 - While a dialog is open, only commands marked global with a ⌘ chord run (and only those that make sense: the command menu and shortcuts window toggle closed).
 - Groups and menu order: File, Edit, Task, Select, Go, View, Help.

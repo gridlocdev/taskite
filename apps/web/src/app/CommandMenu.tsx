@@ -6,6 +6,8 @@ import type { AppController } from './controller.ts';
 interface Entry extends MenuEntry {
   readonly keys: string;
   readonly enabled: boolean;
+  /** Why it can't run, shown while `enabled` is false. */
+  readonly unavailable: string;
   readonly run: () => void;
 }
 
@@ -31,9 +33,10 @@ export function CommandMenu({
         keywords: `${c.keywords ?? ''} ${c.description}`,
         keys: catalog.keys(c).join(' '),
         enabled: catalog.isEnabled(c),
+        unavailable: c.unavailable ?? 'Not available here.',
         run: () => catalog.run(c.id),
       }));
-    const extra = dynamicEntries(app).map((e) => ({ ...e, keys: '', enabled: true }));
+    const extra = dynamicEntries(app).map((e) => ({ ...e, keys: '', enabled: true, unavailable: '' }));
     return [...commands, ...extra];
   }, [app, catalog]);
   const results = filterEntries(entries, query, catalog.recentIds).slice(0, 80);
@@ -72,7 +75,8 @@ export function CommandMenu({
           onClick={() => pick(i)}
         >
           <span class="tk-palette-title">{e.title}</span>
-          <span class="tk-palette-group">{e.group}</span>
+          {/* A command that can't run says why, where its group would be. */}
+          <span class="tk-palette-group">{e.enabled ? e.group : e.unavailable}</span>
           {e.keys && <kbd>{e.keys}</kbd>}
         </li>
       ))}
