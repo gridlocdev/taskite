@@ -1042,7 +1042,8 @@ function SettingsDialog({ app }: { readonly app: AppController }) {
         <span>
           A new section named Done completes tasks moved into it
           <small class="tk-muted">
-            and reopens tasks moved out. You can change its rules in Section Automations….
+            and reopens tasks moved out. You can change its rules with Section Automations… on the section's
+            menu.
           </small>
         </span>
       </label>
