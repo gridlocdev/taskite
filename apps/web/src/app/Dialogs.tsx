@@ -702,17 +702,29 @@ function DueDialog({ app, ids }: { readonly app: AppController; readonly ids: re
   );
 }
 
+/** The line under a Name field that says why Save did nothing: shown once Save was tried with no name. */
+function NoNameError({ id, shown }: { readonly id: string; readonly shown: boolean }) {
+  return (
+    <p id={id} class="tk-error-text" role="status">
+      {shown ? 'Type a name first.' : ''}
+    </p>
+  );
+}
+
 /** New or edit project (PRD §9.3): a name and a colour. */
 function ProjectDialog({ app, id }: { readonly app: AppController; readonly id: string | null }) {
   const project = id ? app.list.getProject(id) : undefined;
   const [name, setName] = useState(project?.name ?? '');
   const [color, setColor] = useState<ProjectColor>(project?.color ?? 'blue');
+  const [tried, setTried] = useState(false);
+  const empty = !name.trim();
   return (
     <Dialog
       title={project ? 'Edit project' : 'New project'}
       onClose={() => app.close()}
       onSubmit={() => {
-        if (!name.trim()) return;
+        setTried(true);
+        if (empty) return;
         app.close();
         app.saveProject(id, name, color);
       }}
@@ -721,12 +733,14 @@ function ProjectDialog({ app, id }: { readonly app: AppController; readonly id: 
       <label class="tk-field">
         <span>Name</span>
         <input
-          required
           maxLength={80}
           value={name}
+          aria-invalid={tried && empty}
+          aria-describedby="tk-project-problem"
           onInput={(e) => setName((e.target as HTMLInputElement).value)}
         />
       </label>
+      <NoNameError id="tk-project-problem" shown={tried && empty} />
       <fieldset class="tk-swatches">
         <legend>Colour</legend>
         {PROJECT_COLOR_NAMES.map((c) => (
@@ -751,12 +765,15 @@ function ProjectDialog({ app, id }: { readonly app: AppController; readonly id: 
 function LabelDialog({ app, name: label }: { readonly app: AppController; readonly name: string }) {
   const [name, setName] = useState(label);
   const [color, setColor] = useState<ProjectColor | null>(app.list.labelColor(label));
+  const [tried, setTried] = useState(false);
+  const empty = !name.trim().replace(/^@/, '');
   return (
     <Dialog
       title="Edit label"
       onClose={() => app.close()}
       onSubmit={() => {
-        if (!name.trim().replace(/^@/, '')) return;
+        setTried(true);
+        if (empty) return;
         app.close();
         app.editLabel(label, name, color);
       }}
@@ -764,8 +781,14 @@ function LabelDialog({ app, name: label }: { readonly app: AppController; readon
     >
       <label class="tk-field">
         <span>Name</span>
-        <input required value={name} onInput={(e) => setName((e.target as HTMLInputElement).value)} />
+        <input
+          value={name}
+          aria-invalid={tried && empty}
+          aria-describedby="tk-label-problem"
+          onInput={(e) => setName((e.target as HTMLInputElement).value)}
+        />
       </label>
+      <NoNameError id="tk-label-problem" shown={tried && empty} />
       <fieldset class="tk-swatches">
         <legend>Colour</legend>
         <label class="tk-swatch tk-swatch-none" title="none">
@@ -810,12 +833,15 @@ function SectionDialog({
   readonly after: string | undefined;
 }) {
   const [name, setName] = useState(id ? (app.list.getSection(projectId, id)?.name ?? '') : '');
+  const [tried, setTried] = useState(false);
+  const empty = !name.trim();
   return (
     <Dialog
       title={id ? 'Rename section' : 'Add section'}
       onClose={() => app.close()}
       onSubmit={() => {
-        if (!name.trim()) return;
+        setTried(true);
+        if (empty) return;
         app.close();
         app.saveSection(projectId, id, name, after);
       }}
@@ -824,12 +850,14 @@ function SectionDialog({
       <label class="tk-field">
         <span>Name</span>
         <input
-          required
           maxLength={MAX_PROJECT_NAME}
           value={name}
+          aria-invalid={tried && empty}
+          aria-describedby="tk-section-problem"
           onInput={(e) => setName((e.target as HTMLInputElement).value)}
         />
       </label>
+      <NoNameError id="tk-section-problem" shown={tried && empty} />
     </Dialog>
   );
 }
@@ -854,7 +882,6 @@ function WorkspaceDialog({ app, id }: { readonly app: AppController; readonly id
       <label class="tk-field">
         <span>Name</span>
         <input
-          required
           maxLength={MAX_WORKSPACE_NAME}
           value={name}
           placeholder={id ? undefined : 'Work, Games, Home…'}

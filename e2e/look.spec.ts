@@ -184,4 +184,19 @@ test.describe('Look', () => {
     await expect(menu).toHaveCount(0);
     await expect(page.locator('.tk-row.tk-cursor')).toBeFocused();
   });
+
+  test('saving a project with no name says why nothing happened', async ({ page }) => {
+    await runCommand(page, 'New Project…');
+    const dialog = page.getByRole('dialog');
+    const name = dialog.getByRole('textbox', { name: 'Name' });
+    await expect(dialog.getByRole('status')).toHaveText('');
+    await dialog.getByRole('button', { name: 'Add Project' }).click();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('status')).toHaveText('Type a name first.');
+    await expect(name).toHaveAttribute('aria-invalid', 'true');
+    await name.fill('Garden');
+    await expect(dialog.getByRole('status')).toHaveText('');
+    await dialog.getByRole('button', { name: 'Add Project' }).click();
+    await expect(dialog).toHaveCount(0);
+  });
 });
