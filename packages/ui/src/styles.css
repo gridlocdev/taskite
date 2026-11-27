@@ -553,9 +553,19 @@ kbd {
   white-space: nowrap;
 }
 .tk-section-heading .tk-count,
+.tk-row-more,
 .tk-section-more,
 .tk-automation-badge {
   flex: none;
+}
+/* The cursor row's ⋯: top right, level with the name, over the row so nothing in it moves when the cursor does. */
+.tk-row-more {
+  position: absolute;
+  top: 5px;
+  right: 4px;
+}
+.tk-row.tk-cursor .tk-row-title {
+  padding-right: 28px;
 }
 /* A section's automations (PRD §6.1): ⚡ and the rule count after the heading count. */
 .tk-automation-badge {

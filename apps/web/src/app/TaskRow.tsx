@@ -107,13 +107,14 @@ export function TaskRow({
       {...touch.handlers}
       onClick={(e) => {
         if (touch.swallowClick()) return;
-        if ((e.target as HTMLElement).closest('.tk-check, .tk-name-field')) return;
+        if ((e.target as HTMLElement).closest('.tk-check, .tk-name-field, .tk-row-more')) return;
         app.click(task.id, { toggle: e.metaKey || e.ctrlKey, range: e.shiftKey });
         // A tap opens the task (PRD §5.5): a finger has no double-click.
         if (touch.wasTouch() && !inTrash) app.edit(task.id);
       }}
       onDblClick={(e) => {
-        if (!(e.target as HTMLElement).closest('.tk-check, .tk-name-field') && !inTrash) app.edit(task.id);
+        if (!(e.target as HTMLElement).closest('.tk-check, .tk-name-field, .tk-row-more') && !inTrash)
+          app.edit(task.id);
       }}
       onContextMenu={(e) => {
         // A task always has something to offer (Complete, or Restore in the Trash).
@@ -241,6 +242,26 @@ export function TaskRow({
           )}
         </div>
       </div>
+      {isCursor && !renaming && (
+        // The row's actions in sight, on the cursor row only: the same menu as a right-click (PRD §5.2). Not a Tab
+        // stop, like the check circle: the list stays one Tab stop, and Shift+F10 opens the menu from the keyboard.
+        <button
+          type="button"
+          class="tk-icon-button tk-row-more"
+          aria-label={`${task.title} actions`}
+          title="Task actions"
+          aria-haspopup="menu"
+          tabIndex={-1}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!app.selected.value.has(task.id)) app.click(task.id);
+            const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            app.menu.value = { x: r.left, y: r.bottom + 4, kind: 'task' };
+          }}
+        >
+          <Icon name="dots" />
+        </button>
+      )}
     </div>
   );
 }

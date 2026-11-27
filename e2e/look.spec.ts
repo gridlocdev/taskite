@@ -199,4 +199,19 @@ test.describe('Look', () => {
     await dialog.getByRole('button', { name: 'Add Project' }).click();
     await expect(dialog).toHaveCount(0);
   });
+
+  test('only the cursor row shows a ⋯ button, and it opens the row menu', async ({ page }) => {
+    await page.keyboard.press('ArrowDown');
+    const row = page.locator('.tk-row.tk-cursor');
+    const more = page.getByRole('button', { name: /actions$/ }).and(page.locator('.tk-row-more'));
+    await expect(more).toHaveCount(1);
+    await expect(row.locator('.tk-row-more')).toBeVisible();
+    await more.click();
+    await expect(page.getByRole('menu').getByRole('menuitem', { name: /Rename Task/ })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('menu')).toHaveCount(0);
+    await page.keyboard.press('ArrowDown');
+    await expect(more).toHaveCount(1);
+    await expect(page.locator('.tk-row.tk-cursor .tk-row-more')).toBeVisible();
+  });
 });

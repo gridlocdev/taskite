@@ -180,6 +180,8 @@ The app opens on the view it showed last (`settings.lastView`), else Today. A pr
 
 Rows show: circle (priority colour, filled when done), title, first line of the description, and a meta line: Trash age; due date ("Today", "Tomorrow", "Yesterday", weekday within a week, "Nov 20", with the year if not this year; overdue red, today green, this week purple), repeat icon, subtasks done/total, labels, parent title (outside project views), project (outside project views).
 
+The cursor row shows a ⋯ button at its top right that opens the same menu as a right-click on it. It isn't a Tab stop (Shift+F10 opens the menu from the keyboard), and only the cursor row has one, so nothing in a row moves as the cursor does.
+
 A project's title reads as a breadcrumb, "Projects / ● Work": "Projects" and the slash in grey, then the project's colour dot and its name.
 
 Empty states: one line and a hint, e.g. "All clear! Nothing left to do here."
